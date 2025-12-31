@@ -7,10 +7,12 @@ export default function ReasonQuestion({ answers, onNext, onBack }) {
   const [reason, setReason] = useState(answers.reason || '');
 
   const handleSubmit = () => {
-    if (reason.trim()) {
+    if (reason.trim().length >= 10) {
       onNext({ reason });
     }
   };
+
+  const isValid = reason.trim().length >= 10;
 
   return (
     <div className="py-12 px-6">
@@ -41,7 +43,7 @@ export default function ReasonQuestion({ answers, onNext, onBack }) {
           onChange={(e) => setReason(e.target.value)}
           placeholder="예: 새로운 직장에서 많은 사람들을 만났고, 도전적인 프로젝트를 진행하면서..."
           className="w-full h-48 p-6 rounded-2xl bg-white/80 backdrop-blur-sm border-2 border-purple-200 focus:border-purple-400 focus:ring-4 focus:ring-purple-100 outline-none transition-all duration-300 resize-none text-gray-700 placeholder:text-gray-400"
-          style={{ fontSize: '16px' }} // iOS 자동 줌 방지
+          style={{ fontSize: '16px' }}
         />
       </motion.div>
 
@@ -63,13 +65,13 @@ export default function ReasonQuestion({ answers, onNext, onBack }) {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
-          whileHover={{ scale: reason.trim() ? 1.05 : 1 }}
-          whileTap={{ scale: reason.trim() ? 0.95 : 1 }}
+          whileHover={{ scale: isValid ? 1.05 : 1 }}
+          whileTap={{ scale: isValid ? 0.95 : 1 }}
           onClick={handleSubmit}
-          disabled={!reason.trim()}
+          disabled={!isValid}
           className={`
             flex-[2] py-4 rounded-full font-medium transition-all duration-300
-            ${reason.trim()
+            ${isValid
               ? 'bg-gradient-to-r from-purple-400 to-blue-400 text-white shadow-lg'
               : 'bg-gray-100 text-gray-400 cursor-not-allowed'
             }
@@ -84,9 +86,11 @@ export default function ReasonQuestion({ answers, onNext, onBack }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
-        className="text-center text-sm text-gray-400 mt-4"
+        className={`text-center text-sm mt-4 ${
+          isValid ? 'text-purple-600 font-medium' : 'text-gray-400'
+        }`}
       >
-        {reason.length}자
+        {reason.length}자 {!isValid && '(최소 10자 이상)'}
       </motion.p>
     </div>
   );

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { getAccessToken, clearTokens, fetchWithAuth } from '../utils/auth';
 
 export default function MePage() {
   const router = useRouter();
@@ -14,7 +16,7 @@ export default function MePage() {
   }, []);
 
   const fetchUserInfo = async () => {
-    const accessToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const accessToken = getAccessToken();
 
     if (!accessToken) {
       router.push('/login');
@@ -22,13 +24,9 @@ export default function MePage() {
     }
 
     try {
-      const response = await fetch('https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/auth/me', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetchWithAuth(
+        'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/auth/me'
+      );
 
       const data = await response.json();
 
@@ -37,11 +35,12 @@ export default function MePage() {
       } else {
         setError('사용자 정보를 불러올 수 없습니다.');
         if (response.status === 401) {
-          localStorage.removeItem('accessToken');
+          clearTokens();
           router.push('/login');
         }
       }
     } catch (err) {
+      console.error('사용자 정보 로드 에러:', err);
       setError('서버와 통신 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
@@ -49,13 +48,12 @@ export default function MePage() {
   };
 
   const handleLogout = () => {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('idToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('userEmail');
-    }
+    clearTokens();
     router.push('/login');
+  };
+
+  const handleKakaoConsult = () => {
+    window.open('https://pf.kakao.com/_xjwsxfb/chat', '_blank');
   };
 
   if (loading) {
@@ -96,6 +94,102 @@ export default function MePage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-12">
+        {/* 2025 회고 배너 */}
+        {user && !user.retrospective2025Completed ? (
+          <Link href="/me/retrospective" className="block mb-8 group">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 p-8 shadow-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-3xl animate-fade-in cursor-pointer">
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-10 left-10 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-float" />
+                <div className="absolute bottom-10 right-10 w-40 h-40 bg-white/20 rounded-full blur-3xl animate-float-delay-1" />
+              </div>
+              
+              <div className="relative z-10 text-center">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 drop-shadow-lg">
+                  2025년 어땠나요?
+                </h2>
+                <p className="text-xl text-white/90 mb-6 drop-shadow">
+                  2026의 방향을 잘 설정해보아요.
+                </p>
+                <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm rounded-full text-white font-semibold group-hover:bg-white/30 transition-all">
+                  <span>회고 시작하기</span>
+                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+              
+              <div className="absolute top-4 right-4 text-white/30 text-6xl">✨</div>
+              <div className="absolute bottom-4 left-4 text-white/30 text-5xl">💫</div>
+            </div>
+          </Link>
+        ) : user?.retrospective2025Completed ? (
+          <div className="mb-8">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-300 to-gray-400 p-8 shadow-lg opacity-60 cursor-not-allowed">
+              <div className="relative z-10 text-center">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 drop-shadow-lg">
+                  2025년 어땠나요?
+                </h2>
+                <p className="text-xl text-white/90 mb-4 drop-shadow">
+                  2026의 방향을 잘 설정해보아요.
+                </p>
+                <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/40 backdrop-blur-sm rounded-full text-white font-semibold">
+                  <span>✅ 완료됨</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {/* 2025 돌아보기 배너 (새로 추가) */}
+        {user && !user.review2025Completed ? (
+          <Link href="/me/review2025" className="block mb-8 group">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400 p-8 shadow-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-3xl animate-fade-in cursor-pointer">
+              <div className="absolute inset-0 opacity-30">
+                <div className="absolute top-10 left-10 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-float" />
+                <div className="absolute bottom-10 right-10 w-40 h-40 bg-white/20 rounded-full blur-3xl animate-float-delay-1" />
+              </div>
+              
+              <div className="relative z-10 text-center">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 drop-shadow-lg">
+                  2025년, 당신의 이야기
+                </h2>
+                <p className="text-xl text-white/90 mb-6 drop-shadow">
+                  힘들었던 순간, 노력했던 순간,
+                  <br />
+                  그리고 행복했던 순간들을 돌아봐요
+                </p>
+                <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm rounded-full text-white font-semibold group-hover:bg-white/30 transition-all">
+                  <span>돌아보기 시작</span>
+                  <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+              
+              <div className="absolute top-4 right-4 text-white/30 text-6xl">🗓️</div>
+              <div className="absolute bottom-4 left-4 text-white/30 text-5xl">✨</div>
+            </div>
+          </Link>
+        ) : user?.review2025Completed ? (
+          <div className="mb-8">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gray-300 to-gray-400 p-8 shadow-lg opacity-60 cursor-not-allowed">
+              <div className="relative z-10 text-center">
+                <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 drop-shadow-lg">
+                  2025년, 당신의 이야기
+                </h2>
+                <p className="text-xl text-white/90 mb-4 drop-shadow">
+                  힘들었던 순간, 노력했던 순간,
+                  <br />
+                  그리고 행복했던 순간들을 돌아봐요
+                </p>
+                <div className="inline-flex items-center gap-2 px-6 py-3 bg-white/40 backdrop-blur-sm rounded-full text-white font-semibold">
+                  <span>✅ 완료됨</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <h1 className="text-3xl font-bold text-gray-900 mb-8">내 정보</h1>
           
@@ -151,11 +245,19 @@ export default function MePage() {
 
               <div className="grid grid-cols-3 gap-4 py-3 border-b">
                 <div className="font-semibold text-gray-700">사전 설문</div>
-                <div className="col-span-2">
+                <div className="col-span-2 flex items-center gap-3">
                   {user.preSurveyCompleted ? (
                     <span className="text-green-600">✅ 완료</span>
                   ) : (
-                    <span className="text-gray-600">❌ 미완료</span>
+                    <>
+                      <span className="text-gray-600">❌ 미완료</span>
+                      <button
+                        onClick={handleKakaoConsult}
+                        className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg font-medium text-sm transition-colors shadow-sm hover:shadow-md"
+                      >
+                        💬 사전 설문 상담 신청
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

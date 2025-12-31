@@ -10,15 +10,13 @@ export default function PeopleQuestion({ answers, onNext, onBack }) {
   });
 
   const handleSubmit = () => {
-    if (people.firstHalf.trim() || people.secondHalf.trim()) {
-      onNext({
-        firstHalfPeople: people.firstHalf,
-        secondHalfPeople: people.secondHalf
-      });
-    }
+    onNext({
+      firstHalfPeople: people.firstHalf,
+      secondHalfPeople: people.secondHalf
+    });
   };
 
-  const isValid = people.firstHalf.trim() || people.secondHalf.trim();
+  const isValid = people.firstHalf.trim().length >= 10 && people.secondHalf.trim().length >= 10;
 
   return (
     <div className="py-12 px-6">
@@ -59,6 +57,11 @@ export default function PeopleQuestion({ answers, onNext, onBack }) {
           className="w-full p-4 rounded-xl bg-white/80 backdrop-blur-sm border-2 border-pink-200 focus:border-pink-400 focus:ring-4 focus:ring-pink-100 outline-none transition-all duration-300 text-gray-700 placeholder:text-gray-400"
           style={{ fontSize: '16px' }}
         />
+        <p className={`text-xs mt-2 ${
+          people.firstHalf.trim().length >= 10 ? 'text-pink-600 font-medium' : 'text-gray-400'
+        }`}>
+          {people.firstHalf.length}자 {people.firstHalf.trim().length < 10 && '(최소 10자 이상)'}
+        </p>
       </motion.div>
 
       {/* 하반기 입력 */}
@@ -80,6 +83,11 @@ export default function PeopleQuestion({ answers, onNext, onBack }) {
           className="w-full p-4 rounded-xl bg-white/80 backdrop-blur-sm border-2 border-blue-200 focus:border-blue-400 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-300 text-gray-700 placeholder:text-gray-400"
           style={{ fontSize: '16px' }}
         />
+        <p className={`text-xs mt-2 ${
+          people.secondHalf.trim().length >= 10 ? 'text-blue-600 font-medium' : 'text-gray-400'
+        }`}>
+          {people.secondHalf.length}자 {people.secondHalf.trim().length < 10 && '(최소 10자 이상)'}
+        </p>
       </motion.div>
 
       {/* 버튼 그룹 */}

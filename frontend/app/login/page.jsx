@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { saveTokens } from '../utils/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -53,9 +54,8 @@ export default function LoginPage() {
       }
 
       if (data.tokens) {
-        localStorage.setItem('accessToken', data.tokens.accessToken);
-        localStorage.setItem('idToken', data.tokens.idToken);
-        localStorage.setItem('refreshToken', data.tokens.refreshToken);
+        // auth 유틸리티 사용 (localStorage + 쿠키 동시 저장)
+        saveTokens(data.tokens);
         localStorage.setItem('userEmail', formData.email);
       }
 

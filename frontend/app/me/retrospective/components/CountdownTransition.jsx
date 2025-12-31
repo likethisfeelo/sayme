@@ -1,88 +1,78 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 
-export default function CountdownTransition() {
+export default function CountdownTransition({ onNext }) {
   const [count, setCount] = useState(5);
+  const hasCalledNext = useRef(false); // 중복 호출 방지
 
   useEffect(() => {
     if (count > 0) {
       const timer = setTimeout(() => setCount(count - 1), 1000);
       return () => clearTimeout(timer);
+    } else if (count === 0 && !hasCalledNext.current) {
+      hasCalledNext.current = true;
+      onNext({});
     }
-  }, [count]);
+  }, [count, onNext]);
+
+  const handleSkip = () => {
+    if (!hasCalledNext.current) {
+      hasCalledNext.current = true;
+      onNext({});
+    }
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh]">
+    <div className="flex flex-col items-center justify-center min-h-screen px-6 bg-gradient-to-br from-purple-50 to-blue-50">
+      {/* 카운트다운 숫자 */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center"
+        key={count}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 2, opacity: 0 }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
+        className="mb-12"
       >
-        {/* 감사 메시지 */}
-        <motion.p
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-2xl font-medium text-gray-700 mb-12"
-        >
-          알겠습니다 🙏
-        </motion.p>
-
-        {/* 카운트다운 숫자 */}
-        <div className="relative h-40 flex items-center justify-center">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={count}
-              initial={{ scale: 0, opacity: 0, rotate: -180 }}
-              animate={{ 
-                scale: [0, 1.2, 1], 
-                opacity: [0, 1, 1],
-                rotate: [0, 0, 0]
-              }}
-              exit={{ 
-                scale: 0, 
-                opacity: 0,
-                rotate: 180
-              }}
-              transition={{ 
-                duration: 0.6,
-                times: [0, 0.6, 1]
-              }}
-              className="absolute"
-            >
-              <span className="text-8xl font-bold bg-gradient-to-br from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-                {count}
-              </span>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* 안내 메시지 */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="text-lg text-gray-600 mt-12"
-        >
-          다른 질문으로 넘어가볼게요
-        </motion.p>
+        {count > 0 ? (
+          <div className="text-9xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+            {count}
+          </div>
+        ) : (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 0.5 }}
+            className="text-8xl"
+          >
+            ✨
+          </motion.div>
+        )}
       </motion.div>
 
-      {/* 배경 펄스 효과 */}
-      <motion.div
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.6, 0.3]
-        }}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          ease: "easeInOut"
-        }}
-        className="absolute inset-0 bg-gradient-to-br from-purple-200/20 to-blue-200/20 rounded-full blur-3xl"
-        style={{ width: '300px', height: '300px', margin: 'auto' }}
-      />
+      {/* 안내 메시지 */}
+      <motion.p
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        className="text-xl text-gray-600 mb-8"
+      >
+        잠시 숨을 고르세요...
+      </motion.p>
+
+      {/* 건너뛰기 버튼 */}
+      <motion.button
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={handleSkip}
+        className="px-6 py-3 bg-white/50 backdrop-blur-sm border-2 border-purple-300 text-purple-600 rounded-full font-medium hover:bg-white/70 transition-all"
+      >
+        건너뛰기 →
+      </motion.button>
     </div>
   );
 }

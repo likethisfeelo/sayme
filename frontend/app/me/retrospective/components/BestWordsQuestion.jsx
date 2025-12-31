@@ -6,16 +6,21 @@ import { motion } from 'framer-motion';
 export default function BestWordsQuestion({ answers, onNext, onBack }) {
   const [words, setWords] = useState(answers.bestWords || '');
   const [whoAmI, setWhoAmI] = useState(answers.bestWordsWhoAmI || '');
-  const [step, setStep] = useState(0); // 0: 말, 1: 의미
+  const [step, setStep] = useState(0);
 
   const handleNextStep = () => {
-    if (step === 0 && words.trim()) {
+    if (step === 0 && words.trim().length >= 10) {
+      console.log('🟢 BestWords Step 0 완료, Step 1로 이동');
       setStep(1);
-    } else if (step === 1 && whoAmI.trim()) {
-      onNext({
+    } else if (step === 1 && whoAmI.trim().length >= 10) {
+      const data = {
         bestWords: words,
         bestWordsWhoAmI: whoAmI
-      });
+      };
+      console.log('🟢 BestWordsQuestion 전달:', data);
+      console.log('🟢 bestWords:', words);
+      console.log('🟢 bestWordsWhoAmI:', whoAmI);
+      onNext(data);
     }
   };
 
@@ -45,7 +50,7 @@ export default function BestWordsQuestion({ answers, onNext, onBack }) {
   ];
 
   const currentQ = questions[step];
-  const isValid = currentQ.value.trim().length > 0;
+  const isValid = currentQ.value.trim().length >= 10;
 
   return (
     <div className="py-12 px-6">
@@ -78,6 +83,11 @@ export default function BestWordsQuestion({ answers, onNext, onBack }) {
           className="w-full h-48 p-6 rounded-2xl bg-white/80 backdrop-blur-sm border-2 border-purple-200 focus:border-purple-400 focus:ring-4 focus:ring-purple-100 outline-none transition-all duration-300 resize-none text-gray-700 placeholder:text-gray-400"
           style={{ fontSize: '16px' }}
         />
+        <p className={`text-sm mt-2 text-center ${
+          isValid ? 'text-purple-600 font-medium' : 'text-gray-400'
+        }`}>
+          {currentQ.value.length}자 {!isValid && '(최소 10자 이상)'}
+        </p>
       </motion.div>
 
       {/* 버튼 그룹 */}
