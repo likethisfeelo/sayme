@@ -1,0 +1,7 @@
+{
+  "name": "quest-admin-list-premium-users",
+  "version": "1.0.0",
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.600.0"
+  }
+}

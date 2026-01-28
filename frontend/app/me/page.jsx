@@ -4,16 +4,34 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getAccessToken, clearTokens, fetchWithAuth } from '../utils/auth';
+import QuestSection from '@/components/quest/QuestSection';
 
 export default function MePage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
     fetchUserInfo();
+    checkAdminStatus();
   }, []);
+
+  const checkAdminStatus = () => {
+    const idToken = localStorage.getItem('idToken');
+    if (!idToken) return;
+
+    try {
+      const payload = JSON.parse(atob(idToken.split('.')[1]));
+      const groups = payload['cognito:groups'] || [];
+      const adminEmails = ['dark.dduu@gmail.com'];
+      const isAdmin = groups.includes('Admins') || adminEmails.includes(payload.email);
+      setIsAdminUser(isAdmin);
+    } catch (error) {
+      console.error('Admin check error:', error);
+    }
+  };
 
   const fetchUserInfo = async () => {
     const accessToken = getAccessToken();
@@ -82,6 +100,19 @@ export default function MePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
+      {/* Admin 링크 (관리자만 표시) */}
+      {isAdminUser && (
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 py-3 px-4 text-center">
+          <a 
+            href="/admin/quest" 
+            className="text-white font-medium hover:underline inline-flex items-center gap-2"
+          >
+            <span>⚙️</span>
+            <span>Quest 관리 페이지</span>
+          </a>
+        </div>
+      )}
+
       <header className="py-6 px-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
         <div className="max-w-2xl mx-auto">
           <button
@@ -94,6 +125,11 @@ export default function MePage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-12">
+        {/* Quest 섹션 추가 */}
+        <div className="mb-8">
+          <QuestSection />
+        </div>
+
         {/* 2025 회고 배너 */}
         {user && !user.retrospective2025Completed ? (
           <Link href="/me/retrospective" className="block mb-8 group">
@@ -102,7 +138,7 @@ export default function MePage() {
                 <div className="absolute top-10 left-10 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-float" />
                 <div className="absolute bottom-10 right-10 w-40 h-40 bg-white/20 rounded-full blur-3xl animate-float-delay-1" />
               </div>
-              
+
               <div className="relative z-10 text-center">
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 drop-shadow-lg">
                   2025년 어땠나요?
@@ -117,7 +153,7 @@ export default function MePage() {
                   </svg>
                 </div>
               </div>
-              
+
               <div className="absolute top-4 right-4 text-white/30 text-6xl">✨</div>
               <div className="absolute bottom-4 left-4 text-white/30 text-5xl">💫</div>
             </div>
@@ -140,7 +176,7 @@ export default function MePage() {
           </div>
         ) : null}
 
-        {/* 2025 돌아보기 배너 (새로 추가) */}
+        {/* 2025 돌아보기 배너 */}
         {user && !user.review2025Completed ? (
           <Link href="/me/review2025" className="block mb-8 group">
             <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-400 via-purple-400 to-pink-400 p-8 shadow-2xl transform transition-all duration-300 hover:scale-105 hover:shadow-3xl animate-fade-in cursor-pointer">
@@ -148,7 +184,7 @@ export default function MePage() {
                 <div className="absolute top-10 left-10 w-32 h-32 bg-white/20 rounded-full blur-3xl animate-float" />
                 <div className="absolute bottom-10 right-10 w-40 h-40 bg-white/20 rounded-full blur-3xl animate-float-delay-1" />
               </div>
-              
+
               <div className="relative z-10 text-center">
                 <h2 className="text-3xl md:text-4xl font-bold text-white mb-4 drop-shadow-lg">
                   2025년, 당신의 이야기
@@ -165,7 +201,7 @@ export default function MePage() {
                   </svg>
                 </div>
               </div>
-              
+
               <div className="absolute top-4 right-4 text-white/30 text-6xl">🗓️</div>
               <div className="absolute bottom-4 left-4 text-white/30 text-5xl">✨</div>
             </div>
@@ -192,7 +228,7 @@ export default function MePage() {
 
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           <h1 className="text-3xl font-bold text-gray-900 mb-8">내 정보</h1>
-          
+
           {user && (
             <div className="space-y-4">
               <div className="grid grid-cols-3 gap-4 py-3 border-b">
@@ -281,7 +317,7 @@ export default function MePage() {
             >
               오늘의 운세
             </button>
-            
+
             <button
               onClick={handleLogout}
               className="flex-1 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
