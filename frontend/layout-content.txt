@@ -1,0 +1,14 @@
+﻿import './globals.css'
+
+export const metadata = {
+  title: 'Sayme',
+  description: '자기성찰 챌린지',
+}
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="ko">
+      <body>{children}</body>
+    </html>
+  )
+}

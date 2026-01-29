@@ -1,0 +1,33 @@
+﻿
+FullName                                                                      Length
+--------                                                                      ------
+C:\sayme\dev\frontend\app\me\retrospective                                          
+C:\sayme\dev\frontend\app\me\review2025                                             
+C:\sayme\dev\frontend\app\me\page.jsx                                         14876 
+C:\sayme\dev\frontend\app\me\retrospective.zip                                20162 
+C:\sayme\dev\frontend\app\me\review2025 (2).zip                               21195 
+C:\sayme\dev\frontend\app\me\review2025.zip                                   41335 
+C:\sayme\dev\frontend\app\me\retrospective\components                               
+C:\sayme\dev\frontend\app\me\retrospective\page.jsx                           9857  
+C:\sayme\dev\frontend\app\me\retrospective\components\BestWordsQuestion.jsx   4634  
+C:\sayme\dev\frontend\app\me\retrospective\components\CompletionScreen.jsx    4895  
+C:\sayme\dev\frontend\app\me\retrospective\components\CountdownTransition.jsx 2338  
+C:\sayme\dev\frontend\app\me\retrospective\components\EventQuestion.jsx       5776  
+C:\sayme\dev\frontend\app\me\retrospective\components\LifeChangeQuestion.jsx  3865  
+C:\sayme\dev\frontend\app\me\retrospective\components\NewBehaviorQuestion.jsx 4891  
+C:\sayme\dev\frontend\app\me\retrospective\components\PeopleQuestion.jsx      4719  
+C:\sayme\dev\frontend\app\me\retrospective\components\ReasonQuestion.jsx      3190  
+C:\sayme\dev\frontend\app\me\retrospective\components\WelcomeScreen.jsx       8347  
+C:\sayme\dev\frontend\app\me\review2025\components                                  
+C:\sayme\dev\frontend\app\me\review2025\page.jsx                              14608 
+C:\sayme\dev\frontend\app\me\review2025\components\CalendarEntry.jsx          2985  
+C:\sayme\dev\frontend\app\me\review2025\components\CompletionScreen.jsx       4542  
+C:\sayme\dev\frontend\app\me\review2025\components\MonthSelector.jsx          4189  
+C:\sayme\dev\frontend\app\me\review2025\components\Q1HardestMonth.jsx         6030  
+C:\sayme\dev\frontend\app\me\review2025\components\Q2EffortMonth.jsx          6263  
+C:\sayme\dev\frontend\app\me\review2025\components\Q3SatisfyingMonths.jsx     7646  
+C:\sayme\dev\frontend\app\me\review2025\components\Q4MemorableScene.jsx       5020  
+C:\sayme\dev\frontend\app\me\review2025\components\Q5Future2026.jsx           2493  
+C:\sayme\dev\frontend\app\me\review2025\components\WeekdaySelector.jsx        7456  
+
+
