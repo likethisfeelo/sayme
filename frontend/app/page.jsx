@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessToken } from './utils/auth';
+import { getAccessToken, getIdTokenPayload } from './utils/auth';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -31,7 +31,14 @@ export default function LandingPage() {
       if (response.ok && data.success) {
         const user = data.user;
         // 프리미엄 판단 조건 (실제 DB 구조에 맞게 수정)
-        const isPremium = user.preSurveyCompleted || user.paymentStatus === 'completed';
+        const paymentStatus = (user.paymentStatus || '').toLowerCase();
+        const tokenPayload = getIdTokenPayload();
+        const cognitoGroups = tokenPayload?.['cognito:groups'] || [];
+        const isPremium =
+          user.preSurveyCompleted ||
+          paymentStatus === 'completed' ||
+          paymentStatus === 'premium' ||
+          cognitoGroups.includes('premium');
         
         if (isPremium) {
           router.push('/premium-home');
@@ -158,24 +165,18 @@ export default function LandingPage() {
                 desc: '설계된 질문에 답하고 기록합니다\n의도적으로 생각하는 시간',
                 gradient: 'from-[rgba(212,237,228,0.3)] to-[rgba(227,238,248,0.3)]',
               },
-              {
-                number: '4',
-                title: '기준이 남습니다',
-                desc: '답변을 구조화한 분석 리포트 제공\n이후 선택의 기준으로 반복 활용',
-                gradient: 'from-[rgba(244,227,229,0.3)] to-[rgba(232,223,245,0.3)]',
-              },
             ].map((step, index) => (
               <div 
                 key={index}
-                className={`bg-gradient-to-br ${step.gradient} bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] rounded-[18px] p-4`}
+                className={`p-4 rounded-[14px] bg-gradient-to-r ${step.gradient} border border-[rgba(230,224,218,0.6)]`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-[rgba(191,167,255,0.3)] to-[rgba(123,203,255,0.3)] flex items-center justify-center border border-white/50">
-                    <span className="text-lg font-bold text-[#2A2725]">{step.number}</span>
+                  <div className="w-8 h-8 bg-white/70 rounded-full flex items-center justify-center font-bold text-sm text-[#2A2725]">
+                    {step.number}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-base font-bold text-[#2A2725] mb-1">{step.title}</h3>
-                    <p className="text-xs text-[#6B6662] leading-relaxed whitespace-pre-line">{step.desc}</p>
+                  <div>
+                    <h3 className="font-bold text-[#2A2725] mb-1">{step.title}</h3>
+                    <p className="text-xs text-[#6B6662] whitespace-pre-line leading-relaxed">{step.desc}</p>
                   </div>
                 </div>
               </div>
@@ -183,170 +184,21 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Why You Need This */}
-        <section className="mb-6">
-          <h2 className="text-xl font-bold text-[#2A2725] mb-4 px-1">이런 분들에게 필요합니다</h2>
-          
-          <div className="bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] rounded-[18px] p-5 space-y-3">
-            {[
-              '생각은 깊은데 방향 정리할 시간 없는 분',
-              '중요한 선택 앞에서 확신이 필요한 분',
-              '혼자 하면 흐트러지는 걸 함께 정리하고 싶은 분',
-              '사주에 관심 있지만 비의존적 해석을 원하는 분',
-            ].map((text, index) => (
-              <div key={index} className="flex items-start gap-2.5">
-                <div className="flex-shrink-0 w-5 h-5 rounded-full bg-[rgba(169,180,160,0.2)] flex items-center justify-center mt-0.5">
-                  <span className="text-xs text-[rgba(169,180,160,0.95)]">✓</span>
-                </div>
-                <p className="text-sm text-[#2A2725] leading-relaxed">{text}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Pricing */}
-        <section className="mb-6">
-          <h2 className="text-xl font-bold text-[#2A2725] mb-4 px-1">참여 구조</h2>
-          
-          <div className="bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] rounded-[18px] p-5">
-            <div className="text-center mb-5">
-              <div className="text-3xl font-bold text-[#2A2725] mb-1">
-                월 100,000원
-              </div>
-              <p className="text-xs text-[#6B6662]">
-                월 단위 구독형 (1:1 멘탈 PT)
-              </p>
-            </div>
-
-            <div className="space-y-2 mb-5">
-              <div className="flex items-center justify-between py-2 border-b border-[rgba(230,224,218,0.5)]">
-                <span className="text-sm text-[#6B6662]">3개월 이상</span>
-                <span className="text-sm font-bold text-[#2A2725]">77,000원/월</span>
-              </div>
-              <div className="flex items-center justify-between py-2 border-b border-[rgba(230,224,218,0.5)]">
-                <span className="text-sm text-[#6B6662]">5개월 이상</span>
-                <span className="text-sm font-bold text-[#2A2725]">50,000원/월</span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-[#6B6662]">초기 구조 세팅</span>
-                <span className="text-sm font-bold text-[#2A2725]">150,000원 (1회)</span>
-              </div>
-            </div>
-
-            <div className="p-4 bg-[rgba(191,167,255,0.05)] rounded-xl border border-[rgba(191,167,255,0.15)] mb-4">
-              <p className="text-xs text-[#6B6662] leading-relaxed">
-                <span className="font-semibold text-[#2A2725]">왜 월 단위인가요?</span><br />
-                매달 질문과 기준이 누적되며 당신만의 선택 기준이 만들어집니다. 사주와 점성술의 기본인 달님의 사이클에 맞춰 진행됩니다. 변화는 결심이 아니라 반복입니다.
-              </p>
-            </div>
-
-            <button
-              onClick={() => router.push('/signup')}
-              className="w-full py-3.5 bg-[rgba(42,39,37,0.92)] text-[rgba(245,241,237,0.98)] rounded-[14px] font-bold text-sm transition-transform active:scale-98"
-            >
-              지금 시작하기 →
-            </button>
-          </div>
-        </section>
-
-        {/* Today's Fortune CTA */}
-        <section className="mb-6">
-          <div className="bg-gradient-to-br from-[rgba(212,237,228,0.3)] to-[rgba(227,238,248,0.3)] bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] rounded-[18px] p-5 text-center">
-            <div className="text-4xl mb-3">🌙</div>
-            <h3 className="text-lg font-bold text-[#2A2725] mb-2">
-              우주일기예보 먼저 확인해보세요
-            </h3>
+        {/* CTA Section */}
+        <section className="text-center">
+          <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
+            <h2 className="text-xl font-bold text-[#2A2725] mb-3">지금 시작해보세요</h2>
             <p className="text-sm text-[#6B6662] mb-4">
-              매일 업데이트되는 운세와 질문을<br />
-              무료로 제공합니다
-            </p>
-            <button
-              onClick={() => router.push('/fortune')}
-              className="w-full py-3 bg-white border border-[rgba(230,224,218,0.9)] text-[#2A2725] rounded-[14px] font-semibold text-sm transition-transform active:scale-98"
-            >
-              오늘의 우주 이벤트 →
-            </button>
-          </div>
-        </section>
-
-        {/* Testimonials */}
-        <section className="mb-6">
-          <h2 className="text-xl font-bold text-[#2A2725] mb-4 px-1">참여자들의 이야기</h2>
-          
-          <div className="space-y-3">
-            {[
-              {
-                text: '불안이 사라진 건 아니에요. 대신, 내가 뭘 해야 하는지는 알겠어요',
-                author: '30대 마케터',
-              },
-              {
-                text: '사람 문제라고 생각했던 것이 관계 구조 문제였다는 걸 알았어요',
-                author: '40대 디자이너',
-              },
-              {
-                text: '대략적인 흐름을 파악하고, 상황을 미리 생각하니 내가 만드는 나에 더 쉽게 집중이 되고 있어요.',
-                author: '30대 기획자',
-              },
-            ].map((testimonial, index) => (
-              <div 
-                key={index}
-                className="bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] rounded-[18px] p-4"
-              >
-                <p className="text-sm text-[#2A2725] leading-relaxed mb-2 italic">
-                  "{testimonial.text}"
-                </p>
-                <p className="text-xs text-[#6B6662] text-right">
-                  - {testimonial.author}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Final CTA */}
-        <section className="mb-6">
-          <div className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(123,203,255,0.18)] to-[rgba(255,193,217,0.16)] bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] rounded-[18px] p-6 text-center">
-            <h3 className="text-xl font-bold text-[#2A2725] mb-3 leading-tight">
-              나다움을 위해 <br />
-              하루 몇 분이나 쓰고 있나요?
-            </h3>
-            <p className="text-sm text-[#6B6662] mb-5">
-              혼자서는 어려운 것을<br />
-              함께 시작할 준비가 되셨나요?
+              첫 번째 질문이 당신을 기다리고 있습니다
             </p>
             <button
               onClick={() => router.push('/signup')}
-              className="w-full py-4 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] rounded-[14px] font-bold text-base shadow-[0_10px_22px_rgba(123,203,255,0.18)] mb-3 transition-transform active:scale-98"
+              className="w-full py-3 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] rounded-[14px] font-bold"
             >
-              지금 시작하기 →
-            </button>
-            <button
-              onClick={() => window.open('https://pf.kakao.com/_xjwsxfb/chat', '_blank')}
-              className="text-sm text-[#6B6662] hover:text-[#2A2725] transition-colors"
-            >
-              더 궁금한 점이 있다면 →
+              무료로 시작하기 →
             </button>
           </div>
         </section>
-
-        {/* Footer */}
-        <footer className="py-6 px-1 border-t border-[rgba(230,224,218,0.5)]">
-          <div className="flex flex-col gap-3 text-center">
-            <div className="text-sm font-bold bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] bg-clip-text text-transparent">
-              Sayme · Spirit Lab
-            </div>
-            <p className="text-xs text-[#6B6662]">
-              월간/연간 자기성찰 챌린지 플랫폼
-            </p>
-            <p className="text-xs text-[#6B6662]">
-              © 2024-2026 Sayme. All rights reserved.
-            </p>
-            <p className="text-xs text-[rgba(107,102,98,0.7)]">
-              spirit-lab.me
-            </p>
-          </div>
-        </footer>
-
       </main>
     </div>
   );

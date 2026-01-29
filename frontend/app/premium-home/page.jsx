@@ -1,198 +1,419 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessToken, clearTokens, fetchWithAuth } from '../utils/auth';
 
-export default function MyProfilePage() {
+export default function PremiumHomePage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [reportEnabled, setReportEnabled] = useState(false);
 
   useEffect(() => {
-    fetchUserInfo();
-  }, []);
-
-  const fetchUserInfo = async () => {
-    const accessToken = getAccessToken();
-
-    if (!accessToken) {
-      router.push('/login');
-      return;
-    }
-
-    try {
-      const response = await fetchWithAuth(
-        'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/auth/me'
-      );
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        setUser(data.user);
-      } else {
-        setError('사용자 정보를 불러올 수 없습니다.');
-        if (response.status === 401) {
-          clearTokens();
+    // Fetch premium home data
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
           router.push('/login');
+          return;
         }
+
+        // API calls would go here
+        // For now, use sample data
+        setUserData({
+          month: '2월',
+          goals: {
+            keyword: '명료함',
+            direction: '흐트러진 생각을 정리하는',
+          },
+          questions: [
+            {
+              id: 1,
+              number: 'Q1',
+              title: "지금 내가 지키고 싶은 '기준'은 무엇인가?",
+              status: 'completed',
+              hasFeedback: true,
+            },
+            {
+              id: 2,
+              number: 'Q2',
+              title: '내가 계속 미루는 결정은 무엇이고, 왜 미루는가?',
+              status: 'progress',
+              hasFeedback: false,
+            },
+            {
+              id: 3,
+              number: 'Q3',
+              title: "이번 달, 나에게 가장 필요한 '경계선'은 어디인가?",
+              status: 'waiting',
+              hasFeedback: false,
+            },
+          ],
+          todayFlow: {
+            text: `오늘은 속도를 내기보다 리듬을 회복하는 날입니다.
+작은 선택 하나에 에너지를 과하게 쓰지 않아도 됩니다.`,
+          },
+          todayLuck: {
+            keyword: '정리, 미세한 선택, 한 번의 거절',
+            place: '조용한 책상, 창가, 물 근처',
+            avoid: '즉답을 요구하는 대화',
+          },
+          event: {
+            title: '오늘의 깜짝 이벤트 🎁',
+            description: '무료 타로 질문 1회가 도착했습니다.',
+            isNew: true,
+          },
+        });
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+        setLoading(false);
       }
-    } catch (err) {
-      console.error('사용자 정보 로드 에러:', err);
-      setError('서버와 통신 중 오류가 발생했습니다.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  const handleLogout = () => {
-    clearTokens();
-    router.push('/login');
-  };
+    fetchData();
+  }, [router]);
 
-  const handleKakaoConsult = () => {
-    window.open('https://pf.kakao.com/_xjwsxfb/chat', '_blank');
+  const getStatusConfig = (status) => {
+    const configs = {
+      completed: {
+        dot: 'bg-[rgba(46,139,87,0.85)] border-[rgba(46,139,87,0.35)]',
+        badge: 'text-[rgba(46,139,87,0.95)] border-[rgba(46,139,87,0.25)]',
+        label: '답변 완료',
+      },
+      progress: {
+        dot: 'bg-[rgba(191,167,255,0.95)] border-[rgba(191,167,255,0.35)]',
+        badge: 'text-[rgba(123,203,255,0.95)] border-[rgba(123,203,255,0.25)]',
+        label: '진행 중',
+      },
+      waiting: {
+        dot: 'bg-white/90 border-[rgba(42,39,37,0.18)]',
+        badge: 'text-[#6B6662] border-[#E6E0DA]',
+        label: '대기',
+      },
+    };
+    return configs[status];
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white flex items-center justify-center">
-        <p className="text-gray-600">로딩 중...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white flex items-center justify-center">
-        <div className="max-w-md mx-auto px-4">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => router.push('/login')}
-            className="text-indigo-600 hover:text-indigo-700"
-          >
-            로그인으로 돌아가기
-          </button>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          background:
+            'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
+        }}
+      >
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#BFA7FF] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[#6B6662]">로딩 중...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
-      <header className="py-6 px-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
-            className="text-indigo-600 hover:text-indigo-700 font-semibold"
-          >
-            ← 뒤로
-          </button>
-          <h1 className="text-xl font-bold text-gray-900">내 정보</h1>
-          <div className="w-16" /> {/* Spacer for centering */}
+    <div
+      className="max-w-[430px] mx-auto min-h-screen flex flex-col"
+      style={{
+        fontFamily:
+          'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", Segoe UI, Roboto, Arial, sans-serif',
+        background:
+          'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
+        color: '#2A2725',
+      }}
+    >
+      {/* Top Bar */}
+      <header className="sticky top-0 z-10 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
+        <div className="flex items-center justify-between px-4 py-3.5">
+          <div className="flex flex-col gap-0.5 leading-none">
+            <div className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">
+              Sayme · Spirit Lab
+            </div>
+            <div className="text-xs text-[#6B6662]">Premium · 메인 홈</div>
+          </div>
+
+          <div className="flex gap-2.5 items-center">
+            <div className="text-xs px-2.5 py-2 rounded-full border border-[#E6E0DA] bg-white/65 text-[#2A2725]">
+              이번달 · {userData?.month}
+            </div>
+            <button
+              onClick={() => router.push('/me')}
+              className="w-[34px] h-[34px] rounded-[10px] border border-[#E6E0DA] bg-white/65 grid place-items-center cursor-pointer"
+              aria-label="상담/예약 메뉴"
+            >
+              ☰
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-2xl mx-auto px-4 py-12">
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-          {user && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4 py-3 border-b">
-                <div className="font-semibold text-gray-700">이메일</div>
-                <div className="col-span-2 text-gray-900">{user.email}</div>
-              </div>
+      {/* Main Content */}
+      <main className="px-4 py-3.5 pb-[86px] flex flex-col gap-3.5">
+        {/* HERO - Today Alignment */}
+        <section className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(123,203,255,0.18)] to-[rgba(255,193,217,0.16)] bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+          <div className="p-4">
+            <div className="text-xs tracking-[0.12em] text-[#6B6662] uppercase mb-2.5">
+              Today Alignment
+            </div>
 
-              <div className="grid grid-cols-3 gap-4 py-3 border-b">
-                <div className="font-semibold text-gray-700">이름</div>
-                <div className="col-span-2 text-gray-900">{user.name || '-'}</div>
+            <div className="flex flex-col gap-2.5 mb-3.5">
+              <div className="text-base leading-[1.45] tracking-tight">
+                당신은 오늘{' '}
+                <span className="inline-block px-0.5 border-b border-dashed border-[rgba(42,39,37,0.35)] min-w-[120px] text-[rgba(42,39,37,0.9)] font-[650]">
+                  {userData?.goals.keyword}
+                </span>
+                을 향해 가고 있는 사람입니다.
               </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b">
-                <div className="font-semibold text-gray-700">닉네임</div>
-                <div className="col-span-2 text-gray-900">{user.nickname || '-'}</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b">
-                <div className="font-semibold text-gray-700">이메일 인증</div>
-                <div className="col-span-2">
-                  {user.emailVerified ? (
-                    <span className="text-green-600">✅ 인증됨</span>
-                  ) : (
-                    <span className="text-red-600">❌ 미인증</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b">
-                <div className="font-semibold text-gray-700">생년월일</div>
-                <div className="col-span-2 text-gray-900">{user.birthDate || '-'}</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b">
-                <div className="font-semibold text-gray-700">출생 국가</div>
-                <div className="col-span-2 text-gray-900">{user.birthCountry || '-'}</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b">
-                <div className="font-semibold text-gray-700">출생 도시</div>
-                <div className="col-span-2 text-gray-900">{user.birthCity || '-'}</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b">
-                <div className="font-semibold text-gray-700">마지막 로그인</div>
-                <div className="col-span-2 text-gray-900">
-                  {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('ko-KR') : '-'}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b">
-                <div className="font-semibold text-gray-700">사전 설문</div>
-                <div className="col-span-2 flex items-center gap-3">
-                  {user.preSurveyCompleted ? (
-                    <span className="text-green-600">✅ 완료</span>
-                  ) : (
-                    <>
-                      <span className="text-gray-600">❌ 미완료</span>
-                      <button
-                        onClick={handleKakaoConsult}
-                        className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg font-medium text-sm transition-colors shadow-sm hover:shadow-md"
-                      >
-                        💬 사전 설문 상담 신청
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b">
-                <div className="font-semibold text-gray-700">할인권</div>
-                <div className="col-span-2 text-gray-900">{user.discountCount || 0}개</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3">
-                <div className="font-semibold text-gray-700">리마인더</div>
-                <div className="col-span-2 text-gray-900">{user.reminderTime || '-'}</div>
+              <div className="text-base leading-[1.45] tracking-tight">
+                오늘, 당신의 방향은{' '}
+                <span className="inline-block px-0.5 border-b border-dashed border-[rgba(42,39,37,0.35)] min-w-[120px] text-[rgba(42,39,37,0.9)] font-[650]">
+                  {userData?.goals.direction}
+                </span>{' '}
+                입니다.
               </div>
             </div>
-          )}
 
-          <div className="mt-8 flex gap-3">
-            <button
-              onClick={handleLogout}
-              className="flex-1 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition-colors"
+            <div className="text-xs text-[#6B6662] leading-relaxed mb-3">
+              * 이 문장은 1:1 상담에서 설정한 목표(키워드)와 연결됩니다. 예언이 아니라, 오늘의 태도를 정렬합니다.
+            </div>
+
+            <div className="flex gap-2.5">
+              <button
+                onClick={() => router.push('/monthly-questions')}
+                className="flex-1 appearance-none border-0 cursor-pointer rounded-[14px] px-3.5 py-3 font-[650] text-sm tracking-tight inline-flex items-center justify-center gap-2 transition-transform active:scale-[0.98] text-[#1f1f1f] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] shadow-[0_10px_22px_rgba(123,203,255,0.18)]"
+              >
+                질문과 함께 생각하기 →
+              </button>
+              <button
+                className="w-11 appearance-none border-0 cursor-pointer rounded-[14px] px-3.5 py-3 bg-white/75 border border-[#E6E0DA] text-[#2A2725] transition-transform active:scale-[0.98]"
+                title="오늘의 문장 새로고침"
+              >
+                ⟲
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* THIS MONTH QUESTIONS */}
+        <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+          <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
+            <div>
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">이번 달의 생각할 거리</div>
+              <div className="text-xs text-[#6B6662]">최대 10개 · 일반적으로 7개</div>
+            </div>
+            <div className="text-xs text-[#6B6662]">{userData?.month}</div>
+          </div>
+
+          <div className="flex flex-col p-2.5 pb-3 gap-2">
+            {userData?.questions.map((q) => {
+              const config = getStatusConfig(q.status);
+              return (
+                <div
+                  key={q.id}
+                  className="bg-white/75 border border-[rgba(230,224,218,0.9)] rounded-[14px] p-3 flex gap-2.5 items-start"
+                >
+                  <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 border ${config.dot}`} />
+
+                  <div className="flex-1 flex flex-col gap-1.5 min-w-0">
+                    <div className="flex items-center gap-2 text-xs text-[#6B6662]">
+                      <span className={`text-[11px] px-2 py-1 rounded-full border ${config.badge}`}>
+                        {config.label}
+                      </span>
+                      <span>{q.number}</span>
+                    </div>
+
+                    <div className="text-sm font-[680] leading-[1.35] tracking-tight whitespace-normal break-keep">
+                      {q.title}
+                    </div>
+
+                    <div className="flex gap-2 mt-0.5">
+                      {q.status === 'completed' && (
+                        <>
+                          <button className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer">
+                            답변 보기
+                          </button>
+                          {q.hasFeedback && (
+                            <button className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer">
+                              피드백
+                            </button>
+                          )}
+                        </>
+                      )}
+                      {q.status === 'progress' && (
+                        <>
+                          <button className="text-xs bg-[rgba(42,39,37,0.92)] border-[rgba(42,39,37,0.10)] text-[rgba(245,241,237,0.98)] px-2.5 py-1.5 rounded-xl cursor-pointer">
+                            계속 생각하기 →
+                          </button>
+                          <button className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer">
+                            메모
+                          </button>
+                        </>
+                      )}
+                      {q.status === 'waiting' && (
+                        <button className="text-xs bg-[rgba(42,39,37,0.92)] border-[rgba(42,39,37,0.10)] text-[rgba(245,241,237,0.98)] px-2.5 py-1.5 rounded-xl cursor-pointer">
+                          열기
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* MONTHLY REPORT */}
+        <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+          <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
+            <div>
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">이번 달 분석 리포트</div>
+              <div className="text-xs text-[#6B6662]">관리자 업로드 후 활성화</div>
+            </div>
+            <div className="text-xs text-[#6B6662]">PDF</div>
+          </div>
+
+          <div className="p-4 flex flex-col gap-2.5">
+            <div
+              className={`p-3.5 rounded-[14px] border border-[rgba(230,224,218,0.9)] bg-white/70 flex gap-3 items-start ${
+                !reportEnabled ? 'opacity-60' : ''
+              }`}
             >
-              로그아웃
+              <div className="w-[34px] h-[34px] rounded-xl bg-[rgba(191,167,255,0.22)] border border-[rgba(191,167,255,0.20)] grid place-items-center flex-shrink-0">
+                🗂️
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-[750] text-sm m-0 mb-1">
+                  {reportEnabled ? '이번 달 리포트가 준비되었습니다' : '아직 준비 중입니다'}
+                </p>
+                <p className="text-xs text-[#6B6662] m-0 leading-relaxed">
+                  질문과 기록이 충분히 쌓이면 리포트가 열립니다.
+                  <br />
+                  결과는 '정답'이 아니라, 당신의 선택 기준을 남기는 문서입니다.
+                </p>
+              </div>
+            </div>
+
+            <button
+              disabled={!reportEnabled}
+              className={`w-full px-3 py-3 rounded-[14px] border font-bold text-sm ${
+                reportEnabled
+                  ? 'bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] border-transparent text-[rgba(31,31,31,0.95)] cursor-pointer'
+                  : 'border-[rgba(230,224,218,0.9)] bg-white/65 text-[rgba(42,39,37,0.65)]'
+              }`}
+            >
+              {reportEnabled ? '리포트 열기 →' : '리포트가 업로드되면 여기가 활성화됩니다'}
             </button>
           </div>
+        </section>
 
-          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              ℹ️ <strong>읽기 전용 페이지입니다.</strong> 정보 수정 기능은 추후 추가될 예정입니다.
+        {/* TODAY FLOW */}
+        <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+          <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
+            <div>
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">오늘의 흐름</div>
+              <div className="text-xs text-[#6B6662]">짧게 소개 · 여백을 남깁니다</div>
+            </div>
+            <div className="text-xs text-[#6B6662]">D-0</div>
+          </div>
+
+          <div className="px-4 py-3.5 flex flex-col gap-2">
+            <p className="text-[13px] leading-[1.65] text-[rgba(42,39,37,0.92)] tracking-tight m-0 whitespace-pre-line">
+              {userData?.todayFlow.text}
+            </p>
+            <div className="h-px bg-[#E6E0DA] my-1.5" />
+            <p className="text-xs text-[#6B6662] m-0">* "자세히 보기" 없이, 오늘의 방향만 제시합니다.</p>
+          </div>
+        </section>
+
+        {/* TODAY LUCK */}
+        <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+          <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
+            <div>
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">오늘의 행운</div>
+              <div className="text-xs text-[#6B6662]">가벼운 힌트</div>
+            </div>
+            <div className="text-xs">🍀</div>
+          </div>
+
+          <div className="px-4 py-3.5 flex flex-col gap-2">
+            <p className="text-[13px] leading-[1.65] text-[rgba(42,39,37,0.92)] tracking-tight m-0">
+              <b>행운 키워드:</b> {userData?.todayLuck.keyword}
+            </p>
+            <p className="text-[13px] leading-[1.65] text-[rgba(42,39,37,0.92)] tracking-tight m-0">
+              <b>좋은 장소:</b> {userData?.todayLuck.place}
+            </p>
+            <p className="text-[13px] leading-[1.65] text-[rgba(42,39,37,0.92)] tracking-tight m-0">
+              <b>피하면 좋은 것:</b> {userData?.todayLuck.avoid}
             </p>
           </div>
-        </div>
+        </section>
+
+        {/* EVENT */}
+        {userData?.event && (
+          <section className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(255,193,217,0.18)] to-[rgba(123,203,255,0.15)] bg-white/70 border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex-1">
+                  <strong className="text-sm tracking-tight block mb-1.5">{userData.event.title}</strong>
+                  <p className="text-xs text-[#6B6662] leading-relaxed m-0">{userData.event.description}</p>
+                </div>
+                {userData.event.isNew && (
+                  <div className="flex-shrink-0 text-xs px-2.5 py-2 rounded-full border border-[#E6E0DA] bg-white/65">
+                    NEW
+                  </div>
+                )}
+              </div>
+              <button className="w-full mt-3 rounded-[14px] px-3 py-3 border-0 font-[750] cursor-pointer bg-[rgba(42,39,37,0.92)] text-[rgba(245,241,237,0.98)] text-sm">
+                이벤트 열기 →
+              </button>
+              <p className="text-xs text-[#6B6662] mt-2.5 m-0 leading-relaxed">
+                * 이벤트는 관리자가 개인별로 배포합니다. 쿠폰/선물처럼 "도착"합니다.
+              </p>
+            </div>
+          </section>
+        )}
       </main>
+
+      {/* Bottom Nav */}
+      <nav className="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[430px] bg-[rgba(245,241,237,0.78)] backdrop-blur-[14px] border-t border-[rgba(230,224,218,0.9)] px-2.5 py-2.5 pb-3 z-20">
+        <div className="grid grid-cols-5 gap-1.5">
+          {[
+            { icon: '2026', label: '연간', path: '/2026' },
+            { icon: '✍', label: '이번달', path: '/monthly-questions' },
+            { icon: '●', label: '홈', path: '/premium-home', active: true },
+            { icon: '✦', label: '우주', path: '/fortune' },
+            { icon: '☺', label: '나', path: '/me' },
+          ].map((item) => (
+            <button
+              key={item.path}
+              onClick={() => router.push(item.path)}
+              className={`flex flex-col items-center gap-1.5 px-1.5 py-2 rounded-[14px] border ${
+                item.active ? 'border-[rgba(191,167,255,0.35)] bg-white/45' : 'border-transparent'
+              }`}
+            >
+              <div
+                className={`w-[34px] h-7 rounded-xl grid place-items-center text-sm ${
+                  item.active
+                    ? 'bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.92)] border-transparent text-[rgba(31,31,31,0.92)]'
+                    : 'bg-white/55 border border-[rgba(230,224,218,0.9)]'
+                }`}
+              >
+                {item.icon}
+              </div>
+              <div
+                className={`text-[11px] tracking-tight ${
+                  item.active ? 'text-[rgba(42,39,37,0.92)] font-bold' : 'text-[rgba(42,39,37,0.70)]'
+                }`}
+              >
+                {item.label}
+              </div>
+            </button>
+          ))}
+        </div>
+      </nav>
     </div>
   );
 }

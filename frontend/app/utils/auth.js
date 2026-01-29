@@ -21,6 +21,20 @@ export const getAccessToken = () => {
   return token;
 };
 
+export const getIdTokenPayload = () => {
+  if (typeof window === 'undefined') return null;
+
+  const idToken = localStorage.getItem('idToken');
+  if (!idToken) return null;
+
+  try {
+    return JSON.parse(atob(idToken.split('.')[1] || ''));
+  } catch (error) {
+    console.error('Failed to parse idToken payload:', error);
+    return null;
+  }
+};
+
 export const saveTokens = (tokens) => {
   if (typeof window === 'undefined') return;
   
