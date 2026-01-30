@@ -51,9 +51,30 @@ function QuestDetailContent() {
         setQuest(questData);
 
         if (userResponse?.responses && userResponse.responses.length > 0) {
-          setResponses(userResponse.responses);
+          const raw = userResponse.responses;
+          const isOldFormat = typeof raw[0] === 'object' && raw[0] !== null && 'itemIndex' in raw[0];
+
+          if (isOldFormat) {
+            // 이전 형식: [{itemIndex, answer, answeredAt}, ...] → 문자열 배열로 변환
+            // 중복 itemIndex는 나중 항목(마지막 답변)이 우선
+            const filled = questData.contentItems.map(() => null);
+            raw.forEach(r => {
+              if (r.itemIndex != null && r.answer) {
+                filled[r.itemIndex] = r.answer;
+              }
+            });
+            setResponses(filled);
+          } else {
+            setResponses(raw);
+          }
+
           const lastAnswered = userResponse.responses.reduce(
-            (last, r, i) => (r != null ? i : last), -1
+            (last, r, i) => {
+              if (isOldFormat) {
+                return (r && r.answer) ? Math.max(last, r.itemIndex ?? -1) : last;
+              }
+              return r != null ? i : last;
+            }, -1
           );
           setCurrentStep(Math.min(lastAnswered + 1, questData.contentItems.length - 1));
         } else {
@@ -269,24 +290,32 @@ function QuestDetailContent() {
                         {item.question}
                       </p>
                     </div>
-                    <div className="space-y-2">
-                      {(item.options || []).map((option, optIdx) => {
-                        const isSelected = responses[index] === option;
-                        return (
-                          <div
-                            key={optIdx}
-                            className={`w-full text-left px-4 py-3 rounded-xl text-sm border ${
-                              isSelected
-                                ? 'bg-[rgba(191,167,255,0.15)] border-[rgba(191,167,255,0.5)] text-[#2A2725] font-semibold'
-                                : 'bg-white border-[#E6E0DA] text-[#6B6662] opacity-50'
-                            }`}
-                          >
-                            <span className="mr-2 text-xs">{String.fromCharCode(65 + optIdx)}.</span>
-                            {option}
-                          </div>
-                        );
-                      })}
-                    </div>
+
+                    {/* 답변이 옵션 중 하나와 일치하면 옵션 목록 표시, 아니면 텍스트로 표시 */}
+                    {responses[index] && !(item.options || []).includes(responses[index]) ? (
+                      <div className="w-full p-4 bg-[rgba(191,167,255,0.08)] border border-[rgba(191,167,255,0.2)] rounded-xl text-sm text-[#2A2725]">
+                        {responses[index]}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {(item.options || []).map((option, optIdx) => {
+                          const isSelected = responses[index] === option;
+                          return (
+                            <div
+                              key={optIdx}
+                              className={`w-full text-left px-4 py-3 rounded-xl text-sm border ${
+                                isSelected
+                                  ? 'bg-[rgba(191,167,255,0.15)] border-[rgba(191,167,255,0.5)] text-[#2A2725] font-semibold'
+                                  : 'bg-white border-[#E6E0DA] text-[#6B6662] opacity-50'
+                              }`}
+                            >
+                              <span className="mr-2 text-xs">{String.fromCharCode(65 + optIdx)}.</span>
+                              {option}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </>
                 )}
 

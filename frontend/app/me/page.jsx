@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearTokens, fetchWithAuth, getAccessToken, getIdTokenPayload } from '../utils/auth';
+import { isAdmin } from '../../lib/auth/checkAdmin';
 
 export default function MyProfilePage() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export default function MyProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [homePath, setHomePath] = useState('/');
+  const [adminUser, setAdminUser] = useState(false);
 
   useEffect(() => {
     fetchUserInfo();
@@ -44,6 +46,7 @@ export default function MyProfilePage() {
           cognitoGroups.includes('premium');
 
         setHomePath(isPremium ? '/premium-home' : '/trial-home');
+        setAdminUser(isAdmin());
       } else {
         setError('사용자 정보를 불러올 수 없습니다.');
         if (response.status === 401) {
@@ -242,6 +245,15 @@ export default function MyProfilePage() {
                 <div className="col-span-2 text-[#2A2725]">{user.reminderTime || '-'}</div>
               </div>
             </div>
+          )}
+
+          {adminUser && (
+            <button
+              onClick={() => router.push('/admin/quest')}
+              className="mt-6 w-full py-3 bg-gradient-to-r from-[#2A2725] to-[#4A4542] text-white rounded-xl font-bold text-sm transition-transform active:scale-[0.98] shadow-md"
+            >
+              관리자 화면으로 이동
+            </button>
           )}
 
           <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
