@@ -30,7 +30,6 @@ export default function LandingPage() {
 
       if (response.ok && data.success) {
         const user = data.user;
-        // 프리미엄 판단 조건 (실제 DB 구조에 맞게 수정)
         const paymentStatus = (user.paymentStatus || '').toLowerCase();
         const tokenPayload = getIdTokenPayload();
         const cognitoGroups = tokenPayload?.['cognito:groups'] || [];
@@ -295,9 +294,9 @@ export default function LandingPage() {
                 author: '30대 기획자',
               },
             ].map((testimonial, index) => (
-              <div 
+              <div
                 key={index}
-                className={`bg-gradient-to-br ${step.gradient} bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] rounded-[18px] p-4`}
+                className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(123,203,255,0.18)] to-[rgba(255,193,217,0.16)] bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] rounded-[18px] p-4"
               >
                 <p className="text-sm text-[#2A2725] leading-relaxed mb-2 italic">
                   "{testimonial.text}"

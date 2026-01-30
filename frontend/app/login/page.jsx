@@ -54,13 +54,12 @@ export default function LoginPage() {
       }
 
       if (data.tokens) {
-        // auth 유틸리티 사용 (localStorage + 쿠키 동시 저장)
         saveTokens(data.tokens);
         localStorage.setItem('userEmail', formData.email);
       }
 
       alert('로그인 성공!');
-      router.push('/me');
+      router.push('/');  // 루트로 이동 → 프리미엄 여부에 따라 자동 리다이렉트
 
     } catch (err) {
       setError(err.message);
