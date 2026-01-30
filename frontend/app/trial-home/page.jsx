@@ -39,8 +39,8 @@ export default function TrialHomePage() {
         'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/public/fortune'
       );
       const data = await response.json();
-      if (data.success) {
-        setTodayFortune(data.fortune);
+      if (data.fortuneText) {
+        setTodayFortune(data);
       }
     } catch (error) {
       console.error('Fortune fetch error:', error);
@@ -325,73 +325,81 @@ export default function TrialHomePage() {
             오늘의 우주 일기예보 🔭
           </h3>
 
-          <div className="text-center mb-4">
-            <div className="inline-block bg-[rgba(245,243,255,1)] px-4 py-2 rounded-full text-sm text-[rgba(139,125,216,0.95)] mb-5">
-              2026년 1월 31일
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgba(99,102,241,1)] mx-auto mb-3"></div>
+              <p className="text-sm text-[#6B6662]">오늘의 운세를 불러오는 중...</p>
             </div>
-            
-            <div className="text-5xl mb-5">🌱</div>
-            
-            <div className="bg-[#E8E5F5] px-5 py-2 rounded-xl inline-block mb-5">
-              <span className="text-base font-semibold text-[rgba(99,102,241,1)]">성장의 시간</span>
+          ) : todayFortune ? (
+            <>
+              <div className="text-center mb-4">
+                <div className="inline-block bg-[rgba(245,243,255,1)] px-4 py-2 rounded-full text-sm text-[rgba(139,125,216,0.95)] mb-5">
+                  {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
+
+                <div className="text-5xl mb-5">
+                  {todayFortune.category === 'reflection' && '🌙'}
+                  {todayFortune.category === 'gratitude' && '🙏'}
+                  {todayFortune.category === 'growth' && '🌱'}
+                </div>
+
+                <div className="bg-[#E8E5F5] px-5 py-2 rounded-xl inline-block mb-5">
+                  <span className="text-base font-semibold text-[rgba(99,102,241,1)]">
+                    {todayFortune.category === 'reflection' && '성찰의 시간'}
+                    {todayFortune.category === 'gratitude' && '감사의 시간'}
+                    {todayFortune.category === 'growth' && '성장의 시간'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-center leading-relaxed mb-6">
+                <p className="text-[#2A2725]">
+                  {todayFortune.fortuneText}
+                </p>
+              </div>
+
+              <div className="bg-[rgba(249,249,255,1)] p-5 rounded-xl">
+                <h4 className="text-sm text-[rgba(139,125,216,0.95)] font-semibold mb-2">💭 오늘의 질문</h4>
+                <p className="text-sm text-[#2A2725] leading-relaxed">
+                  {todayFortune.questionPrompt}
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-sm text-[#6B6662]">오늘의 운세를 불러올 수 없습니다.</p>
             </div>
-          </div>
-
-          <div className="text-center leading-relaxed mb-6">
-            <p className="text-[#2A2725] mb-4">
-              새로운 목표와 관점을 위한 나를 세우고, 주변을 돌아보아야 하는 날입니다.
-            </p>
-            <p className="text-[#2A2725]">
-              내가 얼마나 성장했는지 돌아보세요. 당신의 모든 생각과 행동이 바로 이 세계의 씨앗입니다. 아름드리 나무의 위용을 펼처주세요.
-            </p>
-          </div>
-
-          <div className="bg-[rgba(249,249,255,1)] p-5 rounded-xl">
-            <h4 className="text-sm text-[rgba(139,125,216,0.95)] font-semibold mb-2">🔮 오늘의 질문</h4>
-            <p className="text-sm text-[#2A2725] leading-relaxed">
-              작년의 나와 비교했을 때, 가장 크게 달라진 점은?<br />
-              목표하고 계신가요?
-            </p>
-          </div>
+          )}
         </section>
 
       </main>
 
       {/* Bottom Nav */}
       <nav className="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[430px] bg-[rgba(245,241,237,0.78)] backdrop-blur-[14px] border-t border-[rgba(230,224,218,0.9)] px-2.5 py-2.5 pb-3 z-20">
-        <div className="grid grid-cols-4 gap-1.5">
-          <button className="flex flex-col items-center gap-1.5 px-1.5 py-2 rounded-[14px]">
-            <div className="w-[34px] h-7 rounded-xl grid place-items-center text-sm bg-white/55 border border-[rgba(230,224,218,0.9)]">
-              📅
-            </div>
-            <div className="text-[11px] text-[rgba(42,39,37,0.70)]">연간</div>
-          </button>
-
-          <button className="flex flex-col items-center gap-1.5 px-1.5 py-2 rounded-[14px] border border-[rgba(191,167,255,0.35)] bg-white/45">
-            <div className="w-[34px] h-7 rounded-xl grid place-items-center text-sm bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.92)] text-[rgba(31,31,31,0.92)]">
-              🏠
-            </div>
-            <div className="text-[11px] text-[rgba(42,39,37,0.92)] font-bold">이달 중</div>
-          </button>
-
-          <button className="flex flex-col items-center gap-1.5 px-1.5 py-2 rounded-[14px]">
-            <div className="w-[34px] h-7 rounded-xl grid place-items-center text-sm bg-white/55 border border-[rgba(230,224,218,0.9)]">
-              ➕
-            </div>
-            <div className="text-[11px] text-[rgba(42,39,37,0.70)]">추가</div>
-          </button>
-
-          <button 
-            onClick={() => router.push('/me')}
-            className="flex flex-col items-center gap-1.5 px-1.5 py-2 rounded-[14px]"
-          >
-            <div className="w-[34px] h-7 rounded-xl grid place-items-center text-sm bg-white/55 border border-[rgba(230,224,218,0.9)]">
-              👤
-            </div>
-            <div className="text-[11px] text-[rgba(42,39,37,0.70)]">나</div>
-          </button>
+        <div className="grid grid-cols-5 gap-1.5">
+          {[
+            { icon: '2026', label: '연간', path: '/spirit-lab' },
+            { icon: '🐇', label: '이번달', path: '/quest' },
+            { icon: '●', label: '홈', path: '/premium-home' },
+            { icon: '✦', label: '우주', path: '/cosmos' },
+            { icon: '☺', label: '나', path: '/me' },
+          ].map((item) => (
+            <button
+              key={item.path}
+              onClick={() => router.push(item.path)}
+              className="flex flex-col items-center gap-1.5 px-1.5 py-2 rounded-[14px] border border-transparent"
+            >
+              <div className="w-[34px] h-7 rounded-xl grid place-items-center text-sm bg-white/55 border border-[rgba(230,224,218,0.9)]">
+                {item.icon}
+              </div>
+              <div className="text-[11px] tracking-tight text-[rgba(42,39,37,0.70)]">
+                {item.label}
+              </div>
+            </button>
+          ))}
         </div>
       </nav>
+
 
       <style jsx>{`
         @keyframes slideIn {

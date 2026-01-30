@@ -423,10 +423,10 @@ export default function PremiumHomePage() {
       <nav className="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[430px] bg-[rgba(245,241,237,0.78)] backdrop-blur-[14px] border-t border-[rgba(230,224,218,0.9)] px-2.5 py-2.5 pb-3 z-20">
         <div className="grid grid-cols-5 gap-1.5">
           {[
-            { icon: '2026', label: '연간', path: '/2026' },
-            { icon: '✍', label: '이번달', path: '/monthly-questions' },
+            { icon: '2026', label: '연간', path: '/spirit-lab' },
+            { icon: '🐇', label: '이번달', path: '/quest' },
             { icon: '●', label: '홈', path: '/premium-home', active: true },
-            { icon: '✦', label: '우주', path: '/fortune' },
+            { icon: '✦', label: '우주', path: '/cosmos' },
             { icon: '☺', label: '나', path: '/me' },
           ].map((item) => (
             <button
