@@ -118,6 +118,7 @@ exports.handler = async (event) => {
         'Access-Control-Allow-Methods': 'GET, OPTIONS'
       },
       body: JSON.stringify({
+        success: true,
         assignment: {
           assignmentId: assignment.contentId,
           sourceContentId: assignment.sourceContentId,
