@@ -213,16 +213,6 @@ export default function TrialHomePage() {
                 2026년 2월, 당신은 이렇게 변화합니다.
               </div>
 
-              {selectedCategories.length > 0 && (
-                <div className="mt-4 p-4 bg-[rgba(255,249,230,1)] border-l-4 border-[#FBBF24] rounded-lg">
-                  <h4 className="text-sm text-[#92400E] font-semibold mb-2 flex items-center gap-2">
-                    💭 오늘의 질문
-                  </h4>
-                  <p className="text-sm text-[#78350F] leading-relaxed">
-                    {categories.find(c => c.id === selectedCategories[0])?.question}
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </section>
@@ -265,7 +255,7 @@ export default function TrialHomePage() {
               분석 신청하기
             </button>
             <button
-              onClick={() => window.open('https://pf.kakao.com/_xoMxbdG', '_blank')}
+              onClick={() => window.open('https://pf.kakao.com/_xjwsxfb/chat', '_blank')}
               className="w-full px-4 py-3 bg-[#FEE500] text-[#000000] rounded-xl text-sm font-semibold hover:bg-[#FDD835] transition-all"
             >
               서비스 문의하기 💬
@@ -320,39 +310,56 @@ export default function TrialHomePage() {
         </section>
 
         {/* 오늘의 우주 일기예보 */}
-        <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
+        <section
+          className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6 cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => router.push('/fortune')}
+        >
           <h3 className="text-lg font-bold text-[#2A2725] mb-5 flex items-center gap-2">
             오늘의 우주 일기예보 🔭
           </h3>
 
-          <div className="text-center mb-4">
-            <div className="inline-block bg-[rgba(245,243,255,1)] px-4 py-2 rounded-full text-sm text-[rgba(139,125,216,0.95)] mb-5">
-              2026년 1월 31일
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="w-10 h-10 border-3 border-[#BFA7FF] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              <p className="text-sm text-[#6B6662]">운세를 불러오는 중...</p>
             </div>
-            
-            <div className="text-5xl mb-5">🌱</div>
-            
-            <div className="bg-[#E8E5F5] px-5 py-2 rounded-xl inline-block mb-5">
-              <span className="text-base font-semibold text-[rgba(99,102,241,1)]">성장의 시간</span>
+          ) : todayFortune ? (
+            <>
+              <div className="text-center mb-4">
+                <div className="inline-block bg-[rgba(245,243,255,1)] px-4 py-2 rounded-full text-sm text-[rgba(139,125,216,0.95)] mb-5">
+                  {new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </div>
+
+                <div className="text-5xl mb-5">
+                  {todayFortune.category === 'reflection' && '🌙'}
+                  {todayFortune.category === 'gratitude' && '🙏'}
+                  {todayFortune.category === 'growth' && '🌱'}
+                </div>
+
+                <div className="bg-[#E8E5F5] px-5 py-2 rounded-xl inline-block mb-5">
+                  <span className="text-base font-semibold text-[rgba(99,102,241,1)]">
+                    {todayFortune.category === 'reflection' && '성찰의 시간'}
+                    {todayFortune.category === 'gratitude' && '감사의 시간'}
+                    {todayFortune.category === 'growth' && '성장의 시간'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-center leading-relaxed mb-4">
+                <p className="text-[#2A2725]">
+                  {todayFortune.fortuneText}
+                </p>
+              </div>
+
+              <div className="text-center text-xs text-[rgba(139,125,216,0.95)]">
+                자세히 보기 →
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-sm text-[#6B6662]">오늘의 운세를 불러올 수 없습니다.</p>
             </div>
-          </div>
-
-          <div className="text-center leading-relaxed mb-6">
-            <p className="text-[#2A2725] mb-4">
-              새로운 목표와 관점을 위한 나를 세우고, 주변을 돌아보아야 하는 날입니다.
-            </p>
-            <p className="text-[#2A2725]">
-              내가 얼마나 성장했는지 돌아보세요. 당신의 모든 생각과 행동이 바로 이 세계의 씨앗입니다. 아름드리 나무의 위용을 펼처주세요.
-            </p>
-          </div>
-
-          <div className="bg-[rgba(249,249,255,1)] p-5 rounded-xl">
-            <h4 className="text-sm text-[rgba(139,125,216,0.95)] font-semibold mb-2">🔮 오늘의 질문</h4>
-            <p className="text-sm text-[#2A2725] leading-relaxed">
-              작년의 나와 비교했을 때, 가장 크게 달라진 점은?<br />
-              목표하고 계신가요?
-            </p>
-          </div>
+          )}
         </section>
 
       </main>
