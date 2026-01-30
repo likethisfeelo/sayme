@@ -2,39 +2,69 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessToken } from '../utils/auth';
+import { questUserApi } from '@/lib/api/quest';
+
+const mapQuestStatus = (status) => {
+  if (status === 'completed') return 'completed';
+  if (status === 'in_progress') return 'active';
+  return 'active';
+};
+
+const getStatusConfig = (status) => {
+  const configs = {
+    active: {
+      badge: 'bg-[rgba(123,203,255,0.15)] text-[rgba(123,203,255,0.95)] border-[rgba(123,203,255,0.25)]',
+      label: '진행 중',
+      icon: '▶️',
+    },
+    completed: {
+      badge: 'bg-[rgba(46,139,87,0.15)] text-[rgba(46,139,87,0.95)] border-[rgba(46,139,87,0.25)]',
+      label: '완료',
+      icon: '✅',
+    },
+    locked: {
+      badge: 'bg-[rgba(107,102,98,0.15)] text-[rgba(107,102,98,0.95)] border-[rgba(107,102,98,0.25)]',
+      label: '잠김',
+      icon: '🔒',
+    },
+  };
+  return configs[status] || configs.locked;
+};
 
 export default function QuestPage() {
   const router = useRouter();
   const [quests, setQuests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, active, completed
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
-    const token = getAccessToken();
+    const token = localStorage.getItem('idToken');
     if (!token) {
       router.push('/login');
       return;
     }
-    fetchQuests();
+    fetchQuests(token);
   }, [router]);
 
-  const fetchQuests = async () => {
+  const fetchQuests = async (token) => {
     try {
-      const token = getAccessToken();
-      const response = await fetch(
-        'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/quest/user-quests',
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        }
-      );
+      const data = await questUserApi.getMyContents(token);
+      const assignments = data?.contents || [];
 
-      const data = await response.json();
-      if (data.success) {
-        setQuests(data.quests || []);
-      }
+      const mapped = assignments.map((quest, index) => {
+        const content = quest?.content || {};
+        return {
+          questId: quest.assignmentId || `${index}`,
+          title: content.title || content.question || content.description || '제목 없음',
+          description: content.description || content.question || '',
+          status: mapQuestStatus(quest?.progress?.status),
+          progress: quest?.progress?.percent,
+          reward: content.reward,
+          completedAt: quest?.progress?.completedAt,
+        };
+      });
+
+      setQuests(mapped);
     } catch (error) {
       console.error('Quest fetch error:', error);
     } finally {
@@ -42,28 +72,7 @@ export default function QuestPage() {
     }
   };
 
-  const getStatusConfig = (status) => {
-    const configs = {
-      active: {
-        badge: 'bg-[rgba(123,203,255,0.15)] text-[rgba(123,203,255,0.95)] border-[rgba(123,203,255,0.25)]',
-        label: '진행 중',
-        icon: '▶️',
-      },
-      completed: {
-        badge: 'bg-[rgba(46,139,87,0.15)] text-[rgba(46,139,87,0.95)] border-[rgba(46,139,87,0.25)]',
-        label: '완료',
-        icon: '✅',
-      },
-      locked: {
-        badge: 'bg-[rgba(107,102,98,0.15)] text-[rgba(107,102,98,0.95)] border-[rgba(107,102,98,0.25)]',
-        label: '잠김',
-        icon: '🔒',
-      },
-    };
-    return configs[status] || configs.locked;
-  };
-
-  const filteredQuests = quests.filter(quest => {
+  const filteredQuests = quests.filter((quest) => {
     if (filter === 'all') return true;
     if (filter === 'active') return quest.status === 'active';
     if (filter === 'completed') return quest.status === 'completed';
@@ -72,15 +81,19 @@ export default function QuestPage() {
 
   const stats = {
     total: quests.length,
-    completed: quests.filter(q => q.status === 'completed').length,
-    active: quests.filter(q => q.status === 'active').length,
+    completed: quests.filter((quest) => quest.status === 'completed').length,
+    active: quests.filter((quest) => quest.status === 'active').length,
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{
-        background: 'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), #F5F1ED'
-      }}>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          background:
+            'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), #F5F1ED',
+        }}
+      >
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#BFA7FF] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-[#6B6662]">로딩 중...</p>
@@ -90,30 +103,28 @@ export default function QuestPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{
-      fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
-      background: 'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
-      color: '#2A2725',
-    }}>
-      
+    <div
+      className="min-h-screen"
+      style={{
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
+        background:
+          'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
+        color: '#2A2725',
+      }}
+    >
       {/* Top Bar */}
       <header className="sticky top-0 z-50 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
         <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
-          <button
-            onClick={() => router.back()}
-            className="text-[#2A2725] hover:text-[#BFA7FF] transition-colors"
-          >
+          <button onClick={() => router.back()} className="text-[#2A2725] hover:text-[#BFA7FF] transition-colors">
             ← 뒤로
           </button>
-          
+
           <div className="flex flex-col items-center gap-0.5 leading-none">
-            <div className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">
-              Quest
-            </div>
+            <div className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">Quest</div>
             <div className="text-xs text-[#6B6662]">도전 과제</div>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => router.push('/me')}
             className="w-[34px] h-[34px] rounded-[10px] border border-[#E6E0DA] bg-white/65 grid place-items-center cursor-pointer text-sm"
           >
@@ -124,23 +135,22 @@ export default function QuestPage() {
 
       {/* Main Content */}
       <main className="px-4 py-6 pb-[86px] max-w-[430px] mx-auto">
-        
         {/* Stats Summary */}
         <section className="mb-6">
           <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
             <h2 className="text-lg font-bold text-[#2A2725] mb-4">나의 Quest 현황</h2>
-            
+
             <div className="grid grid-cols-3 gap-3">
               <div className="text-center p-3 bg-[rgba(191,167,255,0.05)] rounded-xl border border-[rgba(191,167,255,0.15)]">
                 <div className="text-2xl font-bold text-[#2A2725] mb-1">{stats.total}</div>
                 <div className="text-xs text-[#6B6662]">전체</div>
               </div>
-              
+
               <div className="text-center p-3 bg-[rgba(123,203,255,0.05)] rounded-xl border border-[rgba(123,203,255,0.15)]">
                 <div className="text-2xl font-bold text-[rgba(123,203,255,0.95)] mb-1">{stats.active}</div>
                 <div className="text-xs text-[#6B6662]">진행 중</div>
               </div>
-              
+
               <div className="text-center p-3 bg-[rgba(46,139,87,0.05)] rounded-xl border border-[rgba(46,139,87,0.15)]">
                 <div className="text-2xl font-bold text-[rgba(46,139,87,0.95)] mb-1">{stats.completed}</div>
                 <div className="text-xs text-[#6B6662]">완료</div>
@@ -178,28 +188,22 @@ export default function QuestPage() {
             <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-8 text-center">
               <div className="text-4xl mb-3">📋</div>
               <p className="text-[#6B6662] text-sm">
-                {filter === 'all' 
+                {filter === 'all'
                   ? '아직 Quest가 없습니다'
                   : filter === 'active'
                   ? '진행 중인 Quest가 없습니다'
-                  : '완료한 Quest가 없습니다'
-                }
+                  : '완료한 Quest가 없습니다'}
               </p>
             </div>
           ) : (
             filteredQuests.map((quest, index) => {
               const config = getStatusConfig(quest.status);
-              
+
               return (
                 <button
                   key={quest.questId || index}
-                  onClick={() => quest.status !== 'locked' && router.push(`/quest/detail?id=${quest.questId}`)}
-                  disabled={quest.status === 'locked'}
-                  className={`w-full text-left transition-all ${
-                    quest.status === 'locked'
-                      ? 'opacity-50 cursor-not-allowed'
-                      : 'hover:scale-[1.02] cursor-pointer'
-                  }`}
+                  onClick={() => router.push(`/quest/detail?id=${quest.questId}`)}
+                  className="w-full text-left transition-all hover:scale-[1.02] cursor-pointer"
                 >
                   <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:shadow-lg transition-all">
                     {/* Header */}
@@ -211,12 +215,8 @@ export default function QuestPage() {
                             {config.label}
                           </span>
                         </div>
-                        <h3 className="text-base font-bold text-[#2A2725] mb-1 leading-tight">
-                          {quest.title}
-                        </h3>
-                        <p className="text-sm text-[#6B6662] leading-relaxed line-clamp-2">
-                          {quest.description}
-                        </p>
+                        <h3 className="text-base font-bold text-[#2A2725] mb-1 leading-tight">{quest.title}</h3>
+                        <p className="text-sm text-[#6B6662] leading-relaxed line-clamp-2">{quest.description}</p>
                       </div>
                     </div>
 
@@ -228,7 +228,7 @@ export default function QuestPage() {
                           <span className="text-xs font-semibold text-[#2A2725]">{quest.progress}%</span>
                         </div>
                         <div className="h-2 bg-[rgba(230,224,218,0.5)] rounded-full overflow-hidden">
-                          <div 
+                          <div
                             className="h-full bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] transition-all duration-500"
                             style={{ width: `${quest.progress}%` }}
                           />
@@ -252,11 +252,9 @@ export default function QuestPage() {
                     )}
 
                     {/* Action Hint */}
-                    {quest.status !== 'locked' && (
-                      <div className="mt-3 flex items-center gap-1 text-xs text-[#A9B4A0] font-medium">
-                        {quest.status === 'completed' ? '자세히 보기' : '계속하기'} →
-                      </div>
-                    )}
+                    <div className="mt-3 flex items-center gap-1 text-xs text-[#A9B4A0] font-medium">
+                      {quest.status === 'completed' ? '자세히 보기' : '계속하기'} →
+                    </div>
                   </div>
                 </button>
               );
@@ -269,11 +267,10 @@ export default function QuestPage() {
           <section className="mt-8">
             <div className="bg-gradient-to-br from-[rgba(232,223,245,0.3)] to-[rgba(255,232,214,0.3)] bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6 text-center">
               <div className="text-5xl mb-4">🎯</div>
-              <h3 className="text-lg font-bold text-[#2A2725] mb-2">
-                Quest 시작하기
-              </h3>
+              <h3 className="text-lg font-bold text-[#2A2725] mb-2">Quest 시작하기</h3>
               <p className="text-sm text-[#6B6662] leading-relaxed mb-4">
-                도전 과제를 완료하고<br />
+                도전 과제를 완료하고
+                <br />
                 특별한 보상을 받아보세요
               </p>
               <button
@@ -285,7 +282,6 @@ export default function QuestPage() {
             </div>
           </section>
         )}
-
       </main>
 
       {/* Bottom Navigation */}
@@ -302,21 +298,23 @@ export default function QuestPage() {
               key={item.path}
               onClick={() => router.push(item.path)}
               className={`flex flex-col items-center gap-1.5 px-1.5 py-2 rounded-[14px] border ${
-                item.active 
-                  ? 'border-[rgba(191,167,255,0.35)] bg-white/45' 
-                  : 'border-transparent'
+                item.active ? 'border-[rgba(191,167,255,0.35)] bg-white/45' : 'border-transparent'
               }`}
             >
-              <div className={`w-[34px] h-7 rounded-xl grid place-items-center text-sm ${
-                item.active 
-                  ? 'bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.92)] border-transparent text-[rgba(31,31,31,0.92)]'
-                  : 'bg-white/55 border border-[rgba(230,224,218,0.9)]'
-              }`}>
+              <div
+                className={`w-[34px] h-7 rounded-xl grid place-items-center text-sm ${
+                  item.active
+                    ? 'bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.92)] border-transparent text-[rgba(31,31,31,0.92)]'
+                    : 'bg-white/55 border border-[rgba(230,224,218,0.9)]'
+                }`}
+              >
                 {item.icon}
               </div>
-              <div className={`text-[11px] tracking-tight ${
-                item.active ? 'text-[rgba(42,39,37,0.92)] font-bold' : 'text-[rgba(42,39,37,0.70)]'
-              }`}>
+              <div
+                className={`text-[11px] tracking-tight ${
+                  item.active ? 'text-[rgba(42,39,37,0.92)] font-bold' : 'text-[rgba(42,39,37,0.70)]'
+                }`}
+              >
                 {item.label}
               </div>
             </button>

@@ -1,8 +1,37 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { questUserApi } from '@/lib/api/quest';
+
+const buildMonthLabel = () => `${new Date().getMonth() + 1}월`;
+
+const getStatusConfig = (status) => {
+  const configs = {
+    completed: {
+      dot: 'bg-[rgba(46,139,87,0.85)] border-[rgba(46,139,87,0.35)]',
+      badge: 'text-[rgba(46,139,87,0.95)] border-[rgba(46,139,87,0.25)]',
+      label: '답변 완료',
+    },
+    progress: {
+      dot: 'bg-[rgba(191,167,255,0.95)] border-[rgba(191,167,255,0.35)]',
+      badge: 'text-[rgba(123,203,255,0.95)] border-[rgba(123,203,255,0.25)]',
+      label: '진행 중',
+    },
+    waiting: {
+      dot: 'bg-white/90 border-[rgba(42,39,37,0.18)]',
+      badge: 'text-[#6B6662] border-[#E6E0DA]',
+      label: '대기',
+    },
+  };
+  return configs[status] || configs.waiting;
+};
+
+const mapQuestStatus = (status) => {
+  if (status === 'completed') return 'completed';
+  if (status === 'in_progress') return 'progress';
+  return 'waiting';
+};
 
 export default function PremiumHomePage() {
   const router = useRouter();
@@ -15,44 +44,30 @@ export default function PremiumHomePage() {
     const fetchData = async () => {
       try {
         const idToken = localStorage.getItem('idToken');
-        const accessToken = localStorage.getItem('accessToken');
-        if (!idToken || !accessToken) {
+        if (!idToken) {
           router.push('/login');
           return;
         }
 
-        // ✅ Quest 할당 목록 불러오기
         const questData = await questUserApi.getMyContents(idToken);
-        const assignments = questData.contents || [];
+        const assignments = questData?.contents || [];
 
         const mappedQuestions = assignments.map((quest, index) => {
-          const status = quest?.progress?.status;
-          const mappedStatus =
-            status === 'completed'
-              ? 'completed'
-              : status === 'in_progress'
-              ? 'progress'
-              : 'waiting';
-
+          const content = quest?.content || {};
           return {
             id: quest.assignmentId || `${index}`,
             assignmentId: quest.assignmentId,
             number: `Q${index + 1}`,
-            title:
-              quest.content?.title ||
-              quest.content?.question ||
-              quest.content?.description ||
-              '제목 없음',
-            status: mappedStatus,
-            hasFeedback: false,
+            title: content.title || content.question || content.description || '제목 없음',
+            status: mapQuestStatus(quest?.progress?.status),
+            hasFeedback: Boolean(quest?.feedbackCount),
           };
         });
 
         setQuestions(mappedQuestions);
 
-        // ✅ 나머지 섹션은 샘플 데이터 유지 (필요시 API 연동)
         setUserData({
-          month: '2월',
+          month: buildMonthLabel(),
           goals: {
             keyword: '명료함',
             direction: '흐트러진 생각을 정리하는',
@@ -72,37 +87,15 @@ export default function PremiumHomePage() {
             isNew: true,
           },
         });
-
-        setLoading(false);
       } catch (error) {
         console.error('Failed to fetch data:', error);
+      } finally {
         setLoading(false);
       }
     };
 
     fetchData();
   }, [router]);
-
-  const getStatusConfig = (status) => {
-    const configs = {
-      completed: {
-        dot: 'bg-[rgba(46,139,87,0.85)] border-[rgba(46,139,87,0.35)]',
-        badge: 'text-[rgba(46,139,87,0.95)] border-[rgba(46,139,87,0.25)]',
-        label: '답변 완료',
-      },
-      progress: {
-        dot: 'bg-[rgba(191,167,255,0.95)] border-[rgba(191,167,255,0.35)]',
-        badge: 'text-[rgba(123,203,255,0.95)] border-[rgba(123,203,255,0.25)]',
-        label: '진행 중',
-      },
-      waiting: {
-        dot: 'bg-white/90 border-[rgba(42,39,37,0.18)]',
-        badge: 'text-[#6B6662] border-[#E6E0DA]',
-        label: '대기',
-      },
-    };
-    return configs[status];
-  };
 
   const goToQuestDetail = (assignmentId) => {
     if (!assignmentId) return;
@@ -252,8 +245,8 @@ export default function PremiumHomePage() {
                           <>
                             <button
                               className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 goToQuestDetail(q.assignmentId);
                               }}
                             >
@@ -262,8 +255,8 @@ export default function PremiumHomePage() {
                             {q.hasFeedback && (
                               <button
                                 className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer"
-                                onClick={(e) => {
-                                  e.stopPropagation();
+                                onClick={(event) => {
+                                  event.stopPropagation();
                                   goToQuestDetail(q.assignmentId);
                                 }}
                               >
@@ -276,8 +269,8 @@ export default function PremiumHomePage() {
                           <>
                             <button
                               className="text-xs bg-[rgba(42,39,37,0.92)] border-[rgba(42,39,37,0.10)] text-[rgba(245,241,237,0.98)] px-2.5 py-1.5 rounded-xl cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 goToQuestDetail(q.assignmentId);
                               }}
                             >
@@ -285,8 +278,8 @@ export default function PremiumHomePage() {
                             </button>
                             <button
                               className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
+                              onClick={(event) => {
+                                event.stopPropagation();
                                 goToQuestDetail(q.assignmentId);
                               }}
                             >
@@ -297,8 +290,8 @@ export default function PremiumHomePage() {
                         {q.status === 'waiting' && (
                           <button
                             className="text-xs bg-[rgba(42,39,37,0.92)] border-[rgba(42,39,37,0.10)] text-[rgba(245,241,237,0.98)] px-2.5 py-1.5 rounded-xl cursor-pointer"
-                            onClick={(e) => {
-                              e.stopPropagation();
+                            onClick={(event) => {
+                              event.stopPropagation();
                               goToQuestDetail(q.assignmentId);
                             }}
                           >
@@ -318,7 +311,7 @@ export default function PremiumHomePage() {
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
           <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
             <div>
-              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">이번 달 석 리포트</div>
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">이번 달 분석 리포트</div>
               <div className="text-xs text-[#6B6662]">관리자 업로드 후 활성화</div>
             </div>
             <div className="text-xs text-[#6B6662]">PDF</div>
