@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { questUserApi } from '@/lib/api/quest';
 
@@ -12,7 +12,9 @@ function QuestDetailContent() {
   const [quest, setQuest] = useState(null);
   const [loading, setLoading] = useState(true);
   const [responses, setResponses] = useState([]);
+  const [currentStep, setCurrentStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const bottomRef = useRef(null);
 
   useEffect(() => {
     if (!questId) {
@@ -48,11 +50,15 @@ function QuestDetailContent() {
 
         setQuest(questData);
 
-        // 기존 응답 복원 또는 빈 배열 초기화
         if (userResponse?.responses && userResponse.responses.length > 0) {
           setResponses(userResponse.responses);
+          const lastAnswered = userResponse.responses.reduce(
+            (last, r, i) => (r != null ? i : last), -1
+          );
+          setCurrentStep(Math.min(lastAnswered + 1, questData.contentItems.length - 1));
         } else {
           setResponses(questData.contentItems.map(() => null));
+          setCurrentStep(0);
         }
       }
     } catch (error) {
@@ -69,6 +75,30 @@ function QuestDetailContent() {
       return updated;
     });
   };
+
+  const handleNext = () => {
+    const items = quest?.contentItems || [];
+    const currentItem = items[currentStep];
+    if (currentItem?.type?.startsWith('question') && !responses[currentStep]) {
+      alert('답변을 선택해주세요');
+      return;
+    }
+    if (currentStep < items.length - 1) {
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
+
+  const scrollToBottom = () => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const isLastStep = currentStep === (quest?.contentItems?.length || 1) - 1;
 
   const handleSave = async (finalStatus = 'in_progress') => {
     setSubmitting(true);
@@ -95,7 +125,6 @@ function QuestDetailContent() {
           router.push('/quest');
         } else {
           alert('답변이 저장되었습니다!');
-          fetchQuestDetail();
         }
       } else {
         alert('저장 실패: ' + (result?.error || '알 수 없는 오류'));
@@ -109,23 +138,16 @@ function QuestDetailContent() {
   };
 
   const handleComplete = () => {
-    // 객관식 질문 중 답변 안 한 것 체크
-    const questionItems = (quest?.contentItems || []).filter(
-      item => item.type === 'question_objective' || item.type === 'question_subjective'
+    const items = quest?.contentItems || [];
+    const unanswered = items.some(
+      (item, idx) => item.type?.startsWith('question') && !responses[idx]
     );
-    const unanswered = questionItems.some((item, idx) => {
-      const itemIndex = quest.contentItems.indexOf(item);
-      return !responses[itemIndex];
-    });
-
     if (unanswered) {
       alert('모든 질문에 답변해주세요');
       return;
     }
-
     const confirmed = confirm('Quest를 완료하시겠습니까? 완료 후에는 수정할 수 없습니다.');
     if (!confirmed) return;
-
     handleSave('completed');
   };
 
@@ -169,6 +191,12 @@ function QuestDetailContent() {
 
   const isCompleted = quest.status === 'completed';
   const canEdit = quest.status !== 'completed';
+  const items = quest.contentItems || [];
+  const totalSteps = items.length;
+  const currentItem = items[currentStep];
+
+  const questionNumber =
+    items.slice(0, currentStep + 1).filter(i => i.type?.startsWith('question')).length;
 
   return (
     <div
@@ -192,71 +220,64 @@ function QuestDetailContent() {
 
           <div className="flex flex-col items-center gap-0.5 leading-none">
             <div className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">
-              Quest Detail
+              {quest.title}
             </div>
-            <div className="text-xs text-[#6B6662]">{isCompleted ? '완료됨' : '진행 중'}</div>
+            <div className="text-xs text-[#6B6662]">
+              {isCompleted ? '완료됨' : `${currentStep + 1} / ${totalSteps}`}
+            </div>
           </div>
 
           <div className="w-12" />
         </div>
+
+        {/* Progress Bar */}
+        {!isCompleted && (
+          <div className="max-w-[430px] mx-auto px-4 pb-2">
+            <div className="w-full h-1.5 bg-[#E6E0DA] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] rounded-full transition-all duration-300"
+                style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
       <main className="px-4 py-6 pb-12 max-w-[430px] mx-auto">
-        {/* Quest Info */}
-        <section className="mb-6">
-          <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-2xl">{isCompleted ? '✅' : '▶️'}</span>
-              <span
-                className={`text-xs px-3 py-1.5 rounded-full border font-semibold ${
-                  isCompleted
-                    ? 'bg-[rgba(46,139,87,0.15)] text-[rgba(46,139,87,0.95)] border-[rgba(46,139,87,0.25)]'
-                    : 'bg-[rgba(123,203,255,0.15)] text-[rgba(123,203,255,0.95)] border-[rgba(123,203,255,0.25)]'
-                }`}
-              >
-                {isCompleted ? '완료' : '진행 중'}
-              </span>
-              {quest.metadata?.estimatedTime && (
-                <span className="text-xs text-[#6B6662] ml-auto">
-                  ⏱ {quest.metadata.estimatedTime}
-                </span>
-              )}
-            </div>
 
-            <h1 className="text-xl font-bold text-[#2A2725] mb-3 leading-tight">{quest.title}</h1>
+        {/* 마지막 스텝 경고 배너 */}
+        {isLastStep && canEdit && (
+          <button
+            onClick={scrollToBottom}
+            className="w-full mb-4 px-4 py-3 bg-[rgba(255,183,77,0.15)] border border-[rgba(255,183,77,0.4)] rounded-[14px] text-sm font-semibold text-[#b37a1b] text-center hover:bg-[rgba(255,183,77,0.25)] transition-all"
+          >
+            ⚠️ 완료하기를 눌러야 저장됩니다.
+          </button>
+        )}
 
-            {quest.description && (
-              <p className="text-sm text-[#6B6662] leading-relaxed whitespace-pre-line">
-                {quest.description}
-              </p>
-            )}
-          </div>
-        </section>
-
-        {/* Content Items */}
-        {quest.contentItems.map((item, index) => (
-          <section key={index} className="mb-4">
+        {currentItem && (
+          <section className="mb-6">
             <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
 
               {/* 객관식 질문 */}
-              {item.type === 'question_objective' && (
+              {currentItem.type === 'question_objective' && (
                 <>
-                  <div className="flex items-start gap-2 mb-4">
+                  <div className="flex items-start gap-2 mb-5">
                     <span className="text-xs font-bold text-white bg-[rgba(191,167,255,0.85)] rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      {quest.contentItems.slice(0, index).filter(i => i.type.startsWith('question')).length + 1}
+                      {questionNumber}
                     </span>
                     <p className="text-sm font-semibold text-[#2A2725] leading-relaxed">
-                      {item.question}
+                      {currentItem.question}
                     </p>
                   </div>
                   <div className="space-y-2">
-                    {(item.options || []).map((option, optIdx) => {
-                      const isSelected = responses[index] === option;
+                    {(currentItem.options || []).map((option, optIdx) => {
+                      const isSelected = responses[currentStep] === option;
                       return (
                         <button
                           key={optIdx}
-                          onClick={() => canEdit && handleResponseChange(index, option)}
+                          onClick={() => canEdit && handleResponseChange(currentStep, option)}
                           disabled={!canEdit}
                           className={`w-full text-left px-4 py-3 rounded-xl text-sm transition-all border ${
                             isSelected
@@ -274,19 +295,19 @@ function QuestDetailContent() {
               )}
 
               {/* 주관식 질문 */}
-              {item.type === 'question_subjective' && (
+              {currentItem.type === 'question_subjective' && (
                 <>
-                  <div className="flex items-start gap-2 mb-4">
+                  <div className="flex items-start gap-2 mb-5">
                     <span className="text-xs font-bold text-white bg-[rgba(191,167,255,0.85)] rounded-full w-6 h-6 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      {quest.contentItems.slice(0, index).filter(i => i.type.startsWith('question')).length + 1}
+                      {questionNumber}
                     </span>
                     <p className="text-sm font-semibold text-[#2A2725] leading-relaxed">
-                      {item.question}
+                      {currentItem.question}
                     </p>
                   </div>
                   <textarea
-                    value={responses[index] || ''}
-                    onChange={(e) => handleResponseChange(index, e.target.value)}
+                    value={responses[currentStep] || ''}
+                    onChange={(e) => handleResponseChange(currentStep, e.target.value)}
                     disabled={!canEdit}
                     placeholder="답변을 입력해주세요..."
                     className="w-full min-h-[120px] p-4 bg-white border border-[#E6E0DA] rounded-xl text-sm text-[#2A2725] placeholder-[#6B6662] resize-none focus:outline-none focus:ring-2 focus:ring-[rgba(191,167,255,0.3)] disabled:opacity-60 disabled:cursor-not-allowed"
@@ -296,42 +317,64 @@ function QuestDetailContent() {
               )}
 
               {/* 텍스트(안내문) */}
-              {item.type === 'text' && (
+              {currentItem.type === 'text' && (
                 <div className="text-sm text-[#2A2725] leading-relaxed whitespace-pre-line">
-                  {item.title && (
-                    <h3 className="font-bold mb-3 text-base">{item.title}</h3>
+                  {currentItem.title && (
+                    <h3 className="font-bold mb-3 text-base">{currentItem.title}</h3>
                   )}
-                  {item.description}
+                  {currentItem.description}
                 </div>
               )}
             </div>
           </section>
-        ))}
+        )}
 
-        {/* Action Buttons */}
+        {/* Navigation Buttons */}
         {canEdit && (
-          <section className="space-y-3 mt-6">
+          <section className="space-y-3">
+            <div className="flex gap-3">
+              {currentStep > 0 && (
+                <button
+                  onClick={handlePrev}
+                  className="flex-1 py-4 bg-white border border-[#E6E0DA] text-[#2A2725] rounded-[14px] font-bold text-sm hover:bg-[rgba(191,167,255,0.1)] transition-all"
+                >
+                  ← 이전
+                </button>
+              )}
+
+              {!isLastStep ? (
+                <button
+                  onClick={handleNext}
+                  className="flex-1 py-4 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] rounded-[14px] font-bold text-sm shadow-[0_10px_22px_rgba(123,203,255,0.18)] hover:shadow-xl transition-all"
+                >
+                  다음 →
+                </button>
+              ) : (
+                <button
+                  onClick={handleComplete}
+                  disabled={submitting}
+                  className="flex-1 py-4 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] rounded-[14px] font-bold text-sm shadow-[0_10px_22px_rgba(123,203,255,0.18)] hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? '완료 처리 중...' : 'Quest 완료하기'}
+                </button>
+              )}
+            </div>
+
             <button
               onClick={() => handleSave('in_progress')}
               disabled={submitting}
-              className="w-full py-4 bg-white border border-[#E6E0DA] text-[#2A2725] rounded-[14px] font-bold text-sm hover:bg-[rgba(191,167,255,0.1)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-transparent border border-[#E6E0DA] text-[#6B6662] rounded-[14px] text-xs hover:bg-white/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? '저장 중...' : '💾 임시 저장'}
+              {submitting ? '저장 중...' : '임시 저장'}
             </button>
 
-            <button
-              onClick={handleComplete}
-              disabled={submitting}
-              className="w-full py-4 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] rounded-[14px] font-bold text-sm shadow-[0_10px_22px_rgba(123,203,255,0.18)] hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? '완료 처리 중...' : '🎯 Quest 완료하기'}
-            </button>
-
-            <p className="text-xs text-[#6B6662] text-center leading-relaxed">완료 후에는 답변을 수정할 수 없습니다</p>
+            {isLastStep && (
+              <p className="text-xs text-[#6B6662] text-center leading-relaxed">완료 후에는 답변을 수정할 수 없습니다</p>
+            )}
           </section>
         )}
 
-        {/* Completed Info */}
+        {/* Completed */}
         {isCompleted && (
           <section className="mt-6">
             <div className="bg-gradient-to-br from-[rgba(46,139,87,0.1)] to-[rgba(169,180,160,0.1)] border border-[rgba(46,139,87,0.2)] rounded-[18px] p-6 text-center">
@@ -349,6 +392,9 @@ function QuestDetailContent() {
             </div>
           </section>
         )}
+
+        {/* scroll anchor */}
+        <div ref={bottomRef} />
       </main>
     </div>
   );
