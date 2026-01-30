@@ -39,8 +39,8 @@ export default function TrialHomePage() {
         'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/public/fortune'
       );
       const data = await response.json();
-      if (data.success) {
-        setTodayFortune(data.fortune);
+      if (data.fortuneText) {
+        setTodayFortune(data);
       }
     } catch (error) {
       console.error('Fortune fetch error:', error);
