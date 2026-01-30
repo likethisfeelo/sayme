@@ -2,54 +2,61 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { questUserApi } from '@/lib/api/quest';
 
 export default function PremiumHomePage() {
   const router = useRouter();
   const [userData, setUserData] = useState(null);
+  const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reportEnabled, setReportEnabled] = useState(false);
 
   useEffect(() => {
-    // Fetch premium home data
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
-        if (!token) {
+        const idToken = localStorage.getItem('idToken');
+        const accessToken = localStorage.getItem('accessToken');
+        if (!idToken || !accessToken) {
           router.push('/login');
           return;
         }
 
-        // API calls would go here
-        // For now, use sample data
+        // ✅ Quest 할당 목록 불러오기
+        const questData = await questUserApi.getMyContents(idToken);
+        const assignments = questData.contents || [];
+
+        const mappedQuestions = assignments.map((quest, index) => {
+          const status = quest?.progress?.status;
+          const mappedStatus =
+            status === 'completed'
+              ? 'completed'
+              : status === 'in_progress'
+              ? 'progress'
+              : 'waiting';
+
+          return {
+            id: quest.assignmentId || `${index}`,
+            assignmentId: quest.assignmentId,
+            number: `Q${index + 1}`,
+            title:
+              quest.content?.title ||
+              quest.content?.question ||
+              quest.content?.description ||
+              '제목 없음',
+            status: mappedStatus,
+            hasFeedback: false,
+          };
+        });
+
+        setQuestions(mappedQuestions);
+
+        // ✅ 나머지 섹션은 샘플 데이터 유지 (필요시 API 연동)
         setUserData({
           month: '2월',
           goals: {
             keyword: '명료함',
             direction: '흐트러진 생각을 정리하는',
           },
-          questions: [
-            {
-              id: 1,
-              number: 'Q1',
-              title: "지금 내가 지키고 싶은 '기준'은 무엇인가?",
-              status: 'completed',
-              hasFeedback: true,
-            },
-            {
-              id: 2,
-              number: 'Q2',
-              title: '내가 계속 미루는 결정은 무엇이고, 왜 미루는가?',
-              status: 'progress',
-              hasFeedback: false,
-            },
-            {
-              id: 3,
-              number: 'Q3',
-              title: "이번 달, 나에게 가장 필요한 '경계선'은 어디인가?",
-              status: 'waiting',
-              hasFeedback: false,
-            },
-          ],
           todayFlow: {
             text: `오늘은 속도를 내기보다 리듬을 회복하는 날입니다.
 작은 선택 하나에 에너지를 과하게 쓰지 않아도 됩니다.`,
@@ -95,6 +102,11 @@ export default function PremiumHomePage() {
       },
     };
     return configs[status];
+  };
+
+  const goToQuestDetail = (assignmentId) => {
+    if (!assignmentId) return;
+    router.push(`/quest/detail?id=${assignmentId}`);
   };
 
   if (loading) {
@@ -208,60 +220,97 @@ export default function PremiumHomePage() {
           </div>
 
           <div className="flex flex-col p-2.5 pb-3 gap-2">
-            {userData?.questions.map((q) => {
-              const config = getStatusConfig(q.status);
-              return (
-                <div
-                  key={q.id}
-                  className="bg-white/75 border border-[rgba(230,224,218,0.9)] rounded-[14px] p-3 flex gap-2.5 items-start"
-                >
-                  <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 border ${config.dot}`} />
+            {questions.length === 0 ? (
+              <div className="p-4 text-center text-sm text-[#6B6662]">
+                아직 할당된 Quest가 없습니다.
+              </div>
+            ) : (
+              questions.map((q) => {
+                const config = getStatusConfig(q.status);
+                return (
+                  <div
+                    key={q.id}
+                    className="bg-white/75 border border-[rgba(230,224,218,0.9)] rounded-[14px] p-3 flex gap-2.5 items-start cursor-pointer"
+                    onClick={() => goToQuestDetail(q.assignmentId)}
+                  >
+                    <div className={`w-2.5 h-2.5 rounded-full mt-1.5 flex-shrink-0 border ${config.dot}`} />
 
-                  <div className="flex-1 flex flex-col gap-1.5 min-w-0">
-                    <div className="flex items-center gap-2 text-xs text-[#6B6662]">
-                      <span className={`text-[11px] px-2 py-1 rounded-full border ${config.badge}`}>
-                        {config.label}
-                      </span>
-                      <span>{q.number}</span>
-                    </div>
+                    <div className="flex-1 flex flex-col gap-1.5 min-w-0">
+                      <div className="flex items-center gap-2 text-xs text-[#6B6662]">
+                        <span className={`text-[11px] px-2 py-1 rounded-full border ${config.badge}`}>
+                          {config.label}
+                        </span>
+                        <span>{q.number}</span>
+                      </div>
 
-                    <div className="text-sm font-[680] leading-[1.35] tracking-tight whitespace-normal break-keep">
-                      {q.title}
-                    </div>
+                      <div className="text-sm font-[680] leading-[1.35] tracking-tight whitespace-normal break-keep">
+                        {q.title}
+                      </div>
 
-                    <div className="flex gap-2 mt-0.5">
-                      {q.status === 'completed' && (
-                        <>
-                          <button className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer">
-                            답변 보기
-                          </button>
-                          {q.hasFeedback && (
-                            <button className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer">
-                              피드백
+                      <div className="flex gap-2 mt-0.5">
+                        {q.status === 'completed' && (
+                          <>
+                            <button
+                              className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                goToQuestDetail(q.assignmentId);
+                              }}
+                            >
+                              답변 보기
                             </button>
-                          )}
-                        </>
-                      )}
-                      {q.status === 'progress' && (
-                        <>
-                          <button className="text-xs bg-[rgba(42,39,37,0.92)] border-[rgba(42,39,37,0.10)] text-[rgba(245,241,237,0.98)] px-2.5 py-1.5 rounded-xl cursor-pointer">
-                            계속 생각하기 →
+                            {q.hasFeedback && (
+                              <button
+                                className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  goToQuestDetail(q.assignmentId);
+                                }}
+                              >
+                                피드백
+                              </button>
+                            )}
+                          </>
+                        )}
+                        {q.status === 'progress' && (
+                          <>
+                            <button
+                              className="text-xs bg-[rgba(42,39,37,0.92)] border-[rgba(42,39,37,0.10)] text-[rgba(245,241,237,0.98)] px-2.5 py-1.5 rounded-xl cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                goToQuestDetail(q.assignmentId);
+                              }}
+                            >
+                              계속 생각하기 →
+                            </button>
+                            <button
+                              className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                goToQuestDetail(q.assignmentId);
+                              }}
+                            >
+                              메모
+                            </button>
+                          </>
+                        )}
+                        {q.status === 'waiting' && (
+                          <button
+                            className="text-xs bg-[rgba(42,39,37,0.92)] border-[rgba(42,39,37,0.10)] text-[rgba(245,241,237,0.98)] px-2.5 py-1.5 rounded-xl cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              goToQuestDetail(q.assignmentId);
+                            }}
+                          >
+                            열기
                           </button>
-                          <button className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer">
-                            메모
-                          </button>
-                        </>
-                      )}
-                      {q.status === 'waiting' && (
-                        <button className="text-xs bg-[rgba(42,39,37,0.92)] border-[rgba(42,39,37,0.10)] text-[rgba(245,241,237,0.98)] px-2.5 py-1.5 rounded-xl cursor-pointer">
-                          열기
-                        </button>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </section>
 
@@ -269,7 +318,7 @@ export default function PremiumHomePage() {
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
           <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
             <div>
-              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">이번 달 분석 리포트</div>
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">이번 달 석 리포트</div>
               <div className="text-xs text-[#6B6662]">관리자 업로드 후 활성화</div>
             </div>
             <div className="text-xs text-[#6B6662]">PDF</div>
