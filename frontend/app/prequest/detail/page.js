@@ -30,8 +30,9 @@ function PrequestDetailContent() {
  
   const fetchData = async () => {
     try {
-      const token = getAccessToken();
+      const token = localStorage.getItem('idToken') || getAccessToken();
       const data = await prequestUserApi.getActivePrequests(token);
+      console.log('Detail - API response:', JSON.stringify(data));
       const prequests = data.prequests || [];
       const found = prequests.find(p => p.contentId === contentId);
  
@@ -68,7 +69,7 @@ function PrequestDetailContent() {
   const handleSave = async (status = 'in_progress') => {
     setSaving(true);
     try {
-      const token = getAccessToken();
+      const token = localStorage.getItem('idToken') || getAccessToken();
       await prequestUserApi.saveResponse({
         contentId,
         responses,
