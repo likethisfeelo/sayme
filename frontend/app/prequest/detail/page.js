@@ -153,6 +153,38 @@ function PrequestDetailContent() {
               </div>
             ))}
           </div>
+
+          {/* 하단 액션 영역 */}
+          <div className="mt-8 space-y-3">
+            <button
+              onClick={() => router.push('/trial-home')}
+              className="w-full px-4 py-3 bg-[#2A2725] text-white rounded-xl text-sm font-semibold"
+            >
+              메인으로 돌아가기
+            </button>
+
+            <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
+              <h4 className="text-base font-semibold text-[#2A2725] mb-2">
+                전문 분석 서비스 받기
+              </h4>
+              <p className="text-sm text-[#6B6662] mb-4 leading-relaxed">
+                프리미엄 회원이 되시면 1:1 맞춤 상담과<br />
+                매주 개인화된 심층 리포트를 받으실 수 있습니다.
+              </p>
+              <button
+                onClick={() => router.push('/payment')}
+                className="w-full px-4 py-3 bg-white border-2 border-[rgba(99,102,241,1)] text-[rgba(99,102,241,1)] rounded-xl text-sm font-semibold mb-2 hover:bg-[rgba(99,102,241,0.05)] transition-all"
+              >
+                분석 신청하기
+              </button>
+              <button
+                onClick={() => window.open('https://pf.kakao.com/_xoMxbdG', '_blank')}
+                className="w-full px-4 py-3 bg-[#FEE500] text-[#000000] rounded-xl text-sm font-semibold hover:bg-[#FDD835] transition-all"
+              >
+                서비스 문의하기 💬
+              </button>
+            </div>
+          </div>
         </main>
       </div>
     );
