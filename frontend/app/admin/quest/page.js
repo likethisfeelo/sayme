@@ -32,6 +32,15 @@ export default function AdminQuestPage() {
             </div>
           </Link>
         </div>
+
+        <div className="mt-6">
+          <Link href="/admin/prequest">
+            <div className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer border-2 border-dashed border-purple-300">
+              <h2 className="text-2xl font-bold mb-2">📋 사전질문 관리</h2>
+              <p className="text-gray-600">trial-home에 노출할 사전질문을 관리합니다</p>
+            </div>
+          </Link>
+        </div>
       </div>
     </div>
   );
