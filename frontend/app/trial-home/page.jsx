@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken } from '../utils/auth';
+import { prequestUserApi } from '@/lib/api/prequest';
 
 export default function TrialHomePage() {
   const router = useRouter();
@@ -12,6 +13,9 @@ export default function TrialHomePage() {
   // Intent Selection State
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [showIntentResult, setShowIntentResult] = useState(false);
+
+  // Prequest State
+  const [activePrequests, setActivePrequests] = useState([]);
 
   const maxSelection = 3;
 
@@ -31,7 +35,17 @@ export default function TrialHomePage() {
       return;
     }
     fetchTodayFortune();
+    fetchActivePrequests(token);
   }, [router]);
+
+  const fetchActivePrequests = async (token) => {
+    try {
+      const data = await prequestUserApi.getActivePrequests(token);
+      setActivePrequests(data.prequests || []);
+    } catch (error) {
+      console.error('Prequest fetch error:', error);
+    }
+  };
 
   const fetchTodayFortune = async () => {
     try {
@@ -273,13 +287,13 @@ export default function TrialHomePage() {
           </div>
         </section>
 
-        {/* 사전 질문 */}
+        {/* 사전 질문 (동적) */}
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] overflow-hidden">
           <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
             <div className="text-sm font-bold text-[#2A2725]">사전 질문</div>
             <div className="text-xs text-[rgba(139,125,216,0.95)]">누구나 체험할 수 있어요</div>
           </div>
-          
+
           <div className="p-4 bg-[rgba(249,249,255,1)] rounded-xl m-3">
             <p className="text-xs text-[#6B6662] leading-relaxed mb-2">
               질문을 통해 자신을 돌아보는 시간을 가져보세요.
@@ -291,27 +305,55 @@ export default function TrialHomePage() {
           </div>
 
           <div className="p-3 flex flex-col gap-2">
-            <div className="bg-white border border-[rgba(230,224,218,0.9)] rounded-[14px] p-4">
-              <div className="text-xs text-[rgba(139,125,216,0.95)] mb-2">체험 질문 1</div>
-              <p className="text-sm font-semibold text-[#2A2725] mb-3">
-                오늘 하루 중 가장 기억에 남는 순간?
-              </p>
-              <button className="w-full px-3 py-2 bg-[#2A2725] text-white rounded-xl text-sm font-semibold">
-                답변 작성하기 →
-              </button>
-            </div>
-
-            <div className="bg-white border border-[rgba(230,224,218,0.9)] rounded-[14px] p-4">
-              <div className="text-xs text-[rgba(139,125,216,0.95)] mb-2">체험 질문 2</div>
-              <p className="text-sm font-semibold text-[#2A2725] mb-3">
-                올해 나에게 가장 큰 변화는 무엇인가요?
-              </p>
-              <button className="w-full px-3 py-2 bg-[#2A2725] text-white rounded-xl text-sm font-semibold">
-                답변 작성하기 →
-              </button>
-            </div>
+            {activePrequests.length > 0 ? (
+              activePrequests.map((pq, idx) => {
+                const isAnswered = pq.userResponse?.status === 'completed';
+                return (
+                  <div key={pq.contentId} className="bg-white border border-[rgba(230,224,218,0.9)] rounded-[14px] p-4">
+                    <div className="text-xs text-[rgba(139,125,216,0.95)] mb-2">체험 질문 {idx + 1}</div>
+                    <p className="text-sm font-semibold text-[#2A2725] mb-3">
+                      {pq.title}
+                    </p>
+                    {pq.description && (
+                      <p className="text-xs text-[#6B6662] mb-3">{pq.description}</p>
+                    )}
+                    <button
+                      onClick={() => router.push(`/prequest/detail?id=${pq.contentId}`)}
+                      className={`w-full px-3 py-2 rounded-xl text-sm font-semibold ${
+                        isAnswered
+                          ? 'bg-[rgba(245,243,255,1)] text-[rgba(99,102,241,1)] border border-[rgba(99,102,241,0.3)]'
+                          : 'bg-[#2A2725] text-white'
+                      }`}
+                    >
+                      {isAnswered ? '답변 확인하기 ✓' : '답변 작성하기 →'}
+                    </button>
+                  </div>
+                );
+              })
+            ) : (
+              <>
+                <div className="bg-white border border-[rgba(230,224,218,0.9)] rounded-[14px] p-4">
+                  <div className="text-xs text-[rgba(139,125,216,0.95)] mb-2">체험 질문 1</div>
+                  <p className="text-sm font-semibold text-[#2A2725] mb-3">
+                    오늘 하루 중 가장 기억에 남는 순간?
+                  </p>
+                  <button className="w-full px-3 py-2 bg-[#2A2725] text-white rounded-xl text-sm font-semibold">
+                    답변 작성하기 →
+                  </button>
+                </div>
+                <div className="bg-white border border-[rgba(230,224,218,0.9)] rounded-[14px] p-4">
+                  <div className="text-xs text-[rgba(139,125,216,0.95)] mb-2">체험 질문 2</div>
+                  <p className="text-sm font-semibold text-[#2A2725] mb-3">
+                    올해 나에게 가장 큰 변화는 무엇인가요?
+                  </p>
+                  <button className="w-full px-3 py-2 bg-[#2A2725] text-white rounded-xl text-sm font-semibold">
+                    답변 작성하기 →
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-          
+
           <div className="px-4 py-3 text-center bg-[rgba(249,249,255,1)]">
             <p className="text-xs text-[rgba(139,125,216,0.95)]">
               📌 체험 질문 답변은 작성할 수 있습니다
