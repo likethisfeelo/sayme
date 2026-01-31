@@ -16,6 +16,7 @@ export default function TrialHomePage() {
 
   // Prequest State
   const [activePrequests, setActivePrequests] = useState([]);
+  const [prequestLoading, setPrequestLoading] = useState(true);
 
   const maxSelection = 3;
 
@@ -40,10 +41,13 @@ export default function TrialHomePage() {
 
   const fetchActivePrequests = async (token) => {
     try {
+      setPrequestLoading(true);
       const data = await prequestUserApi.getActivePrequests(token);
       setActivePrequests(data.prequests || []);
     } catch (error) {
       console.error('Prequest fetch error:', error);
+    } finally {
+      setPrequestLoading(false);
     }
   };
 
@@ -287,11 +291,21 @@ export default function TrialHomePage() {
           </div>
         </section>
 
-        {/* 사전 질문 (동적) */}
+        {/* 사전 질문 - 활성질문 표시 */}
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] overflow-hidden">
           <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
-            <div className="text-sm font-bold text-[#2A2725]">사전 질문</div>
-            <div className="text-xs text-[rgba(139,125,216,0.95)]">누구나 체험할 수 있어요</div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-bold text-[#2A2725]">사전 질문</div>
+                <div className="text-xs text-[rgba(139,125,216,0.95)]">누구나 체험할 수 있어요</div>
+              </div>
+              {activePrequests.length > 0 && (
+                <div className="flex items-center gap-1 bg-[rgba(245,243,255,1)] px-2.5 py-1 rounded-full">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[rgba(99,102,241,1)] animate-pulse" />
+                  <span className="text-[10px] font-semibold text-[rgba(99,102,241,1)]">활성 {activePrequests.length}개</span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="p-4 bg-[rgba(249,249,255,1)] rounded-xl m-3">
@@ -305,12 +319,26 @@ export default function TrialHomePage() {
           </div>
 
           <div className="p-3 flex flex-col gap-2">
-            {activePrequests.length > 0 ? (
+            {prequestLoading ? (
+              <div className="text-center py-6">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[rgba(99,102,241,1)] mx-auto mb-2"></div>
+                <p className="text-xs text-[#6B6662]">활성 질문을 불러오는 중...</p>
+              </div>
+            ) : activePrequests.length > 0 ? (
               activePrequests.map((pq, idx) => {
                 const isAnswered = pq.userResponse?.status === 'completed';
+                const isInProgress = pq.userResponse?.status === 'in_progress';
                 return (
                   <div key={pq.contentId} className="bg-white border border-[rgba(230,224,218,0.9)] rounded-[14px] p-4">
-                    <div className="text-xs text-[rgba(139,125,216,0.95)] mb-2">체험 질문 {idx + 1}</div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="text-xs text-[rgba(139,125,216,0.95)] font-medium">활성 질문 {idx + 1}</div>
+                      {isAnswered && (
+                        <span className="text-[10px] bg-[rgba(16,185,129,0.1)] text-[rgba(16,185,129,1)] px-2 py-0.5 rounded-full font-medium">완료</span>
+                      )}
+                      {isInProgress && (
+                        <span className="text-[10px] bg-[rgba(251,191,36,0.1)] text-[rgba(180,130,10,1)] px-2 py-0.5 rounded-full font-medium">작성중</span>
+                      )}
+                    </div>
                     <p className="text-sm font-semibold text-[#2A2725] mb-3">
                       {pq.title}
                     </p>
@@ -322,41 +350,27 @@ export default function TrialHomePage() {
                       className={`w-full px-3 py-2 rounded-xl text-sm font-semibold ${
                         isAnswered
                           ? 'bg-[rgba(245,243,255,1)] text-[rgba(99,102,241,1)] border border-[rgba(99,102,241,0.3)]'
+                          : isInProgress
+                          ? 'bg-[rgba(251,191,36,0.15)] text-[rgba(120,80,0,1)] border border-[rgba(251,191,36,0.3)]'
                           : 'bg-[#2A2725] text-white'
                       }`}
                     >
-                      {isAnswered ? '답변 확인하기 ✓' : '답변 작성하기 →'}
+                      {isAnswered ? '답변 확인하기 ✓' : isInProgress ? '이어서 작성하기 →' : '답변 작성하기 →'}
                     </button>
                   </div>
                 );
               })
             ) : (
-              <>
-                <div className="bg-white border border-[rgba(230,224,218,0.9)] rounded-[14px] p-4">
-                  <div className="text-xs text-[rgba(139,125,216,0.95)] mb-2">체험 질문 1</div>
-                  <p className="text-sm font-semibold text-[#2A2725] mb-3">
-                    오늘 하루 중 가장 기억에 남는 순간?
-                  </p>
-                  <button className="w-full px-3 py-2 bg-[#2A2725] text-white rounded-xl text-sm font-semibold">
-                    답변 작성하기 →
-                  </button>
-                </div>
-                <div className="bg-white border border-[rgba(230,224,218,0.9)] rounded-[14px] p-4">
-                  <div className="text-xs text-[rgba(139,125,216,0.95)] mb-2">체험 질문 2</div>
-                  <p className="text-sm font-semibold text-[#2A2725] mb-3">
-                    올해 나에게 가장 큰 변화는 무엇인가요?
-                  </p>
-                  <button className="w-full px-3 py-2 bg-[#2A2725] text-white rounded-xl text-sm font-semibold">
-                    답변 작성하기 →
-                  </button>
-                </div>
-              </>
+              <div className="text-center py-6">
+                <p className="text-sm text-[#6B6662]">현재 활성화된 질문이 없습니다.</p>
+                <p className="text-xs text-[#999] mt-1">관리자가 질문을 지정하면 여기에 표시됩니다.</p>
+              </div>
             )}
           </div>
 
           <div className="px-4 py-3 text-center bg-[rgba(249,249,255,1)]">
             <p className="text-xs text-[rgba(139,125,216,0.95)]">
-              📌 체험 질문 답변은 작성할 수 있습니다
+              📌 관리자가 지정한 활성 질문이 표시됩니다
             </p>
           </div>
         </section>
