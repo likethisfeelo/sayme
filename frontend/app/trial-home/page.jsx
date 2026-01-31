@@ -36,13 +36,15 @@ export default function TrialHomePage() {
       return;
     }
     fetchTodayFortune();
-    fetchActivePrequests(token);
+    const idToken = localStorage.getItem('idToken') || token;
+    fetchActivePrequests(idToken);
   }, [router]);
 
   const fetchActivePrequests = async (token) => {
     try {
       setPrequestLoading(true);
       const data = await prequestUserApi.getActivePrequests(token);
+      console.log('Prequest API response:', JSON.stringify(data));
       setActivePrequests(data.prequests || []);
     } catch (error) {
       console.error('Prequest fetch error:', error);
