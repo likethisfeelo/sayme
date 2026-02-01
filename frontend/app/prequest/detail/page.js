@@ -4,45 +4,62 @@
  * Route: /prequest/detail?id={contentId}
  */
 
-
 'use client';
- 
+
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { prequestUserApi } from '@/lib/api/prequest';
 import { getAccessToken } from '../../utils/auth';
- 
+
 function PrequestDetailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const contentId = searchParams.get('id');
- 
+
   const [content, setContent] = useState(null);
   const [responses, setResponses] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
- 
+
   useEffect(() => {
     if (contentId) fetchData();
+    else setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contentId]);
- 
+
+  // ✅ 토큰은 여기서 "한 번만" 결정
+  const getAuthToken = () => {
+    // idToken을 저장해두는 구조라면 우선 사용, 없으면 accessToken fallback
+    return localStorage.getItem('idToken') || getAccessToken();
+  };
+
   const fetchData = async () => {
+    setLoading(true);
     try {
-      const token = getAccessToken();
+      const token = getAuthToken();
+
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        router.push('/trial-home');
+        return;
+      }
+
       const data = await prequestUserApi.getActivePrequests(token);
-      const prequests = data.prequests || [];
-      const found = prequests.find(p => p.contentId === contentId);
- 
+      console.log('Detail - API response:', JSON.stringify(data));
+
+      const prequests = data?.prequests || [];
+      const found = prequests.find((p) => p.contentId === contentId);
+
       if (!found) {
         alert('사전질문을 찾을 수 없습니다');
         router.push('/trial-home');
         return;
       }
- 
+
       setContent(found);
- 
+
       // 기존 응답 복원
       if (found.userResponse) {
         setResponses(found.userResponse.responses || []);
@@ -54,28 +71,39 @@ function PrequestDetailContent() {
       }
     } catch (error) {
       console.error('Failed to fetch:', error);
+      alert('불러오기 실패');
     } finally {
       setLoading(false);
     }
   };
- 
+
   const handleResponseChange = (index, value) => {
     const updated = [...responses];
     updated[index] = value;
     setResponses(updated);
   };
- 
+
   const handleSave = async (status = 'in_progress') => {
     setSaving(true);
     try {
-      const token = getAccessToken();
-      await prequestUserApi.saveResponse({
-        contentId,
-        responses,
-        status,
-        timeSpent: 0
-      }, token);
- 
+      const token = getAuthToken();
+
+      if (!token) {
+        alert('로그인이 필요합니다.');
+        router.push('/trial-home');
+        return;
+      }
+
+      await prequestUserApi.saveResponse(
+        {
+          contentId,
+          responses,
+          status,
+          timeSpent: 0,
+        },
+        token
+      );
+
       if (status === 'completed') {
         setIsCompleted(true);
         alert('답변이 저장되었습니다!');
@@ -88,40 +116,52 @@ function PrequestDetailContent() {
       setSaving(false);
     }
   };
- 
+
   const handleComplete = () => {
-    const questionItems = (content?.contentItems || []).filter(i => i.type?.startsWith('question'));
-    const answeredCount = responses.filter(r => r && r.trim && r.trim() !== '').length;
- 
+    const questionItems = (content?.contentItems || []).filter((i) =>
+      i.type?.startsWith('question')
+    );
+
+    const answeredCount = responses.filter((r) => r && r.trim && r.trim() !== '').length;
+
     if (answeredCount < questionItems.length) {
       if (!confirm('아직 답변하지 않은 질문이 있습니다. 그래도 완료하시겠습니까?')) return;
     }
     handleSave('completed');
   };
- 
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{
-        background: 'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), #F5F1ED'
-      }}>
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          background:
+            'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), #F5F1ED',
+        }}
+      >
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgba(99,102,241,1)]"></div>
       </div>
     );
   }
- 
+
   if (!content) return null;
- 
+
   const items = content.contentItems || [];
   const currentItem = items[currentStep];
   const totalSteps = items.length;
- 
+
   // 완료 상태: 전체 응답 보기
   if (isCompleted) {
     return (
-      <div className="min-h-screen" style={{
-        fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
-        background: 'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), #F5F1ED'
-      }}>
+      <div
+        className="min-h-screen"
+        style={{
+          fontFamily:
+            'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
+          background:
+            'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), #F5F1ED',
+        }}
+      >
         <header className="sticky top-0 z-10 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
           <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
             <button onClick={() => router.push('/trial-home')} className="text-sm text-[#6B6662]">
@@ -134,7 +174,10 @@ function PrequestDetailContent() {
           <h2 className="text-xl font-bold text-[#2A2725] mb-6">{content.title}</h2>
           <div className="space-y-4">
             {items.map((item, idx) => (
-              <div key={idx} className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[14px] p-5">
+              <div
+                key={idx}
+                className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[14px] p-5"
+              >
                 {item.type === 'text' ? (
                   <div>
                     {item.title && <h3 className="font-semibold text-[#2A2725] mb-2">{item.title}</h3>}
@@ -152,23 +195,61 @@ function PrequestDetailContent() {
               </div>
             ))}
           </div>
+
+          {/* 하단 액션 영역 */}
+          <div className="mt-8 space-y-3">
+            <button
+              onClick={() => router.push('/trial-home')}
+              className="w-full px-4 py-3 bg-[#2A2725] text-white rounded-xl text-sm font-semibold"
+            >
+              메인으로 돌아가기
+            </button>
+
+            <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
+              <h4 className="text-base font-semibold text-[#2A2725] mb-2">전문 분석 서비스 받기</h4>
+              <p className="text-sm text-[#6B6662] mb-4 leading-relaxed">
+                프리미엄 회원이 되시면 1:1 맞춤 상담과
+                <br />
+                매주 개인화된 심층 리포트를 받으실 수 있습니다.
+              </p>
+              <button
+                onClick={() => router.push('/payment')}
+                className="w-full px-4 py-3 bg-white border-2 border-[rgba(99,102,241,1)] text-[rgba(99,102,241,1)] rounded-xl text-sm font-semibold mb-2 hover:bg-[rgba(99,102,241,0.05)] transition-all"
+              >
+                분석 신청하기
+              </button>
+              <button
+                onClick={() => window.open('https://pf.kakao.com/_xoMxbdG', '_blank')}
+                className="w-full px-4 py-3 bg-[#FEE500] text-[#000000] rounded-xl text-sm font-semibold hover:bg-[#FDD835] transition-all"
+              >
+                서비스 문의하기 💬
+              </button>
+            </div>
+          </div>
         </main>
       </div>
     );
   }
- 
+
   // 진행 중: 스텝별 답변
   return (
-    <div className="min-h-screen" style={{
-      fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
-      background: 'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), #F5F1ED'
-    }}>
+    <div
+      className="min-h-screen"
+      style={{
+        fontFamily:
+          'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
+        background:
+          'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), #F5F1ED',
+      }}
+    >
       <header className="sticky top-0 z-10 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
         <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
           <button onClick={() => router.push('/trial-home')} className="text-sm text-[#6B6662]">
             ← 돌아가기
           </button>
-          <span className="text-sm text-[#6B6662]">{currentStep + 1} / {totalSteps}</span>
+          <span className="text-sm text-[#6B6662]">
+            {currentStep + 1} / {totalSteps}
+          </span>
         </div>
         {/* Progress bar */}
         <div className="max-w-[430px] mx-auto px-4 pb-2">
@@ -180,10 +261,10 @@ function PrequestDetailContent() {
           </div>
         </div>
       </header>
- 
+
       <main className="px-4 py-6 max-w-[430px] mx-auto">
         <h2 className="text-lg font-bold text-[#2A2725] mb-6">{content.title}</h2>
- 
+
         <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
           {currentItem?.type === 'text' && (
             <div>
@@ -195,7 +276,7 @@ function PrequestDetailContent() {
               </p>
             </div>
           )}
- 
+
           {currentItem?.type === 'question_subjective' && (
             <div>
               <p className="text-lg font-bold text-[#2A2725] mb-4">{currentItem.question}</p>
@@ -207,7 +288,7 @@ function PrequestDetailContent() {
               />
             </div>
           )}
- 
+
           {currentItem?.type === 'question_objective' && (
             <div>
               <p className="text-lg font-bold text-[#2A2725] mb-4">{currentItem.question}</p>
@@ -218,9 +299,10 @@ function PrequestDetailContent() {
                     onClick={() => handleResponseChange(currentStep, option)}
                     className={`
                       w-full text-left p-4 rounded-xl border-2 transition-all text-sm
-                      ${responses[currentStep] === option
-                        ? 'border-[rgba(99,102,241,1)] bg-[rgba(245,243,255,1)] text-[rgba(99,102,241,1)] font-semibold'
-                        : 'border-[#E6E0DA] bg-white hover:border-[rgba(167,139,250,0.5)]'
+                      ${
+                        responses[currentStep] === option
+                          ? 'border-[rgba(99,102,241,1)] bg-[rgba(245,243,255,1)] text-[rgba(99,102,241,1)] font-semibold'
+                          : 'border-[#E6E0DA] bg-white hover:border-[rgba(167,139,250,0.5)]'
                       }
                     `}
                   >
@@ -231,7 +313,7 @@ function PrequestDetailContent() {
             </div>
           )}
         </div>
- 
+
         {/* Navigation */}
         <div className="flex gap-3 mt-6">
           {currentStep > 0 && (
@@ -242,7 +324,7 @@ function PrequestDetailContent() {
               이전
             </button>
           )}
- 
+
           {currentStep < totalSteps - 1 ? (
             <button
               onClick={() => {
@@ -267,14 +349,16 @@ function PrequestDetailContent() {
     </div>
   );
 }
- 
+
 export default function PrequestDetailPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#F5F1ED' }}>
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgba(99,102,241,1)]"></div>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center" style={{ background: '#F5F1ED' }}>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgba(99,102,241,1)]"></div>
+        </div>
+      }
+    >
       <PrequestDetailContent />
     </Suspense>
   );

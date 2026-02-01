@@ -1,86 +1,109 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken } from '../utils/auth';
 import { prequestUserApi } from '@/lib/api/prequest';
 
 export default function TrialHomePage() {
   const router = useRouter();
+
   const [todayFortune, setTodayFortune] = useState(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Intent Selection State
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [showIntentResult, setShowIntentResult] = useState(false);
 
   // Prequest State
   const [activePrequests, setActivePrequests] = useState([]);
+  const [prequestLoading, setPrequestLoading] = useState(true);
 
   const maxSelection = 3;
 
-  const categories = [
-    { id: 'love', icon: '💖', label: '사랑', message: '마음껏 사랑을 나누는', question: '지금 당신의 관계에서 가장 크게 달라진 점은 무엇인가요?' },
-    { id: 'work', icon: '💼', label: '직업', message: '능력을 자신있게 펼치는', question: '당신이 일을 통해 진짜 얻고 싶은 것은 무엇인가요?' },
-    { id: 'daily', icon: '🌱', label: '일상', message: '매일 나에게 만족하는', question: '오늘 하루에서 가장 감사했던 순간은 언제였나요?' },
-    { id: 'self', icon: '✨', label: '나 자신', message: '내면의 목소리에 귀 기울이며 나를 이해하는', question: '지금의 나와 비교했을 때, 가장 크게 달라진 점은?' },
-    { id: 'habit', icon: '🎯', label: '습관', message: '하루하루 의도를 가지고 살아가는', question: '매일 반복하고 싶은 것과 멈추고 싶은 것은 각각 무엇인가요?' },
-    { id: 'relationship', icon: '🤝', label: '관계', message: '주변 사람들과 깊이 있는 관계를 만들어가는', question: '당신에게 가장 소중한 관계는 무엇이며, 그 이유는 무엇인가요?' },
-  ];
+  const categories = useMemo(
+    () => [
+      { id: 'love', icon: '💖', label: '사랑', message: '마음껏 사랑을 나누는', question: '지금 당신의 관계에서 가장 크게 달라진 점은 무엇인가요?' },
+      { id: 'work', icon: '💼', label: '직업', message: '능력을 자신있게 펼치는', question: '당신이 일을 통해 진짜 얻고 싶은 것은 무엇인가요?' },
+      { id: 'daily', icon: '🌱', label: '일상', message: '매일 나에게 만족하는', question: '오늘 하루에서 가장 감사했던 순간은 언제였나요?' },
+      { id: 'self', icon: '✨', label: '나 자신', message: '내면의 목소리에 귀 기울이며 나를 이해하는', question: '지금의 나와 비교했을 때, 가장 크게 달라진 점은?' },
+      { id: 'habit', icon: '🎯', label: '습관', message: '하루하루 의도를 가지고 살아가는', question: '매일 반복하고 싶은 것과 멈추고 싶은 것은 각각 무엇인가요?' },
+      { id: 'relationship', icon: '🤝', label: '관계', message: '주변 사람들과 깊이 있는 관계를 만들어가는', question: '당신에게 가장 소중한 관계는 무엇이며, 그 이유는 무엇인가요?' },
+    ],
+    []
+  );
 
   useEffect(() => {
+    let isMounted = true;
+
     const token = getAccessToken();
     if (!token) {
       router.push('/login');
       return;
     }
-    fetchTodayFortune();
-    fetchActivePrequests(token);
+
+    // prequest는 idToken을 선호하고, 없으면 access token을 사용 (의도 명확화)
+    const prequestToken = localStorage.getItem('idToken') || token;
+
+    (async () => {
+      await Promise.all([
+        fetchTodayFortune(isMounted),
+        fetchActivePrequests(prequestToken, isMounted),
+      ]);
+    })();
+
+    return () => {
+      isMounted = false;
+    };
   }, [router]);
 
-  const fetchActivePrequests = async (token) => {
+  const fetchActivePrequests = async (token, isMounted) => {
     try {
+      if (isMounted) setPrequestLoading(true);
+
       const data = await prequestUserApi.getActivePrequests(token);
-      setActivePrequests(data.prequests || []);
+      console.log('Prequest API response:', JSON.stringify(data));
+
+      if (isMounted) setActivePrequests(data?.prequests || []);
     } catch (error) {
       console.error('Prequest fetch error:', error);
+      if (isMounted) setActivePrequests([]);
+    } finally {
+      if (isMounted) setPrequestLoading(false);
     }
   };
 
-  const fetchTodayFortune = async () => {
+  const fetchTodayFortune = async (isMounted) => {
     try {
       const response = await fetch(
         'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/public/fortune'
       );
       const data = await response.json();
-      if (data.fortuneText) {
-        setTodayFortune(data);
-      }
+      if (isMounted && data?.fortuneText) setTodayFortune(data);
     } catch (error) {
       console.error('Fortune fetch error:', error);
+      if (isMounted) setTodayFortune(null);
     } finally {
-      setLoading(false);
+      if (isMounted) setLoading(false);
     }
   };
 
   const handleCategoryClick = (categoryId) => {
-    if (selectedCategories.includes(categoryId)) {
-      setSelectedCategories(selectedCategories.filter(id => id !== categoryId));
-    } else {
-      if (selectedCategories.length < maxSelection) {
-        setSelectedCategories([...selectedCategories, categoryId]);
-      }
-    }
+    setSelectedCategories((prev) => {
+      if (prev.includes(categoryId)) return prev.filter((id) => id !== categoryId);
+      if (prev.length >= maxSelection) return prev;
+      return [...prev, categoryId];
+    });
   };
 
   const handleMakeChange = () => {
-    if (selectedCategories.length > 0) {
-      setShowIntentResult(true);
-    }
+    if (selectedCategories.length > 0) setShowIntentResult(true);
   };
 
   const getSelectedCategoryData = () => {
-    return selectedCategories.map(id => categories.find(cat => cat.id === id));
+    return selectedCategories
+      .map((id) => categories.find((cat) => cat.id === id))
+      .filter(Boolean);
   };
 
   const getIntentMessage = (category, index) => {
@@ -89,10 +112,15 @@ export default function TrialHomePage() {
   };
 
   return (
-    <div className="min-h-screen" style={{
-      fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
-      background: 'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), #F5F1ED',
-    }}>
+    <div
+      className="min-h-screen"
+      style={{
+        fontFamily:
+          'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
+        background:
+          'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), #F5F1ED',
+      }}
+    >
       {/* Top Bar */}
       <header className="sticky top-0 z-10 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
         <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
@@ -102,10 +130,11 @@ export default function TrialHomePage() {
             </div>
             <div className="text-xs text-[#6B6662]">Trial · 체험 중</div>
           </div>
-          
-          <button 
+
+          <button
             onClick={() => router.push('/me')}
             className="w-[34px] h-[34px] rounded-[10px] border border-[#E6E0DA] bg-white/65 grid place-items-center cursor-pointer"
+            aria-label="메뉴로 이동"
           >
             ☰
           </button>
@@ -114,19 +143,16 @@ export default function TrialHomePage() {
 
       {/* Main Content */}
       <main className="px-4 py-6 pb-[86px] flex flex-col gap-4 max-w-[430px] mx-auto">
-        
         {/* Welcome Message */}
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
-          <h2 className="text-2xl font-bold text-[#2A2725] mb-3">
-            환영합니다! 👋
-          </h2>
+          <h2 className="text-2xl font-bold text-[#2A2725] mb-3">환영합니다! 👋</h2>
           <p className="text-[#6B6662] leading-relaxed mb-4">
             Spirit Lab의 일부 콘텐츠를 체험해보세요.
             <br />
             프리미엄 회원이 되시면 모든 기능을 이용하실 수 있습니다.
           </p>
           <button
-            onClick={() => router.push('/payment')}
+            onClick={() => router.push('/introduction_premium')}
             className="w-full px-4 py-3 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] rounded-[14px] font-bold"
           >
             프리미엄 시작하기 →
@@ -142,7 +168,8 @@ export default function TrialHomePage() {
           {!showIntentResult ? (
             <>
               <p className="text-center text-base text-[#2A2725] leading-relaxed mb-4">
-                2026년 2월,<br />
+                2026년 2월,
+                <br />
                 당신은 어떤 변화를 꿈꾸고 있나요?
               </p>
 
@@ -154,7 +181,7 @@ export default function TrialHomePage() {
                 {categories.map((category) => {
                   const isSelected = selectedCategories.includes(category.id);
                   const isDisabled = !isSelected && selectedCategories.length >= maxSelection;
-                  
+
                   return (
                     <button
                       key={category.id}
@@ -162,12 +189,18 @@ export default function TrialHomePage() {
                       disabled={isDisabled}
                       className={`
                         border-2 rounded-xl p-3 text-center transition-all
-                        ${isSelected 
-                          ? 'bg-[rgba(245,243,255,1)] border-[rgba(99,102,241,1)]' 
-                          : 'bg-[rgba(249,249,255,1)] border-transparent'
+                        ${
+                          isSelected
+                            ? 'bg-[rgba(245,243,255,1)] border-[rgba(99,102,241,1)]'
+                            : 'bg-[rgba(249,249,255,1)] border-transparent'
                         }
-                        ${isDisabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:border-[rgba(167,139,250,1)]'}
+                        ${
+                          isDisabled
+                            ? 'opacity-50 cursor-not-allowed'
+                            : 'cursor-pointer hover:border-[rgba(167,139,250,1)]'
+                        }
                       `}
+                      aria-pressed={isSelected}
                     >
                       <div className="text-2xl mb-2">{category.icon}</div>
                       <div className="text-sm font-semibold text-[#2A2725]">{category.label}</div>
@@ -181,9 +214,10 @@ export default function TrialHomePage() {
                 disabled={selectedCategories.length === 0}
                 className={`
                   w-full px-4 py-4 rounded-xl font-semibold transition-all
-                  ${selectedCategories.length > 0
-                    ? 'bg-gradient-to-r from-[rgba(167,139,250,1)] to-[rgba(99,102,241,1)] text-white cursor-pointer hover:shadow-lg'
-                    : 'bg-[#E8E5F5] text-[#999] cursor-not-allowed'
+                  ${
+                    selectedCategories.length > 0
+                      ? 'bg-gradient-to-r from-[rgba(167,139,250,1)] to-[rgba(99,102,241,1)] text-white cursor-pointer hover:shadow-lg'
+                      : 'bg-[#E8E5F5] text-[#999] cursor-not-allowed'
                   }
                 `}
               >
@@ -199,19 +233,14 @@ export default function TrialHomePage() {
                     'linear-gradient(90deg, rgba(96,165,250,1) 0%, rgba(59,130,246,1) 100%)',
                     'linear-gradient(90deg, rgba(52,211,153,1) 0%, rgba(16,185,129,1) 100%)',
                   ];
-                  
+
                   return (
                     <div
                       key={category.id}
                       className="bg-gradient-to-r from-white to-[rgba(249,249,255,1)] rounded-2xl p-6 shadow-md border-2 border-transparent relative overflow-hidden"
-                      style={{
-                        animation: `slideIn 0.5s ease-out ${0.1 * (index + 1)}s both`
-                      }}
+                      style={{ animation: `slideIn 0.5s ease-out ${0.1 * (index + 1)}s both` }}
                     >
-                      <div
-                        className="absolute top-0 left-0 right-0 h-1"
-                        style={{ background: gradients[index % 3] }}
-                      />
+                      <div className="absolute top-0 left-0 right-0 h-1" style={{ background: gradients[index % 3] }} />
                       <div className="text-center">
                         <div className="text-5xl mb-4 animate-float">{category.icon}</div>
                         <p className="text-lg leading-relaxed text-[#2A2725] font-medium">
@@ -226,26 +255,13 @@ export default function TrialHomePage() {
               <div className="text-center text-base font-semibold text-[#2A2725] leading-relaxed p-6 bg-gradient-to-r from-[rgba(245,243,255,1)] to-[rgba(252,231,243,1)] rounded-xl">
                 2026년 2월, 당신은 이렇게 변화합니다.
               </div>
-
-              {selectedCategories.length > 0 && (
-                <div className="mt-4 p-4 bg-[rgba(255,249,230,1)] border-l-4 border-[#FBBF24] rounded-lg">
-                  <h4 className="text-sm text-[#92400E] font-semibold mb-2 flex items-center gap-2">
-                    💭 오늘의 질문
-                  </h4>
-                  <p className="text-sm text-[#78350F] leading-relaxed">
-                    {categories.find(c => c.id === selectedCategories[0])?.question}
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </section>
 
         {/* 2025 돌아보기 + 전문 분석 서비스 */}
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
-          <h3 className="text-lg font-bold text-[#2A2725] mb-3">
-            2025 돌아보기
-          </h3>
+          <h3 className="text-lg font-bold text-[#2A2725] mb-3">2025 돌아보기</h3>
           <p className="text-sm text-[#6B6662] mb-4 leading-relaxed">
             일 년을 돌아보며 콘텐츠로 담은 회고 페이지를 보실 수 있습니다.
           </p>
@@ -265,21 +281,20 @@ export default function TrialHomePage() {
           </div>
 
           <div className="pt-6 border-t border-[#E8E5F5]">
-            <h4 className="text-base font-semibold text-[#2A2725] mb-2">
-              전문 분석 서비스 받기
-            </h4>
+            <h4 className="text-base font-semibold text-[#2A2725] mb-2">전문 분석 서비스 받기</h4>
             <p className="text-sm text-[#6B6662] mb-4 leading-relaxed">
-              프리미엄 회원이 되시면 1:1 맞춤 상담과<br />
+              프리미엄 회원이 되시면 1:1 맞춤 상담과
+              <br />
               매주 개인화된 심층 리포트를 받으실 수 있습니다.
             </p>
             <button
-              onClick={() => router.push('/payment')}
+              onClick={() => router.push('/hinewmember')}
               className="w-full px-4 py-3 bg-white border-2 border-[rgba(99,102,241,1)] text-[rgba(99,102,241,1)] rounded-xl text-sm font-semibold mb-2 hover:bg-[rgba(99,102,241,0.05)] transition-all"
             >
               분석 신청하기
             </button>
             <button
-              onClick={() => window.open('https://pf.kakao.com/_xoMxbdG', '_blank')}
+              onClick={() => window.open('https://pf.kakao.com/_xjwsxfb/chat', '_blank')}
               className="w-full px-4 py-3 bg-[#FEE500] text-[#000000] rounded-xl text-sm font-semibold hover:bg-[#FDD835] transition-all"
             >
               서비스 문의하기 💬
@@ -287,11 +302,23 @@ export default function TrialHomePage() {
           </div>
         </section>
 
-        {/* 사전 질문 (동적) */}
+        {/* 사전 질문 - 활성질문 표시 */}
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] overflow-hidden">
           <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
-            <div className="text-sm font-bold text-[#2A2725]">사전 질문</div>
-            <div className="text-xs text-[rgba(139,125,216,0.95)]">누구나 체험할 수 있어요</div>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm font-bold text-[#2A2725]">사전 질문</div>
+                <div className="text-xs text-[rgba(139,125,216,0.95)]">누구나 체험할 수 있어요</div>
+              </div>
+              {activePrequests.length > 0 && (
+                <div className="flex items-center gap-1 bg-[rgba(245,243,255,1)] px-2.5 py-1 rounded-full">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[rgba(99,102,241,1)] animate-pulse" />
+                  <span className="text-[10px] font-semibold text-[rgba(99,102,241,1)]">
+                    활성 {activePrequests.length}개
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="p-4 bg-[rgba(249,249,255,1)] rounded-xl m-3">
@@ -299,65 +326,71 @@ export default function TrialHomePage() {
               질문을 통해 자신을 돌아보는 시간을 가져보세요.
             </p>
             <p className="text-xs text-[#6B6662] leading-relaxed">
-              모든 질문에 대한 답변은 저장되며,<br />
+              모든 질문에 대한 답변은 저장되며,
+              <br />
               프리미엄 회원은 전문가의 심층 분석을 받으실 수 있습니다.
             </p>
           </div>
 
           <div className="p-3 flex flex-col gap-2">
-            {activePrequests.length > 0 ? (
+            {prequestLoading ? (
+              <div className="text-center py-6">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[rgba(99,102,241,1)] mx-auto mb-2" />
+                <p className="text-xs text-[#6B6662]">활성 질문을 불러오는 중...</p>
+              </div>
+            ) : activePrequests.length > 0 ? (
               activePrequests.map((pq, idx) => {
-                const isAnswered = pq.userResponse?.status === 'completed';
+                const status = pq?.userResponse?.status;
+                const isAnswered = status === 'completed';
+                const isInProgress = status === 'in_progress';
+
                 return (
                   <div key={pq.contentId} className="bg-white border border-[rgba(230,224,218,0.9)] rounded-[14px] p-4">
-                    <div className="text-xs text-[rgba(139,125,216,0.95)] mb-2">체험 질문 {idx + 1}</div>
-                    <p className="text-sm font-semibold text-[#2A2725] mb-3">
-                      {pq.title}
-                    </p>
-                    {pq.description && (
-                      <p className="text-xs text-[#6B6662] mb-3">{pq.description}</p>
-                    )}
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="text-xs text-[rgba(139,125,216,0.95)] font-medium">
+                        활성 질문 {idx + 1}
+                      </div>
+                      {isAnswered && (
+                        <span className="text-[10px] bg-[rgba(16,185,129,0.1)] text-[rgba(16,185,129,1)] px-2 py-0.5 rounded-full font-medium">
+                          완료
+                        </span>
+                      )}
+                      {isInProgress && (
+                        <span className="text-[10px] bg-[rgba(251,191,36,0.1)] text-[rgba(180,130,10,1)] px-2 py-0.5 rounded-full font-medium">
+                          작성중
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-sm font-semibold text-[#2A2725] mb-3">{pq.title}</p>
+
+                    {pq.description && <p className="text-xs text-[#6B6662] mb-3">{pq.description}</p>}
+
                     <button
                       onClick={() => router.push(`/prequest/detail?id=${pq.contentId}`)}
                       className={`w-full px-3 py-2 rounded-xl text-sm font-semibold ${
                         isAnswered
                           ? 'bg-[rgba(245,243,255,1)] text-[rgba(99,102,241,1)] border border-[rgba(99,102,241,0.3)]'
+                          : isInProgress
+                          ? 'bg-[rgba(251,191,36,0.15)] text-[rgba(120,80,0,1)] border border-[rgba(251,191,36,0.3)]'
                           : 'bg-[#2A2725] text-white'
                       }`}
                     >
-                      {isAnswered ? '답변 확인하기 ✓' : '답변 작성하기 →'}
+                      {isAnswered ? '답변 확인하기 ✓' : isInProgress ? '이어서 작성하기 →' : '답변 작성하기 →'}
                     </button>
                   </div>
                 );
               })
             ) : (
-              <>
-                <div className="bg-white border border-[rgba(230,224,218,0.9)] rounded-[14px] p-4">
-                  <div className="text-xs text-[rgba(139,125,216,0.95)] mb-2">체험 질문 1</div>
-                  <p className="text-sm font-semibold text-[#2A2725] mb-3">
-                    오늘 하루 중 가장 기억에 남는 순간?
-                  </p>
-                  <button className="w-full px-3 py-2 bg-[#2A2725] text-white rounded-xl text-sm font-semibold">
-                    답변 작성하기 →
-                  </button>
-                </div>
-                <div className="bg-white border border-[rgba(230,224,218,0.9)] rounded-[14px] p-4">
-                  <div className="text-xs text-[rgba(139,125,216,0.95)] mb-2">체험 질문 2</div>
-                  <p className="text-sm font-semibold text-[#2A2725] mb-3">
-                    올해 나에게 가장 큰 변화는 무엇인가요?
-                  </p>
-                  <button className="w-full px-3 py-2 bg-[#2A2725] text-white rounded-xl text-sm font-semibold">
-                    답변 작성하기 →
-                  </button>
-                </div>
-              </>
+              <div className="text-center py-6">
+                <p className="text-sm text-[#6B6662]">현재 활성화된 질문이 없습니다.</p>
+                <p className="text-xs text-[#999] mt-1">관리자가 질문을 지정하면 여기에 표시됩니다.</p>
+              </div>
             )}
           </div>
 
           <div className="px-4 py-3 text-center bg-[rgba(249,249,255,1)]">
-            <p className="text-xs text-[rgba(139,125,216,0.95)]">
-              📌 체험 질문 답변은 작성할 수 있습니다
-            </p>
+            <p className="text-xs text-[rgba(139,125,216,0.95)]">📌 관리자가 지정한 활성 질문이 표시됩니다</p>
           </div>
         </section>
 
@@ -369,7 +402,7 @@ export default function TrialHomePage() {
 
           {loading ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgba(99,102,241,1)] mx-auto mb-3"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgba(99,102,241,1)] mx-auto mb-3" />
               <p className="text-sm text-[#6B6662]">오늘의 운세를 불러오는 중...</p>
             </div>
           ) : todayFortune ? (
@@ -395,16 +428,12 @@ export default function TrialHomePage() {
               </div>
 
               <div className="text-center leading-relaxed mb-6">
-                <p className="text-[#2A2725]">
-                  {todayFortune.fortuneText}
-                </p>
+                <p className="text-[#2A2725]">{todayFortune.fortuneText}</p>
               </div>
 
               <div className="bg-[rgba(249,249,255,1)] p-5 rounded-xl">
                 <h4 className="text-sm text-[rgba(139,125,216,0.95)] font-semibold mb-2">💭 오늘의 질문</h4>
-                <p className="text-sm text-[#2A2725] leading-relaxed">
-                  {todayFortune.questionPrompt}
-                </p>
+                <p className="text-sm text-[#2A2725] leading-relaxed">{todayFortune.questionPrompt}</p>
               </div>
             </>
           ) : (
@@ -413,7 +442,6 @@ export default function TrialHomePage() {
             </div>
           )}
         </section>
-
       </main>
 
       {/* Bottom Nav */}
@@ -442,7 +470,6 @@ export default function TrialHomePage() {
         </div>
       </nav>
 
-
       <style jsx>{`
         @keyframes slideIn {
           from {
@@ -456,7 +483,8 @@ export default function TrialHomePage() {
         }
 
         @keyframes float {
-          0%, 100% {
+          0%,
+          100% {
             transform: translateY(0px);
           }
           50% {
