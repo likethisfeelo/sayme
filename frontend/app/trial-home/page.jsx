@@ -126,7 +126,7 @@ export default function TrialHomePage() {
             프리미엄 회원이 되시면 모든 기능을 이용하실 수 있습니다.
           </p>
           <button
-            onClick={() => router.push('/payment')}
+            onClick={() => router.push('/introduction_premium')}
             className="w-full px-4 py-3 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] rounded-[14px] font-bold"
           >
             프리미엄 시작하기 →
@@ -273,7 +273,7 @@ export default function TrialHomePage() {
               매주 개인화된 심층 리포트를 받으실 수 있습니다.
             </p>
             <button
-              onClick={() => router.push('/payment')}
+              onClick={() => router.push('/introduction_premium')}
               className="w-full px-4 py-3 bg-white border-2 border-[rgba(99,102,241,1)] text-[rgba(99,102,241,1)] rounded-xl text-sm font-semibold mb-2 hover:bg-[rgba(99,102,241,0.05)] transition-all"
             >
               분석 신청하기
