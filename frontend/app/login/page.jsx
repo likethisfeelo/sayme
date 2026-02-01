@@ -69,12 +69,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
-      <header className="py-6 px-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+    <div
+      className="min-h-screen"
+      style={{
+        fontFamily:
+          'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", Segoe UI, Roboto, Arial, sans-serif',
+        background:
+          'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
+        color: '#2A2725',
+      }}
+    >
+      <header className="py-6 px-4 border-b border-[rgba(230,224,218,0.8)] bg-[rgba(245,241,237,0.7)] backdrop-blur-sm">
         <div className="max-w-md mx-auto">
           <button
             onClick={() => router.push('/')}
-            className="text-indigo-600 hover:text-indigo-700 font-semibold"
+            className="text-[rgba(191,167,255,0.95)] hover:text-[rgba(123,203,255,0.95)] font-semibold"
           >
             ← Sayme
           </button>
@@ -82,15 +91,15 @@ export default function LoginPage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 py-12">
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
+        <div className="bg-white/75 rounded-2xl shadow-[0_18px_40px_rgba(0,0,0,0.08)] p-8 border border-[#E6E0DA] backdrop-blur-sm">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">로그인</h1>
-            <p className="text-gray-600">자기성찰 여정을 이어가세요</p>
+            <h1 className="text-3xl font-bold text-[#2A2725] mb-2">로그인</h1>
+            <p className="text-[#6B6662]">자기성찰 여정을 이어가세요</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="email" className="block text-sm font-medium text-[#6B6662] mb-2">
                 이메일
               </label>
               <input
@@ -99,7 +108,7 @@ export default function LoginPage() {
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-[#E6E0DA] rounded-lg bg-white/80 text-[#2A2725] focus:ring-2 focus:ring-[rgba(191,167,255,0.55)] focus:border-transparent"
                 placeholder="your@email.com"
                 disabled={loading}
                 autoFocus
@@ -107,7 +116,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="password" className="block text-sm font-medium text-[#6B6662] mb-2">
                 비밀번호
               </label>
               <input
@@ -116,14 +125,14 @@ export default function LoginPage() {
                 name="password"
                 value={formData.password}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-[#E6E0DA] rounded-lg bg-white/80 text-[#2A2725] focus:ring-2 focus:ring-[rgba(191,167,255,0.55)] focus:border-transparent"
                 placeholder="비밀번호를 입력하세요"
                 disabled={loading}
               />
             </div>
 
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              <div className="bg-[rgba(255,230,230,0.7)] border border-[rgba(255,178,178,0.9)] text-[#B45353] px-4 py-3 rounded-lg text-sm">
                 {error}
               </div>
             )}
@@ -131,18 +140,18 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="w-full py-3 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] rounded-lg font-semibold transition-all hover:shadow-[0_10px_24px_rgba(123,203,255,0.25)] disabled:bg-[#D7D2CE] disabled:text-[#9B958F] disabled:cursor-not-allowed"
             >
               {loading ? '로그인 중...' : '로그인'}
             </button>
           </form>
 
           <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-[#6B6662]">
               아직 계정이 없으신가요?{' '}
               <button
                 onClick={() => router.push('/signup')}
-                className="text-indigo-600 hover:text-indigo-700 font-semibold"
+                className="text-[rgba(191,167,255,0.95)] hover:text-[rgba(123,203,255,0.95)] font-semibold"
               >
                 회원가입
               </button>
@@ -152,7 +161,7 @@ export default function LoginPage() {
           <div className="mt-4 text-center">
             <button
               onClick={() => router.push('/forgot-password')}
-              className="text-sm text-gray-500 hover:text-gray-700"
+              className="text-sm text-[#8A8681] hover:text-[#2A2725]"
             >
               비밀번호를 잊으셨나요?
             </button>
@@ -160,12 +169,12 @@ export default function LoginPage() {
         </div>
 
         <div className="mt-8 text-center">
-          <p className="text-sm text-gray-600 mb-3">
+          <p className="text-sm text-[#6B6662] mb-3">
             먼저 체험해보고 싶으신가요?
           </p>
           <button
             onClick={() => router.push('/fortune')}
-            className="text-indigo-600 hover:text-indigo-700 font-semibold"
+            className="text-[rgba(191,167,255,0.95)] hover:text-[rgba(123,203,255,0.95)] font-semibold"
           >
             오늘의 운세 보기 →
           </button>

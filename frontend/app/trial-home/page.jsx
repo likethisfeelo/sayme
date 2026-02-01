@@ -191,13 +191,13 @@ export default function TrialHomePage() {
                         border-2 rounded-xl p-3 text-center transition-all
                         ${
                           isSelected
-                            ? 'bg-[rgba(245,243,255,1)] border-[rgba(99,102,241,1)]'
+                            ? 'bg-[rgba(245,243,255,1)] border-[rgba(191,167,255,0.95)]'
                             : 'bg-[rgba(249,249,255,1)] border-transparent'
                         }
                         ${
                           isDisabled
                             ? 'opacity-50 cursor-not-allowed'
-                            : 'cursor-pointer hover:border-[rgba(167,139,250,1)]'
+                            : 'cursor-pointer hover:border-[rgba(191,167,255,0.7)]'
                         }
                       `}
                       aria-pressed={isSelected}
@@ -216,8 +216,8 @@ export default function TrialHomePage() {
                   w-full px-4 py-4 rounded-xl font-semibold transition-all
                   ${
                     selectedCategories.length > 0
-                      ? 'bg-gradient-to-r from-[rgba(167,139,250,1)] to-[rgba(99,102,241,1)] text-white cursor-pointer hover:shadow-lg'
-                      : 'bg-[#E8E5F5] text-[#999] cursor-not-allowed'
+                      ? 'bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] cursor-pointer hover:shadow-lg'
+                      : 'bg-[#E6E0DA] text-[#9B958F] cursor-not-allowed'
                   }
                 `}
               >
@@ -229,9 +229,9 @@ export default function TrialHomePage() {
               <div className="flex flex-col gap-4 mb-6">
                 {getSelectedCategoryData().map((category, index) => {
                   const gradients = [
-                    'linear-gradient(90deg, rgba(244,114,182,1) 0%, rgba(236,72,153,1) 100%)',
-                    'linear-gradient(90deg, rgba(96,165,250,1) 0%, rgba(59,130,246,1) 100%)',
-                    'linear-gradient(90deg, rgba(52,211,153,1) 0%, rgba(16,185,129,1) 100%)',
+                    'linear-gradient(90deg, rgba(255,193,217,0.9) 0%, rgba(191,167,255,0.9) 100%)',
+                    'linear-gradient(90deg, rgba(191,167,255,0.9) 0%, rgba(123,203,255,0.85) 100%)',
+                    'linear-gradient(90deg, rgba(187,224,208,0.9) 0%, rgba(123,203,255,0.55) 100%)',
                   ];
 
                   return (
@@ -268,13 +268,13 @@ export default function TrialHomePage() {
           <div className="flex gap-2 mb-6">
             <button
               onClick={() => router.push('/me/retrospective')}
-              className="flex-1 px-4 py-2.5 bg-white border-2 border-[#E6E0DA] text-[#2A2725] rounded-xl text-sm font-semibold hover:border-[rgba(167,139,250,1)] transition-all"
+              className="flex-1 px-4 py-2.5 bg-white border-2 border-[#E6E0DA] text-[#2A2725] rounded-xl text-sm font-semibold hover:border-[rgba(191,167,255,0.8)] transition-all"
             >
               회고하기
             </button>
             <button
               onClick={() => router.push('/me/review2025')}
-              className="flex-1 px-4 py-2.5 bg-white border-2 border-[#E6E0DA] text-[#2A2725] rounded-xl text-sm font-semibold hover:border-[rgba(167,139,250,1)] transition-all"
+              className="flex-1 px-4 py-2.5 bg-white border-2 border-[#E6E0DA] text-[#2A2725] rounded-xl text-sm font-semibold hover:border-[rgba(191,167,255,0.8)] transition-all"
             >
               돌아보기
             </button>
@@ -289,13 +289,13 @@ export default function TrialHomePage() {
             </p>
             <button
               onClick={() => router.push('/hinewmember')}
-              className="w-full px-4 py-3 bg-white border-2 border-[rgba(99,102,241,1)] text-[rgba(99,102,241,1)] rounded-xl text-sm font-semibold mb-2 hover:bg-[rgba(99,102,241,0.05)] transition-all"
+              className="w-full px-4 py-3 bg-white border-2 border-[rgba(191,167,255,0.95)] text-[rgba(139,125,216,0.95)] rounded-xl text-sm font-semibold mb-2 hover:bg-[rgba(191,167,255,0.08)] transition-all"
             >
               분석 신청하기
             </button>
             <button
               onClick={() => window.open('https://pf.kakao.com/_xjwsxfb/chat', '_blank')}
-              className="w-full px-4 py-3 bg-[#FEE500] text-[#000000] rounded-xl text-sm font-semibold hover:bg-[#FDD835] transition-all"
+              className="w-full px-4 py-3 bg-[#F6F2C2] text-[#2A2725] rounded-xl text-sm font-semibold border border-[#E6E0DA] hover:bg-[#F2EDAF] transition-all"
             >
               서비스 문의하기 💬
             </button>
@@ -312,8 +312,8 @@ export default function TrialHomePage() {
               </div>
               {activePrequests.length > 0 && (
                 <div className="flex items-center gap-1 bg-[rgba(245,243,255,1)] px-2.5 py-1 rounded-full">
-                  <div className="w-1.5 h-1.5 rounded-full bg-[rgba(99,102,241,1)] animate-pulse" />
-                  <span className="text-[10px] font-semibold text-[rgba(99,102,241,1)]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[rgba(191,167,255,0.95)] animate-pulse" />
+                  <span className="text-[10px] font-semibold text-[rgba(139,125,216,0.95)]">
                     활성 {activePrequests.length}개
                   </span>
                 </div>
@@ -335,7 +335,7 @@ export default function TrialHomePage() {
           <div className="p-3 flex flex-col gap-2">
             {prequestLoading ? (
               <div className="text-center py-6">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[rgba(99,102,241,1)] mx-auto mb-2" />
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[rgba(191,167,255,0.95)] mx-auto mb-2" />
                 <p className="text-xs text-[#6B6662]">활성 질문을 불러오는 중...</p>
               </div>
             ) : activePrequests.length > 0 ? (
@@ -370,9 +370,9 @@ export default function TrialHomePage() {
                       onClick={() => router.push(`/prequest/detail?id=${pq.contentId}`)}
                       className={`w-full px-3 py-2 rounded-xl text-sm font-semibold ${
                         isAnswered
-                          ? 'bg-[rgba(245,243,255,1)] text-[rgba(99,102,241,1)] border border-[rgba(99,102,241,0.3)]'
+                          ? 'bg-[rgba(245,243,255,1)] text-[rgba(139,125,216,0.95)] border border-[rgba(191,167,255,0.4)]'
                           : isInProgress
-                          ? 'bg-[rgba(251,191,36,0.15)] text-[rgba(120,80,0,1)] border border-[rgba(251,191,36,0.3)]'
+                          ? 'bg-[rgba(255,236,179,0.45)] text-[rgba(138,109,0,0.95)] border border-[rgba(255,236,179,0.8)]'
                           : 'bg-[#2A2725] text-white'
                       }`}
                     >
@@ -402,7 +402,7 @@ export default function TrialHomePage() {
 
           {loading ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgba(99,102,241,1)] mx-auto mb-3" />
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[rgba(191,167,255,0.95)] mx-auto mb-3" />
               <p className="text-sm text-[#6B6662]">오늘의 운세를 불러오는 중...</p>
             </div>
           ) : todayFortune ? (
@@ -418,8 +418,8 @@ export default function TrialHomePage() {
                   {todayFortune.category === 'growth' && '🌱'}
                 </div>
 
-                <div className="bg-[#E8E5F5] px-5 py-2 rounded-xl inline-block mb-5">
-                  <span className="text-base font-semibold text-[rgba(99,102,241,1)]">
+                <div className="bg-[rgba(245,243,255,1)] px-5 py-2 rounded-xl inline-block mb-5">
+                  <span className="text-base font-semibold text-[rgba(139,125,216,0.95)]">
                     {todayFortune.category === 'reflection' && '성찰의 시간'}
                     {todayFortune.category === 'gratitude' && '감사의 시간'}
                     {todayFortune.category === 'growth' && '성장의 시간'}
