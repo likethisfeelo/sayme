@@ -1,9 +1,13 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function IntroductionPremiumPage() {
   const router = useRouter();
+  const [openMonthly, setOpenMonthly] = useState(false);
+  const [openNewMember, setOpenNewMember] = useState(false);
+  const [openFaq, setOpenFaq] = useState(null);
 
   return (
     <div className="min-h-screen" style={{
@@ -339,7 +343,7 @@ export default function IntroductionPremiumPage() {
 
           {/* 참여 구조 */}
           <div className="bg-[rgba(249,249,255,1)] border border-[rgba(99,102,241,0.2)] rounded-[18px] p-5 mb-4">
-            <div className="text-sm font-bold text-[#2A2725] mb-3">참여 구조</div>
+            <div className="text-sm font-bold text-[#2A2725] mb-3 text-center">참여자 평균 2~6개월 지속</div>
             <div className="space-y-2.5 mb-4">
               {[
                 { label: '월 단위 참여', price: '100,000원/월', color: 'rgba(99,102,241,1)', border: false },
@@ -367,65 +371,80 @@ export default function IntroductionPremiumPage() {
 
             <div className="text-[11px] text-[#6B6662] leading-relaxed">
               * 자동 갱신 없음<br />
-              * 매달 참여 의사 확인 후 결제<br />
-              * 언제든 중단 가능
+              * 매달 참여 의사 확인 후 결제
             </div>
           </div>
 
           {/* 왜 월 단위인가요? */}
-          <div className="bg-[rgba(224,242,254,1)] border-l-4 border-[rgba(59,130,246,1)] rounded-xl p-5 mb-4">
-            <div className="text-sm font-bold text-[#2A2725] mb-3">왜 월 단위인가요?</div>
-            <div className="text-xs text-[#1e3a8a] leading-[1.7]">
-              매달 질문과 기준이 누적되며 당신만의 선택 기준이 만들어집니다.<br /><br />
-              사주와 점성술의 기본인 <strong>달님의 사이클에 맞춰</strong> 진행됩니다.<br /><br />
-              변화는 결심이 아니라 <strong>반복</strong>입니다.
-            </div>
+          <div className="bg-[rgba(224,242,254,1)] border-l-4 border-[rgba(59,130,246,1)] rounded-xl mb-4 overflow-hidden">
+            <button
+              onClick={() => setOpenMonthly(!openMonthly)}
+              className="w-full flex items-center justify-between p-5 text-left"
+            >
+              <span className="text-sm font-bold text-[#2A2725]">왜 월 단위인가요?</span>
+              <span className={`text-[#6B6662] text-sm transition-transform duration-200 ${openMonthly ? 'rotate-180' : ''}`}>▼</span>
+            </button>
+            {openMonthly && (
+              <div className="px-5 pb-5 text-xs text-[#1e3a8a] leading-[1.7]">
+                매달 질문과 기준이 누적되며 당신만의 선택 기준이 만들어집니다.<br /><br />
+                사주와 점성술의 기본인 <strong>달님의 사이클에 맞춰</strong> 진행됩니다.<br /><br />
+                변화는 결심이 아니라 <strong>반복</strong>입니다.
+              </div>
+            )}
           </div>
 
           {/* 왜 신규 회원 비용이 더 높나요? */}
-          <div className="bg-gradient-to-br from-[rgba(254,243,199,1)] to-[rgba(253,230,138,1)] border-l-4 border-[rgba(245,158,11,1)] rounded-[14px] p-6 mb-4">
-            <div className="text-[15px] font-bold text-[#78350F] mb-4 flex items-center gap-2">
-              왜 신규 회원 비용이 더 높나요?
-            </div>
-            <div className="text-[13px] text-[#78350F] leading-[1.8] mb-4">
-              <strong>신규 회원은 더 많은 시간과 분석이 필요합니다</strong>
-            </div>
+          <div className="bg-gradient-to-br from-[rgba(254,243,199,1)] to-[rgba(253,230,138,1)] border-l-4 border-[rgba(245,158,11,1)] rounded-[14px] mb-4 overflow-hidden">
+            <button
+              onClick={() => setOpenNewMember(!openNewMember)}
+              className="w-full flex items-center justify-between p-6 text-left"
+            >
+              <span className="text-[15px] font-bold text-[#78350F]">왜 신규 회원 비용이 더 높나요?</span>
+              <span className={`text-[#78350F] text-sm transition-transform duration-200 ${openNewMember ? 'rotate-180' : ''}`}>▼</span>
+            </button>
+            {openNewMember && (
+              <div className="px-6 pb-6">
+                <div className="text-[13px] text-[#78350F] leading-[1.8] mb-4">
+                  <strong>신규 회원은 더 많은 시간과 분석이 필요합니다</strong>
+                </div>
 
-            <div className="bg-white rounded-xl p-4 mb-4">
-              <div className="text-xs font-bold text-[#78350F] mb-3">첫 달, 당신만의 구조를 만드는 시간</div>
-              <div className="text-[11px] text-[#78350F] leading-[1.8]">
-                • <strong>1:1 상담 총 60분</strong> (시작 30분 + 마무리 30분)<br />
-                • 사주·점성술 기초 분석 &amp; 개인 구조 완전 파악<br />
-                • 당신의 리듬에 맞는 질문 설계를 위한 심층 대화<br />
-                • 첫 달 목표 설정 및 앞으로의 방향 수립<br />
-                • 이후 매달 활용할 수 있는 <strong>나만의 기준 설계</strong>
-              </div>
-            </div>
+                <div className="bg-white rounded-xl p-4 mb-4">
+                  <div className="text-xs font-bold text-[#78350F] mb-3">첫 달, 당신만의 구조를 만드는 시간</div>
+                  <div className="text-[11px] text-[#78350F] leading-[1.8]">
+                    • <strong>1:1 상담 총 60분</strong> (시작 30분 + 마무리 30분)<br />
+                    • 사주·점성술 기초 분석 &amp; 개인 구조 완전 파악<br />
+                    • 당신의 리듬에 맞는 질문 설계를 위한 심층 대화<br />
+                    • 첫 달 목표 설정 및 앞으로의 방향 수립<br />
+                    • 이후 매달 활용할 수 있는 <strong>나만의 기준 설계</strong>
+                  </div>
+                </div>
 
-            <div className="bg-[rgba(245,243,255,1)] border-2 border-[rgba(99,102,241,0.3)] rounded-xl p-4 mb-4 text-center">
-              <div className="text-xs text-[#2A2725] leading-[1.8]">
-                일반 1:1 상담 30분 = <strong className="text-[rgba(99,102,241,1)]">77,000원</strong><br />
-                <div className="text-[10px] text-[#6B6662] my-2">×</div>
-                신규 회원은 <strong>60분 상담 + 구조 세팅 + 맞춤 분석</strong><br />
-                <div className="mt-3 pt-3 border-t border-[rgba(99,102,241,0.2)]">
-                  <span className="text-[11px] text-[#6B6662]">이 모든 것을</span><br />
-                  <strong className="text-lg text-[rgba(99,102,241,1)]">200,000원</strong><br />
-                  <span className="text-[11px] text-[rgba(99,102,241,1)] font-semibold">상담비만 계산해도 완전 개이득입니다</span>
+                <div className="bg-[rgba(245,243,255,1)] border-2 border-[rgba(99,102,241,0.3)] rounded-xl p-4 mb-4 text-center">
+                  <div className="text-xs text-[#2A2725] leading-[1.8]">
+                    일반 1:1 상담 30분 = <strong className="text-[rgba(99,102,241,1)]">77,000원</strong><br />
+                    <div className="text-[10px] text-[#6B6662] my-2">×</div>
+                    신규 회원은 <strong>60분 상담 + 구조 세팅 + 맞춤 분석</strong><br />
+                    <div className="mt-3 pt-3 border-t border-[rgba(99,102,241,0.2)]">
+                      <span className="text-[11px] text-[#6B6662]">이 모든 것을</span><br />
+                      <strong className="text-lg text-[rgba(99,102,241,1)]">200,000원</strong><br />
+                      <span className="text-[11px] text-[rgba(99,102,241,1)] font-semibold">상담비만 계산해도 완전 개이득입니다</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[rgba(240,253,244,1)] rounded-xl p-3.5">
+                  <div className="text-[11px] text-[#166534] leading-[1.8]">
+                    <strong>2개월차부터는?</strong><br /><br />
+                    이미 파악된 당신의 구조를 바탕으로 진행하므로<br />
+                    상담 시간이 줄어들고, 질문은 더 정교해지며,<br />
+                    비용도 자연스럽게 낮아집니다.<br /><br />
+                    <span className="text-[rgba(22,163,74,1)] font-semibold">
+                      쌓인 기록이 곧 당신만의 자산이 됩니다.
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-[rgba(240,253,244,1)] rounded-xl p-3.5">
-              <div className="text-[11px] text-[#166534] leading-[1.8]">
-                <strong>2개월차부터는?</strong><br /><br />
-                이미 파악된 당신의 구조를 바탕으로 진행하므로<br />
-                상담 시간이 줄어들고, 질문은 더 정교해지며,<br />
-                비용도 자연스럽게 낮아집니다.<br /><br />
-                <span className="text-[rgba(22,163,74,1)] font-semibold">
-                  쌓인 기록이 곧 당신만의 자산이 됩니다.
-                </span>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* 장기 참여 혜택 */}
@@ -479,7 +498,7 @@ export default function IntroductionPremiumPage() {
             {/* FAQ */}
             <div className="bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] rounded-[18px] p-5">
               <h3 className="text-sm font-bold text-[#2A2725] mb-4">자주 묻는 질문</h3>
-              <div className="space-y-4">
+              <div className="space-y-0">
                 {[
                   {
                     q: '언제 가입할 수 있나요?',
@@ -510,9 +529,17 @@ export default function IntroductionPremiumPage() {
                     a: '사주와 점성술을 기반으로 개인 맞춤 질문을 설계하기 때문입니다.\n생년월일시와 출생지 정보를 통해 현재 시점의 흐름을 파악하고,\n나다움에 대해 깊이 생각할 수 있는 개인화된 질문을 제공합니다.',
                   },
                 ].map((item, index) => (
-                  <div key={index} className="pb-3 border-b border-[rgba(230,224,218,0.5)] last:border-b-0 last:pb-0">
-                    <h4 className="text-xs font-bold text-[rgba(191,167,255,0.95)] mb-1.5">Q. {item.q}</h4>
-                    <p className="text-xs text-[#6B6662] leading-relaxed whitespace-pre-line">{item.a}</p>
+                  <div key={index} className="border-b border-[rgba(230,224,218,0.5)] last:border-b-0">
+                    <button
+                      onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                      className="w-full flex items-center justify-between py-3 text-left"
+                    >
+                      <h4 className="text-xs font-bold text-[rgba(191,167,255,0.95)]">Q. {item.q}</h4>
+                      <span className={`text-[#6B6662] text-xs transition-transform duration-200 flex-shrink-0 ml-2 ${openFaq === index ? 'rotate-180' : ''}`}>▼</span>
+                    </button>
+                    {openFaq === index && (
+                      <p className="text-xs text-[#6B6662] leading-relaxed whitespace-pre-line pb-3">{item.a}</p>
+                    )}
                   </div>
                 ))}
               </div>
