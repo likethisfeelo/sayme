@@ -35,15 +35,21 @@ export default function FortunePage() {
   };
 
   const handleStart = () => {
-    router.push('/service-intro');
+    router.push('/introduction_premium');
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-indigo-50 to-white">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          background:
+            'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
+        }}
+      >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">오늘의 운세를 불러오는 중...</p>
+          <div className="w-16 h-16 border-4 border-[#BFA7FF] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-[#6B6662]">오늘의 운세를 불러오는 중...</p>
         </div>
       </div>
     );
@@ -51,14 +57,20 @@ export default function FortunePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-indigo-50 to-white">
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{
+          background:
+            'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
+        }}
+      >
         <div className="text-center px-4">
           <div className="text-6xl mb-4">😔</div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">오류가 발생했습니다</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
+          <h2 className="text-xl font-semibold text-[#2A2725] mb-2">오류가 발생했습니다</h2>
+          <p className="text-[#6B6662] mb-6">{error}</p>
           <button
             onClick={fetchFortune}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="px-6 py-3 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] font-[650] rounded-[14px] transition-transform active:scale-[0.98]"
           >
             다시 시도
           </button>
@@ -68,108 +80,99 @@ export default function FortunePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-purple-50 to-white">
-      <Header subtitle="오늘의 운세" maxWidthClass="max-w-2xl" />
+    <div
+      className="max-w-[430px] mx-auto min-h-screen flex flex-col"
+      style={{
+        fontFamily:
+          'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", Segoe UI, Roboto, Arial, sans-serif',
+        background:
+          'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
+        color: '#2A2725',
+      }}
+    >
+      <Header subtitle="오늘의 운세" maxWidthClass="max-w-[430px]" />
 
-      {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 py-12">
+      <main className="px-4 py-3.5 flex flex-col gap-3.5">
         {/* Date Display */}
-        <div className="text-center mb-8">
-          <div className="inline-block px-4 py-2 bg-white rounded-full shadow-sm border border-gray-200">
-            <p className="text-sm text-gray-600">
+        <div className="text-center">
+          <div className="inline-block px-4 py-2 bg-white/70 backdrop-blur-sm rounded-full border border-[#E6E0DA]">
+            <p className="text-xs text-[#6B6662] m-0">
               {new Date().toLocaleDateString('ko-KR', {
                 year: 'numeric',
                 month: 'long',
-                day: 'numeric'
+                day: 'numeric',
               })}
             </p>
           </div>
         </div>
 
         {/* Fortune Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border border-gray-100">
-          {/* Icon */}
-          <div className="text-center mb-6">
-            <div className="inline-block text-6xl">
-              {fortune?.category === 'reflection' && '🌙'}
-              {fortune?.category === 'gratitude' && '🙏'}
-              {fortune?.category === 'growth' && '🌱'}
+        <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+          <div className="p-4">
+            {/* Icon */}
+            <div className="text-center mb-4">
+              <div className="inline-block text-5xl">
+                {fortune?.category === 'reflection' && '🌙'}
+                {fortune?.category === 'gratitude' && '🙏'}
+                {fortune?.category === 'growth' && '🌱'}
+              </div>
             </div>
-          </div>
 
-          {/* Category Badge */}
-          <div className="flex justify-center mb-6">
-            <span className="inline-block px-4 py-1 bg-indigo-100 text-indigo-700 text-sm font-medium rounded-full">
-              {fortune?.category === 'reflection' && '성찰의 시간'}
-              {fortune?.category === 'gratitude' && '감사의 시간'}
-              {fortune?.category === 'growth' && '성장의 시간'}
-            </span>
-          </div>
+            {/* Category Badge */}
+            <div className="flex justify-center mb-4">
+              <span className="inline-block px-3.5 py-1.5 text-xs font-[650] rounded-full border border-[rgba(191,167,255,0.35)] text-[#6B6662] bg-[rgba(191,167,255,0.12)]">
+                {fortune?.category === 'reflection' && '성찰의 시간'}
+                {fortune?.category === 'gratitude' && '감사의 시간'}
+                {fortune?.category === 'growth' && '성장의 시간'}
+              </span>
+            </div>
 
-          {/* Fortune Text */}
-          <div className="mb-8">
-            <p className="text-lg leading-relaxed text-gray-800 text-center">
+            {/* Fortune Text */}
+            <p className="text-base leading-[1.65] text-[rgba(42,39,37,0.92)] tracking-tight text-center m-0 mb-4">
               {fortune?.fortuneText}
             </p>
-          </div>
 
-          {/* Question */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-100">
-            <div className="flex items-start gap-3">
-              <div className="text-2xl">💭</div>
-              <div>
-                <h3 className="text-sm font-semibold text-indigo-900 mb-2">
-                  오늘의 질문
-                </h3>
-                <p className="text-base text-gray-800">
-                  {fortune?.questionPrompt}
-                </p>
+            {/* Question */}
+            <div className="bg-gradient-to-br from-[rgba(191,167,255,0.15)] via-[rgba(123,203,255,0.12)] to-[rgba(255,193,217,0.10)] rounded-[14px] p-4 border border-[rgba(230,224,218,0.85)]">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">💭</div>
+                <div>
+                  <h3 className="text-xs font-[750] tracking-tight text-[#2A2725] mb-1.5 m-0">
+                    오늘의 질문
+                  </h3>
+                  <p className="text-sm text-[rgba(42,39,37,0.92)] leading-[1.55] tracking-tight m-0">
+                    {fortune?.questionPrompt}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* CTA Section */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-xl p-8 text-white text-center">
-          <h2 className="text-2xl font-bold mb-3">
-            본격적인 자기성찰을 시작해보세요
-          </h2>
-          <p className="text-indigo-100 mb-6 leading-relaxed">
-            10일간 깊이 있는 질문으로<br />
-            한 달을 더욱 의미있게 마무리하는 프리미엄 챌린지
-          </p>
-          <button
-            onClick={handleStart}
-            className="w-full sm:w-auto px-8 py-4 bg-white text-indigo-600 rounded-xl font-semibold hover:bg-indigo-50 transition-all transform hover:scale-105 shadow-lg"
-          >
-            서비스 알아보기 →
-          </button>
-        </div>
-
-        {/* Feature Highlights */}
-        <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="text-center p-4">
-            <div className="text-3xl mb-2">✨</div>
-            <h4 className="font-semibold text-gray-800 mb-1">맞춤형 질문</h4>
-            <p className="text-sm text-gray-600">15분 상담으로 나만의 질문 설계</p>
+        <section className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(123,203,255,0.18)] to-[rgba(255,193,217,0.16)] bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+          <div className="p-4 text-center">
+            <h2 className="text-base font-[750] tracking-tight text-[#2A2725] mb-2">
+              내게 맞춘 우주의 흐름을 받아보세요!
+            </h2>
+            <p className="text-[13px] text-[#6B6662] leading-[1.65] mb-4 m-0">
+              깊이 있는 질문으로 나다움에 대해<br />
+              생각하는 시간을 함께 만들어드립니다.
+            </p>
+            <button
+              onClick={handleStart}
+              className="w-full appearance-none border-0 cursor-pointer rounded-[14px] px-3.5 py-3 font-[650] text-sm tracking-tight inline-flex items-center justify-center gap-2 transition-transform active:scale-[0.98] text-[#1f1f1f] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] shadow-[0_10px_22px_rgba(123,203,255,0.18)]"
+            >
+              서비스 알아보기 →
+            </button>
           </div>
-          <div className="text-center p-4">
-            <div className="text-3xl mb-2">💰</div>
-            <h4 className="font-semibold text-gray-800 mb-1">10만원 환급</h4>
-            <p className="text-sm text-gray-600">정시 완주 시 전액 환급</p>
-          </div>
-          <div className="text-center p-4">
-            <div className="text-3xl mb-2">📄</div>
-            <h4 className="font-semibold text-gray-800 mb-1">PDF 결산</h4>
-            <p className="text-sm text-gray-600">나만의 성찰 리포트</p>
-          </div>
-        </div>
+        </section>
       </main>
 
       {/* Footer */}
-      <footer className="py-8 px-4 border-t border-gray-200 mt-16">
-        <div className="max-w-2xl mx-auto text-center text-sm text-gray-500">
-          <p>© 2024 Sayme. All rights reserved.</p>
+      <footer className="py-8 px-4 mt-8">
+        <div className="text-center text-xs text-[#6B6662]">
+          <p className="m-0">© 2024 Sayme. All rights reserved.</p>
         </div>
       </footer>
     </div>
