@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { questUserApi } from '@/lib/api/quest';
+import Header from '../components/Header';
 
 const buildMonthLabel = () => `${new Date().getMonth() + 1}월`;
 
@@ -130,30 +131,13 @@ export default function PremiumHomePage() {
         color: '#2A2725',
       }}
     >
-      {/* Top Bar */}
-      <header className="sticky top-0 z-10 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
-        <div className="flex items-center justify-between px-4 py-3.5">
-          <div className="flex flex-col gap-0.5 leading-none">
-            <div className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">
-              Sayme · Spirit Lab
-            </div>
-            <div className="text-xs text-[#6B6662]">Premium · 메인 홈</div>
-          </div>
-
-          <div className="flex gap-2.5 items-center">
-            <div className="text-xs px-2.5 py-2 rounded-full border border-[#E6E0DA] bg-white/65 text-[#2A2725]">
-              이번달 · {userData?.month}
-            </div>
-            <button
-              onClick={() => router.push('/me')}
-              className="w-[34px] h-[34px] rounded-[10px] border border-[#E6E0DA] bg-white/65 grid place-items-center cursor-pointer"
-              aria-label="상담/예약 메뉴"
-            >
-              ☰
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header
+        subtitle="Premium · 메인 홈"
+        showMenuButton
+        showMonthChip
+        monthLabel={userData?.month}
+        menuAriaLabel="상담/예약 메뉴"
+      />
 
       {/* Main Content */}
       <main className="px-4 py-3.5 pb-[86px] flex flex-col gap-3.5">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken, fetchWithAuth } from '../utils/auth';
+import Header from '../components/Header';
 import { premiumRegistrationApi } from '@/lib/api/premium-registration';
  
 const API_BASE_URL = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
@@ -170,23 +171,17 @@ export default function HiNewMemberPage() {
       fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
       background: 'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), #F5F1ED',
     }}>
-      {/* Top Bar */}
-      <header className="sticky top-0 z-10 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
-        <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
-          <div className="flex flex-col gap-0.5">
-            <div className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">
-              Sayme · Spirit Lab
-            </div>
-            <div className="text-xs text-[#6B6662]">Premium Registration</div>
-          </div>
+      <Header
+        subtitle="Premium Registration"
+        rightSlot={
           <button
             onClick={() => router.back()}
             className="w-[34px] h-[34px] rounded-[10px] border border-[#E6E0DA] bg-[rgba(255,255,255,0.65)] flex items-center justify-center text-sm"
           >
             ✕
           </button>
-        </div>
-      </header>
+        }
+      />
  
       <main className="px-4 py-6 pb-12 max-w-[430px] mx-auto space-y-6">
  

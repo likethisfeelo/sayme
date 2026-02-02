@@ -1,22 +1,41 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessToken, clearTokens, fetchWithAuth } from '../utils/auth';
+import { clearTokens, fetchWithAuth, getAccessToken } from '../utils/auth';
 
-export default function Header({ showAuthButtons = true }) {
+const buildMonthLabel = () => `${new Date().getMonth() + 1}월`;
+
+export default function Header({
+  title = 'Sayme · Spirit Lab',
+  subtitle = '',
+  showAuthButtons = false,
+  showMenuButton = false,
+  showMonthChip = false,
+  monthLabel,
+  maxWidthClass = 'max-w-[430px]',
+  zIndexClass = 'z-10',
+  leadingAction,
+  rightSlot,
+  onTitleClick,
+  onMenuClick,
+  menuAriaLabel = '메뉴로 이동',
+  titleAriaLabel = '메인으로 이동',
+}) {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(showAuthButtons);
 
   useEffect(() => {
-    checkLoginStatus();
-  }, []);
+    if (showAuthButtons) {
+      checkLoginStatus();
+    }
+  }, [showAuthButtons]);
 
   const checkLoginStatus = async () => {
     const token = getAccessToken();
-    
+
     if (!token) {
       setIsLoggedIn(false);
       setLoading(false);
@@ -25,13 +44,12 @@ export default function Header({ showAuthButtons = true }) {
 
     setIsLoggedIn(true);
 
-    // 사용자 이름 가져오기
     try {
       const response = await fetchWithAuth(
         'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/auth/me'
       );
       const data = await response.json();
-      
+
       if (response.ok && data.success) {
         setUserName(data.user.name || data.user.nickname || data.user.email.split('@')[0]);
       }
@@ -49,53 +67,77 @@ export default function Header({ showAuthButtons = true }) {
     router.push('/login');
   };
 
-  const handleConsultation = () => {
-    window.open('https://pf.kakao.com/_xjwsxfb/chat', '_blank');
+  const handleTitleClick = () => {
+    if (onTitleClick) {
+      onTitleClick();
+      return;
+    }
+    router.push('/');
+  };
+
+  const handleMenuClick = () => {
+    if (onMenuClick) {
+      onMenuClick();
+      return;
+    }
+    router.push('/me');
   };
 
   return (
-    <nav className="relative z-50 py-6 px-4 border-b border-pastel-purple/20 bg-white/60 backdrop-blur-sm sticky top-0">
-      <div className="max-w-6xl mx-auto flex justify-between items-center">
-        <button
-          onClick={() => router.push('/')}
-          className="text-2xl font-bold bg-gradient-to-r from-pastel-purple to-pastel-blue bg-clip-text text-transparent hover:scale-105 transition-transform cursor-pointer"
-        >
-          Sayme
-        </button>
-
-        <div className="flex gap-3 items-center">
-          {/* 1:1 상담신청 버튼 (항상 표시) */}
-          <button
-            onClick={handleConsultation}
-            className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg font-semibold transition-colors shadow-sm hover:shadow-md flex items-center gap-2"
-          >
-            <span>💬</span>
-            <span className="hidden sm:inline">1:1 상담신청</span>
-            <span className="sm:hidden">상담</span>
+    <header
+      className={`sticky top-0 ${zIndexClass} backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]`}
+    >
+      <div className={`flex items-center justify-between px-4 py-3.5 ${maxWidthClass} mx-auto`}>
+        <div className="flex items-center gap-2 leading-none">
+          {leadingAction}
+          <button type="button" onClick={handleTitleClick} className="text-left" aria-label={titleAriaLabel}>
+            <div className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">
+              {title}
+            </div>
+            {subtitle && <div className="text-xs text-[#6B6662]">{subtitle}</div>}
           </button>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          {showMonthChip && (
+            <div className="text-xs px-2.5 py-2 rounded-full border border-[#E6E0DA] bg-white/65 text-[#2A2725]">
+              이번달 · {monthLabel || buildMonthLabel()}
+            </div>
+          )}
+
+          {showMenuButton && (
+            <button
+              type="button"
+              onClick={handleMenuClick}
+              className="w-[34px] h-[34px] rounded-[10px] border border-[#E6E0DA] bg-white/65 grid place-items-center cursor-pointer"
+              aria-label={menuAriaLabel}
+            >
+              ☰
+            </button>
+          )}
 
           {showAuthButtons && (
             <>
               {loading ? (
                 <>
-                  <div className="w-20 h-10 bg-gray-200 animate-pulse rounded"></div>
-                  <div className="w-24 h-10 bg-gray-200 animate-pulse rounded-full"></div>
+                  <div className="w-16 h-8 bg-white/70 animate-pulse rounded-full border border-[#E6E0DA]" />
+                  <div className="w-20 h-8 bg-white/70 animate-pulse rounded-full border border-[#E6E0DA]" />
                 </>
               ) : isLoggedIn ? (
                 <>
-                  <div className="hidden sm:flex items-center gap-2 text-gray-700">
-                    <span className="font-semibold">{userName}</span>
-                    <span className="text-sm text-gray-500">님</span>
+                  <div className="hidden sm:flex items-center gap-1 text-xs text-[#6B6662]">
+                    <span className="font-semibold text-[#2A2725]">{userName}</span>
+                    <span>님</span>
                   </div>
                   <button
                     onClick={() => router.push('/me')}
-                    className="px-4 py-2 text-pastel-purple hover:text-pastel-purple/80 font-semibold transition-colors"
+                    className="text-xs px-3 py-2 text-[#2A2725] hover:text-[rgba(191,167,255,0.95)] transition-colors font-medium"
                   >
                     MY PAGE
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors text-sm"
+                    className="text-xs px-4 py-2 bg-white/70 border border-[#E6E0DA] rounded-full font-bold text-[#2A2725] transition-transform active:scale-95"
                   >
                     로그아웃
                   </button>
@@ -104,13 +146,13 @@ export default function Header({ showAuthButtons = true }) {
                 <>
                   <button
                     onClick={() => router.push('/login')}
-                    className="px-4 py-2 text-gray-700 hover:text-pastel-purple transition-colors"
+                    className="text-xs px-3 py-2 text-[#2A2725] hover:text-[rgba(191,167,255,0.95)] transition-colors font-medium"
                   >
                     로그인
                   </button>
                   <button
                     onClick={() => router.push('/signup')}
-                    className="px-6 py-2 bg-gradient-to-r from-pastel-purple to-pastel-blue text-white rounded-full hover:shadow-lg transition-all transform hover:scale-105"
+                    className="text-xs px-4 py-2 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] rounded-full font-bold transition-transform active:scale-95"
                   >
                     시작하기
                   </button>
@@ -118,8 +160,10 @@ export default function Header({ showAuthButtons = true }) {
               )}
             </>
           )}
+
+          {rightSlot}
         </div>
       </div>
-    </nav>
+    </header>
   );
 }

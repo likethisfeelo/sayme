@@ -1,6 +1,7 @@
 'use client';
  
 import { useRouter } from 'next/navigation';
+import Header from '../components/Header';
  
 export default function IntroductionPremiumPage() {
   const router = useRouter();
@@ -10,21 +11,17 @@ export default function IntroductionPremiumPage() {
       fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
       background: 'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), #F5F1ED',
     }}>
-      {/* Top Bar */}
-      <header className="sticky top-0 z-10 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
-        <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
+      <Header
+        subtitle="Premium 소개"
+        leadingAction={
           <button
             onClick={() => router.back()}
             className="text-sm text-[#6B6662] hover:text-[#2A2725] transition-colors"
           >
             ← 뒤로
           </button>
-          <div className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">
-            Sayme · Spirit Lab
-          </div>
-          <div className="w-10" />
-        </div>
-      </header>
+        }
+      />
  
       {/* Main Content */}
       <main className="px-4 py-6 pb-12 max-w-[430px] mx-auto">

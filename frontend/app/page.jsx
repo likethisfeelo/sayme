@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken, getIdTokenPayload } from './utils/auth';
+import Header from './components/Header';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -74,32 +75,7 @@ export default function LandingPage() {
       color: '#2A2725',
     }}>
       
-      {/* Top Bar */}
-      <header className="sticky top-0 z-50 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
-        <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
-          <div className="flex flex-col gap-0.5 leading-none">
-            <div className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">
-              Sayme · Spirit Lab
-            </div>
-            <div className="text-xs text-[#6B6662]">멘탈 PT 플랫폼</div>
-          </div>
-          
-          <div className="flex gap-2">
-            <button 
-              onClick={() => router.push('/login')}
-              className="text-xs px-3 py-2 text-[#2A2725] hover:text-[rgba(191,167,255,0.95)] transition-colors font-medium"
-            >
-              로그인
-            </button>
-            <button 
-              onClick={() => router.push('/signup')}
-              className="text-xs px-4 py-2 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] rounded-full font-bold transition-transform active:scale-95"
-            >
-              시작하기
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header subtitle="멘탈 PT 플랫폼" showAuthButtons zIndexClass="z-50" />
 
       {/* Main Content */}
       <main className="px-4 py-6 pb-12 max-w-[430px] mx-auto">
