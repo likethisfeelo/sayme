@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { questUserApi } from '@/lib/api/quest';
+import Header from '../../components/Header';
 
 function QuestDetailContent() {
   const router = useRouter();
@@ -243,23 +244,20 @@ function QuestDetailContent() {
           color: '#2A2725',
         }}
       >
-        <header className="sticky top-0 z-50 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
-          <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
+        <Header
+          subtitle={`Quest · ${quest.title}`}
+          showMenuButton
+          zIndexClass="z-50"
+          leadingAction={
             <button
+              type="button"
               onClick={() => router.push('/quest')}
-              className="text-[#2A2725] hover:text-[#BFA7FF] transition-colors"
+              className="text-[#2A2725] hover:text-[#BFA7FF] transition-colors text-sm"
             >
               ← 목록
             </button>
-            <div className="flex flex-col items-center gap-0.5 leading-none">
-              <div className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">
-                {quest.title}
-              </div>
-              <div className="text-xs text-[#6B6662]">완료됨</div>
-            </div>
-            <div className="w-12" />
-          </div>
-        </header>
+          }
+        />
 
         <main className="px-4 py-6 pb-12 max-w-[430px] mx-auto">
           {/* 완료 섹션 */}
@@ -376,36 +374,28 @@ function QuestDetailContent() {
         color: '#2A2725',
       }}
     >
-      <header className="sticky top-0 z-50 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
-        <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
+      <Header
+        subtitle={`Quest · ${quest.title}`}
+        showMenuButton
+        zIndexClass="z-50"
+        leadingAction={
           <button
+            type="button"
             onClick={() => router.push('/quest')}
-            className="text-[#2A2725] hover:text-[#BFA7FF] transition-colors"
+            className="text-[#2A2725] hover:text-[#BFA7FF] transition-colors text-sm"
           >
             ← 목록
           </button>
-
-          <div className="flex flex-col items-center gap-0.5 leading-none">
-            <div className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">
-              {quest.title}
-            </div>
-            <div className="text-xs text-[#6B6662]">
-              {currentStep + 1} / {totalSteps}
-            </div>
-          </div>
-
-          <div className="w-12" />
+        }
+      />
+      <div className="max-w-[430px] mx-auto px-4 pb-2">
+        <div className="w-full h-1.5 bg-[#E6E0DA] rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] rounded-full transition-all duration-300"
+            style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+          />
         </div>
-
-        <div className="max-w-[430px] mx-auto px-4 pb-2">
-          <div className="w-full h-1.5 bg-[#E6E0DA] rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] rounded-full transition-all duration-300"
-              style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
-            />
-          </div>
-        </div>
-      </header>
+      </div>
 
       <main className="px-4 py-6 pb-12 max-w-[430px] mx-auto">
         {isLastStep && (

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '../components/Header';
 
 export default function FortunePage() {
   const router = useRouter();
@@ -68,12 +69,7 @@ export default function FortunePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-purple-50 to-white">
-      {/* Header */}
-      <header className="py-6 px-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto">
-          <h1 className="text-2xl font-bold text-indigo-600">Sayme</h1>
-        </div>
-      </header>
+      <Header subtitle="오늘의 운세" maxWidthClass="max-w-2xl" />
 
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 py-12">

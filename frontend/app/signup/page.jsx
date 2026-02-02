@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '../components/Header';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -96,16 +97,18 @@ export default function SignupPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
-      <header className="py-6 px-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
-        <div className="max-w-md mx-auto">
+      <Header
+        subtitle="회원가입"
+        maxWidthClass="max-w-md"
+        leadingAction={
           <button
             onClick={() => router.push('/')}
-            className="text-indigo-600 hover:text-indigo-700 font-semibold"
+            className="text-sm text-[#6B6662] hover:text-[#2A2725] transition-colors"
           >
-            ← Sayme
+            ← 돌아가기
           </button>
-        </div>
-      </header>
+        }
+      />
 
       <main className="max-w-md mx-auto px-4 py-12">
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">

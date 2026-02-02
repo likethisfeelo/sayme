@@ -10,6 +10,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { prequestUserApi } from '@/lib/api/prequest';
 import { getAccessToken } from '../../utils/auth';
+import Header from '../../components/Header';
 
 function PrequestDetailContent() {
   const router = useRouter();
@@ -162,14 +163,15 @@ function PrequestDetailContent() {
             'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), #F5F1ED',
         }}
       >
-        <header className="sticky top-0 z-10 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
-          <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
+        <Header
+          subtitle={`Pre-Quest · ${content.title}`}
+          leadingAction={
             <button onClick={() => router.push('/trial-home')} className="text-sm text-[#6B6662]">
               ← 돌아가기
             </button>
-            <span className="text-sm font-semibold text-[rgba(99,102,241,1)]">답변 완료</span>
-          </div>
-        </header>
+          }
+          rightSlot={<span className="text-xs font-semibold text-[rgba(99,102,241,1)]">답변 완료</span>}
+        />
         <main className="px-4 py-6 max-w-[430px] mx-auto">
           <h2 className="text-xl font-bold text-[#2A2725] mb-6">{content.title}</h2>
           <div className="space-y-4">
@@ -242,25 +244,28 @@ function PrequestDetailContent() {
           'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), #F5F1ED',
       }}
     >
-      <header className="sticky top-0 z-10 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
-        <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
+      <Header
+        subtitle={`Pre-Quest · ${content.title}`}
+        leadingAction={
           <button onClick={() => router.push('/trial-home')} className="text-sm text-[#6B6662]">
             ← 돌아가기
           </button>
-          <span className="text-sm text-[#6B6662]">
+        }
+        rightSlot={
+          <span className="text-xs text-[#6B6662]">
             {currentStep + 1} / {totalSteps}
           </span>
+        }
+      />
+      {/* Progress bar */}
+      <div className="max-w-[430px] mx-auto px-4 pb-2">
+        <div className="w-full bg-[#E6E0DA] rounded-full h-1.5">
+          <div
+            className="bg-[rgba(99,102,241,1)] h-1.5 rounded-full transition-all"
+            style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
+          />
         </div>
-        {/* Progress bar */}
-        <div className="max-w-[430px] mx-auto px-4 pb-2">
-          <div className="w-full bg-[#E6E0DA] rounded-full h-1.5">
-            <div
-              className="bg-[rgba(99,102,241,1)] h-1.5 rounded-full transition-all"
-              style={{ width: `${((currentStep + 1) / totalSteps) * 100}%` }}
-            />
-          </div>
-        </div>
-      </header>
+      </div>
 
       <main className="px-4 py-6 max-w-[430px] mx-auto">
         <h2 className="text-lg font-bold text-[#2A2725] mb-6">{content.title}</h2>

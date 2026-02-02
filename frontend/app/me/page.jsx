@@ -1,9 +1,10 @@
-﻿﻿'use client';
+﻿﻿﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearTokens, fetchWithAuth, getAccessToken, getIdTokenPayload } from '../utils/auth';
 import { isAdmin } from '../../lib/auth/checkAdmin';
+import Header from '../components/Header';
 
 export default function MyProfilePage() {
   const router = useRouter();
@@ -131,21 +132,11 @@ export default function MyProfilePage() {
         color: '#2A2725',
       }}
     >
-      {/* Top Bar */}
-      <header className="sticky top-0 z-50 backdrop-blur-[10px] bg-[rgba(245,241,237,0.65)] border-b border-[rgba(230,224,218,0.8)]">
-        <div className="flex items-center justify-between px-4 py-3.5 max-w-[430px] mx-auto">
-          <button
-            type="button"
-            onClick={handleLogoClick}
-            className="flex flex-col gap-0.5 leading-none text-left"
-            aria-label="메인으로 이동"
-          >
-            <span className="font-bold tracking-[0.2px] text-sm text-[rgba(191,167,255,0.95)]">
-              Sayme · Spirit Lab
-            </span>
-            <span className="text-xs text-[#6B6662]">멘탈 PT 플랫폼</span>
-          </button>
-
+      <Header
+        subtitle="멘탈 PT 플랫폼"
+        zIndexClass="z-50"
+        onTitleClick={handleLogoClick}
+        rightSlot={
           <div className="flex gap-2">
             <button
               onClick={handleLogoClick}
@@ -160,8 +151,8 @@ export default function MyProfilePage() {
               로그아웃
             </button>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       <main className="max-w-[430px] mx-auto px-4 py-8">
         <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
