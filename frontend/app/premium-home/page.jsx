@@ -103,14 +103,19 @@ export default function PremiumHomePage() {
     router.push(`/quest/detail?id=${assignmentId}`);
   };
 
+  const backgroundStyle = {
+    fontFamily:
+      'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", Segoe UI, Roboto, Arial, sans-serif',
+    background:
+      'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
+    color: '#2A2725',
+  };
+
   if (loading) {
     return (
       <div
         className="min-h-screen flex items-center justify-center"
-        style={{
-          background:
-            'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
-        }}
+        style={backgroundStyle}
       >
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#BFA7FF] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -122,22 +127,17 @@ export default function PremiumHomePage() {
 
   return (
     <div
-      className="max-w-[430px] mx-auto min-h-screen flex flex-col"
-      style={{
-        fontFamily:
-          'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", Segoe UI, Roboto, Arial, sans-serif',
-        background:
-          'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
-        color: '#2A2725',
-      }}
+      className="min-h-screen"
+      style={backgroundStyle}
     >
-      <Header
-        subtitle="Premium · 메인 홈"
-        showMenuButton
-        showMonthChip
-        monthLabel={userData?.month}
-        menuAriaLabel="상담/예약 메뉴"
-      />
+      <div className="max-w-[430px] mx-auto min-h-screen flex flex-col">
+        <Header
+          subtitle="Premium · 메인 홈"
+          showMenuButton
+          showMonthChip
+          monthLabel={userData?.month}
+          menuAriaLabel="상담/예약 메뉴"
+        />
 
       {/* Main Content */}
       <main className="px-4 py-3.5 pb-[86px] flex flex-col gap-3.5">
@@ -439,7 +439,8 @@ export default function PremiumHomePage() {
             </button>
           ))}
         </div>
-      </nav>
+        </nav>
+      </div>
     </div>
   );
 }
