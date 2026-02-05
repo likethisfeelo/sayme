@@ -260,7 +260,7 @@ export default function TrialHomePage() {
         </section>
 
         {/* 2025 돌아보기 + 전문 분석 서비스 */}
-        <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
+        <section id="review-2025" className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
           <h3 className="text-lg font-bold text-[#2A2725] mb-3">2025 돌아보기</h3>
           <p className="text-sm text-[#6B6662] mb-4 leading-relaxed">
             일 년을 돌아보며 콘텐츠로 담은 회고 페이지를 보실 수 있습니다.

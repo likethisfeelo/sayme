@@ -324,16 +324,17 @@ export default function IntroductionPremiumPage() {
             <div className="absolute top-3 right-3 bg-red-600 text-white text-[11px] font-bold px-3 py-1 rounded-full">
               신규 회원
             </div>
-            <div className="text-[13px] text-[#6B6662] mb-3">2026년 3월 프리미엄 서비스</div>
+            <div className="text-[13px] text-[#6B6662] mb-3">스피릿랩 첫 참여 신청 시</div>
             <div className="text-4xl font-bold text-[#2A2725] mb-2">₩200,000</div>
             <div className="text-[13px] text-[rgba(99,102,241,1)] mb-4">
-              월 구독 150,000원 + 가입비 50,000원
+              월 구독 100,000원 + 초기 상담 2회 100,000원
             </div>
 
             <div className="bg-white rounded-[10px] p-3 text-left">
               <div className="text-[11px] text-[#6B6662] leading-relaxed">
+                ✓ 가입 후 초기 집중 1:1 상담 2회 (30분씩 2회)<br />
                 ✓ 개인 맞춤 질문 7~10개<br />
-                ✓ 1:1 온라인 상담 2회 (시작 30분 + 마무리 30분)<br />
+                ✓ 1:1 온라인 상담 2회 (시작 15분 + 마무리 15분)<br />
                 ✓ 통합 분석 보고서 1회<br />
                 ✓ 주간 회고 &amp; 월간 목표 시스템<br />
                 ✓ 개인 아카이브 무제한 열람
@@ -423,11 +424,13 @@ export default function IntroductionPremiumPage() {
                   <div className="text-xs text-[#2A2725] leading-[1.8]">
                     일반 1:1 상담 30분 = <strong className="text-[rgba(99,102,241,1)]">77,000원</strong><br />
                     <div className="text-[10px] text-[#6B6662] my-2">×</div>
-                    신규 회원은 <strong>60분 상담 + 구조 세팅 + 맞춤 분석</strong><br />
+                    스피릿랩 초기 참여 시<br />
+                    신규 회원은 <strong>30분 상담 2회 후</strong><br />
+                    <strong>+ 구조 세팅 + 맞춤 분석</strong><br />
                     <div className="mt-3 pt-3 border-t border-[rgba(99,102,241,0.2)]">
                       <span className="text-[11px] text-[#6B6662]">이 모든 것을</span><br />
                       <strong className="text-lg text-[rgba(99,102,241,1)]">200,000원</strong><br />
-                      <span className="text-[11px] text-[rgba(99,102,241,1)] font-semibold">상담비만 계산해도 완전 개이득입니다</span>
+                      <span className="text-[11px] text-[rgba(99,102,241,1)] font-semibold">단순 상담비보다 저렴하면서 한달내내 나다움에 집중할 수 있도록 구성했습니다.</span>
                     </div>
                   </div>
                 </div>
@@ -438,9 +441,8 @@ export default function IntroductionPremiumPage() {
                     이미 파악된 당신의 구조를 바탕으로 진행하므로<br />
                     상담 시간이 줄어들고, 질문은 더 정교해지며,<br />
                     비용도 자연스럽게 낮아집니다.<br /><br />
-                    <span className="text-[rgba(22,163,74,1)] font-semibold">
-                      쌓인 기록이 곧 당신만의 자산이 됩니다.
-                    </span>
+                    사주와 점성술의 의존도가 낮아지며<br />
+                    자신이 단단해지고, 쌓인 기록이 곧 당신만의 자산이 됩니다.
                   </div>
                 </div>
               </div>
@@ -578,7 +580,7 @@ export default function IntroductionPremiumPage() {
             </div>
 
             <button
-              onClick={() => router.push('/trial-home')}
+              onClick={() => router.push('/trial-home#review-2025')}
               className="w-full py-3 bg-white/60 border border-[rgba(230,224,218,0.85)] text-[#2A2725] rounded-[14px] font-semibold text-sm mb-3 transition-transform active:scale-98"
             >
               체험 서비스 먼저 경험하기
@@ -586,7 +588,7 @@ export default function IntroductionPremiumPage() {
 
             <button
               onClick={() => window.open('https://pf.kakao.com/_xjwsxfb/chat', '_blank')}
-              className="w-full py-3 bg-[#FEE500] text-[#000000] rounded-[14px] font-semibold text-sm transition-transform active:scale-98"
+              className="w-full py-3 bg-[#FFF9DB] text-[#78350F] rounded-[14px] font-semibold text-sm transition-transform active:scale-98 border border-[#FDE68A]"
             >
               1:1 문의하기 💬
             </button>

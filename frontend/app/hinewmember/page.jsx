@@ -547,30 +547,6 @@ export default function HiNewMemberPage() {
                   </div>
                 </section>
 
-                {/* 이전 버튼 & 문의 */}
-                <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
-                  <div className="flex gap-2 mb-3">
-                    <button
-                      onClick={() => setCurrentStep(2)}
-                      className="px-4 py-3.5 rounded-[14px] text-sm font-semibold border-2 border-[#E6E0DA] text-[#6B6662]"
-                    >
-                      ← 이전
-                    </button>
-                  </div>
-                  <div className="text-center text-xs text-[#6B6662]">
-                    {canSubmit
-                      ? '아래 버튼을 누르면 프리미엄 서비스 신청이 완료됩니다'
-                      : '모든 필수 정보를 입력하고 동의하시면 신청 버튼이 활성화됩니다'}
-                  </div>
-
-                  <button
-                    onClick={() => window.open(KAKAO_CHAT_URL, '_blank')}
-                    className="w-full mt-3 py-3 bg-[#FEE500] text-[#000000] rounded-xl text-sm font-semibold transition-transform active:scale-[0.98]"
-                  >
-                    카카오톡으로 문의하기 💬
-                  </button>
-                </section>
-
                 {/* 스피릿랩 신청하기 CTA */}
                 <section className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(123,203,255,0.18)] to-[rgba(255,193,217,0.16)] bg-white/70 backdrop-blur-sm border-2 border-[rgba(99,102,241,0.3)] rounded-[18px] p-8 text-center">
                   <button
@@ -589,6 +565,25 @@ export default function HiNewMemberPage() {
                       ? '버튼을 누르면 프리미엄 서비스 신청이 완료됩니다'
                       : '모든 필수 정보를 입력하고 동의해주세요'}
                   </p>
+                </section>
+
+                {/* 이전 버튼 & 문의 */}
+                <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      onClick={() => setCurrentStep(2)}
+                      className="px-4 py-3.5 rounded-[14px] text-sm font-semibold border-2 border-[#E6E0DA] text-[#6B6662]"
+                    >
+                      ← 이전
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => window.open(KAKAO_CHAT_URL, '_blank')}
+                    className="w-full mt-3 py-3 bg-[#FFF9DB] text-[#78350F] rounded-xl text-sm font-semibold transition-transform active:scale-[0.98] border border-[#FDE68A]"
+                  >
+                    카카오톡으로 문의하기 💬
+                  </button>
                 </section>
               </>
             )}
