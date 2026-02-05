@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { questUserApi } from '@/lib/api/quest';
 import Header from '../components/Header';
 
+// 나눔명조 폰트 로드 (Google Fonts)
+const NANUM_MYEONGJO_URL = 'https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap';
+
 const buildMonthLabel = () => `${new Date().getMonth() + 1}월`;
 
 const getStatusConfig = (status) => {
@@ -174,12 +177,18 @@ export default function PremiumHomePage() {
   }
 
   return (
-    <div
-      className="min-h-screen"
-      style={backgroundStyle}
-    >
-      <div className="max-w-[430px] mx-auto min-h-screen flex flex-col">
-        <Header
+    <>
+      {/* 나눔명조 폰트 로드 */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link href={NANUM_MYEONGJO_URL} rel="stylesheet" />
+
+      <div
+        className="min-h-screen"
+        style={backgroundStyle}
+      >
+        <div className="max-w-[430px] mx-auto min-h-screen flex flex-col">
+          <Header
           subtitle="Premium · 메인 홈"
           showMenuButton
           showMonthChip
@@ -220,12 +229,15 @@ export default function PremiumHomePage() {
                   key={index}
                   className="min-w-full h-full flex items-center justify-center px-6"
                 >
-                  <p className="text-base leading-[1.6] tracking-tight text-center text-[#2A2725]">
+                  <p
+                    className="text-[21px] leading-[1.7] tracking-tight text-center text-[#2A2725]"
+                    style={{ fontFamily: "'Nanum Myeongjo', serif" }}
+                  >
                     {alignment.sentence.split(alignment.keyword).map((part, i, arr) =>
                       i < arr.length - 1 ? (
                         <span key={i}>
                           {part}
-                          <span className="font-[650] text-[rgba(42,39,37,0.95)]">
+                          <span className="font-bold text-[rgba(42,39,37,0.95)]">
                             {alignment.keyword}
                           </span>
                         </span>
@@ -510,7 +522,8 @@ export default function PremiumHomePage() {
           ))}
         </div>
         </nav>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
