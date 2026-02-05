@@ -128,11 +128,6 @@ export default function PremiumHomePage() {
             text: `오늘은 속도를 내기보다 리듬을 회복하는 날입니다.
 작은 선택 하나에 에너지를 과하게 쓰지 않아도 됩니다.`,
           },
-          todayLuck: {
-            keyword: '정리, 미세한 선택, 한 번의 거절',
-            place: '조용한 책상, 창가, 물 근처',
-            avoid: '즉답을 요구하는 대화',
-          },
           event: {
             title: '오늘의 깜짝 이벤트 🎁',
             description: '무료 타로 질문 1회가 도착했습니다.',
@@ -272,19 +267,29 @@ export default function PremiumHomePage() {
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
           <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
             <div>
-              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">이번 달의 생각할 거리</div>
-              <div className="text-xs text-[#6B6662]">최대 10개 · 일반적으로 7개</div>
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">
+                {new Date().getFullYear()}년 {new Date().getMonth() + 1}월
+              </div>
+              <div className="text-xs text-[#6B6662]">나다움을 찾기 위한 질문들</div>
             </div>
-            <div className="text-xs text-[#6B6662]">{userData?.month}</div>
           </div>
 
           <div className="flex flex-col p-2.5 pb-3 gap-2">
-            {questions.length === 0 ? (
-              <div className="p-4 text-center text-sm text-[#6B6662]">
-                아직 할당된 Quest가 없습니다.
+            {/* 답변해야 할 질문만 필터링 (completed 제외) */}
+            {questions.filter(q => q.status !== 'completed').length === 0 ? (
+              <div
+                className="p-4 flex flex-col items-center gap-3 cursor-pointer"
+                onClick={() => router.push('/premium_memo')}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-[rgba(191,167,255,0.15)] border border-[rgba(191,167,255,0.25)] grid place-items-center text-2xl">
+                  📝
+                </div>
+                <p className="text-sm text-[#6B6662] text-center m-0">
+                  오늘의 나다움에 대한 생각을 남겨보세요
+                </p>
               </div>
             ) : (
-              questions.map((q) => {
+              questions.filter(q => q.status !== 'completed').map((q) => {
                 const config = getStatusConfig(q.status);
                 return (
                   <div
@@ -422,7 +427,7 @@ export default function PremiumHomePage() {
           <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
             <div>
               <div className="text-sm font-[750] tracking-tight text-[#2A2725]">오늘의 흐름</div>
-              <div className="text-xs text-[#6B6662]">짧게 소개 · 여백을 남깁니다</div>
+              <div className="text-xs text-[#6B6662]">오늘의 우주에너지</div>
             </div>
             <div className="text-xs text-[#6B6662]">D-0</div>
           </div>
@@ -432,30 +437,7 @@ export default function PremiumHomePage() {
               {userData?.todayFlow.text}
             </p>
             <div className="h-px bg-[#E6E0DA] my-1.5" />
-            <p className="text-xs text-[#6B6662] m-0">* "자세히 보기" 없이, 오늘의 방향만 제시합니다.</p>
-          </div>
-        </section>
-
-        {/* TODAY LUCK */}
-        <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
-          <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
-            <div>
-              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">오늘의 행운</div>
-              <div className="text-xs text-[#6B6662]">가벼운 힌트</div>
-            </div>
-            <div className="text-xs">🍀</div>
-          </div>
-
-          <div className="px-4 py-3.5 flex flex-col gap-2">
-            <p className="text-[13px] leading-[1.65] text-[rgba(42,39,37,0.92)] tracking-tight m-0">
-              <b>행운 키워드:</b> {userData?.todayLuck.keyword}
-            </p>
-            <p className="text-[13px] leading-[1.65] text-[rgba(42,39,37,0.92)] tracking-tight m-0">
-              <b>좋은 장소:</b> {userData?.todayLuck.place}
-            </p>
-            <p className="text-[13px] leading-[1.65] text-[rgba(42,39,37,0.92)] tracking-tight m-0">
-              <b>피하면 좋은 것:</b> {userData?.todayLuck.avoid}
-            </p>
+            <p className="text-xs text-[#6B6662] m-0">* 개인별 맞춤 정보로 업데이트 예정입니다.</p>
           </div>
         </section>
 
