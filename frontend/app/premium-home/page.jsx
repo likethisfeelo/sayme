@@ -34,12 +34,60 @@ const mapQuestStatus = (status) => {
   return 'waiting';
 };
 
+// 월간 정렬 문장 3개 (랜덤 2개 선택용)
+const MONTHLY_ALIGNMENTS = [
+  {
+    keyword: '명료함',
+    sentence: '당신은 오늘 명료함을 향해 가고 있는 사람입니다.',
+  },
+  {
+    keyword: '방향',
+    sentence: '오늘, 당신의 방향은 흐트러진 생각을 정리하는 것입니다.',
+  },
+  {
+    keyword: '균형',
+    sentence: '당신은 오늘 내면의 균형을 찾아가는 여정 위에 있습니다.',
+  },
+];
+
+// 배열에서 n개 랜덤 선택
+const getRandomItems = (arr, n) => {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+};
+
 export default function PremiumHomePage() {
   const router = useRouter();
   const [userData, setUserData] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reportEnabled, setReportEnabled] = useState(false);
+  const [alignmentSlide, setAlignmentSlide] = useState(0);
+  const [selectedAlignments, setSelectedAlignments] = useState(() =>
+    getRandomItems(MONTHLY_ALIGNMENTS, 2)
+  );
+
+  // 새로고침 시 랜덤 재선택
+  const refreshAlignments = () => {
+    setSelectedAlignments(getRandomItems(MONTHLY_ALIGNMENTS, 2));
+    setAlignmentSlide(0);
+  };
+
+  // 터치 스와이프 지원
+  const [touchStart, setTouchStart] = useState(null);
+  const handleTouchStart = (e) => setTouchStart(e.touches[0].clientX);
+  const handleTouchEnd = (e) => {
+    if (!touchStart) return;
+    const diff = touchStart - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && alignmentSlide < selectedAlignments.length - 1) {
+        setAlignmentSlide(alignmentSlide + 1);
+      } else if (diff < 0 && alignmentSlide > 0) {
+        setAlignmentSlide(alignmentSlide - 1);
+      }
+    }
+    setTouchStart(null);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -141,48 +189,70 @@ export default function PremiumHomePage() {
 
       {/* Main Content */}
       <main className="px-4 py-3.5 pb-[86px] flex flex-col gap-3.5">
-        {/* HERO - Today Alignment */}
+        {/* HERO - Today Alignment (슬라이드형) */}
         <section className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(123,203,255,0.18)] to-[rgba(255,193,217,0.16)] bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
-          <div className="p-4">
-            <div className="text-xs tracking-[0.12em] text-[#6B6662] uppercase mb-2.5">
+          {/* 라벨 + 새로고침 버튼 */}
+          <div className="flex items-center justify-between px-4 pt-4 pb-2">
+            <div className="text-xs tracking-[0.12em] text-[#6B6662] uppercase">
               Today Alignment
             </div>
+            <button
+              onClick={refreshAlignments}
+              className="w-6 h-6 flex items-center justify-center text-xs text-[#6B6662] hover:text-[#2A2725] bg-white/60 rounded-full border border-[#E6E0DA] transition-all hover:bg-white/80 active:scale-95"
+              title="오늘의 문장 새로고침"
+            >
+              ⟲
+            </button>
+          </div>
 
-            <div className="flex flex-col gap-2.5 mb-3.5">
-              <div className="text-base leading-[1.45] tracking-tight">
-                당신은 오늘{' '}
-                <span className="inline-block px-0.5 border-b border-dashed border-[rgba(42,39,37,0.35)] min-w-[120px] text-[rgba(42,39,37,0.9)] font-[650]">
-                  {userData?.goals.keyword}
-                </span>
-                을 향해 가고 있는 사람입니다.
-              </div>
-              <div className="text-base leading-[1.45] tracking-tight">
-                오늘, 당신의 방향은{' '}
-                <span className="inline-block px-0.5 border-b border-dashed border-[rgba(42,39,37,0.35)] min-w-[120px] text-[rgba(42,39,37,0.9)] font-[650]">
-                  {userData?.goals.direction}
-                </span>{' '}
-                입니다.
-              </div>
+          {/* 슬라이드 카드 영역 */}
+          <div
+            className="relative h-[120px] overflow-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div
+              className="flex transition-transform duration-300 ease-out h-full"
+              style={{ transform: `translateX(-${alignmentSlide * 100}%)` }}
+            >
+              {selectedAlignments.map((alignment, index) => (
+                <div
+                  key={index}
+                  className="min-w-full h-full flex items-center justify-center px-6"
+                >
+                  <p className="text-base leading-[1.6] tracking-tight text-center text-[#2A2725]">
+                    {alignment.sentence.split(alignment.keyword).map((part, i, arr) =>
+                      i < arr.length - 1 ? (
+                        <span key={i}>
+                          {part}
+                          <span className="font-[650] text-[rgba(42,39,37,0.95)]">
+                            {alignment.keyword}
+                          </span>
+                        </span>
+                      ) : (
+                        <span key={i}>{part}</span>
+                      )
+                    )}
+                  </p>
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div className="text-xs text-[#6B6662] leading-relaxed mb-3">
-              * 이 문장은 1:1 상담에서 설정한 목표(키워드)와 연결됩니다. 예언이 아니라, 오늘의 태도를 정렬합니다.
-            </div>
-
-            <div className="flex gap-2.5">
+          {/* Dot Indicator */}
+          <div className="flex items-center justify-center gap-2 pb-4">
+            {selectedAlignments.map((_, index) => (
               <button
-                onClick={() => router.push('/monthly-questions')}
-                className="flex-1 appearance-none border-0 cursor-pointer rounded-[14px] px-3.5 py-3 font-[650] text-sm tracking-tight inline-flex items-center justify-center gap-2 transition-transform active:scale-[0.98] text-[#1f1f1f] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] shadow-[0_10px_22px_rgba(123,203,255,0.18)]"
-              >
-                질문과 함께 생각하기 →
-              </button>
-              <button
-                className="w-11 appearance-none border-0 cursor-pointer rounded-[14px] px-3.5 py-3 bg-white/75 border border-[#E6E0DA] text-[#2A2725] transition-transform active:scale-[0.98]"
-                title="오늘의 문장 새로고침"
-              >
-                ⟲
-              </button>
-            </div>
+                key={index}
+                onClick={() => setAlignmentSlide(index)}
+                className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                  alignmentSlide === index
+                    ? 'bg-[rgba(123,203,255,0.95)] w-4'
+                    : 'bg-[#D1CCC6]'
+                }`}
+                aria-label={`슬라이드 ${index + 1}`}
+              />
+            ))}
           </div>
         </section>
 
