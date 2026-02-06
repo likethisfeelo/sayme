@@ -1,14 +1,31 @@
-// consultation-create/index.mjs
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { randomUUID } from 'crypto';
+/**
+ * 상담 요청 생성 Lambda
+ *
+ * 기능: 사용자가 1:1 상담을 요청
+ * 메서드: POST /consultation
+ * 인증: Cognito Authorizer (일반 사용자)
+ * 테이블: sayme-consultation-requests
+ *
+ * 요청 Body:
+ *   - preferredDate1: 1순위 희망 날짜 (필수)
+ *   - preferredTime1: 1순위 희망 시간 (필수)
+ *   - preferredDate2: 2순위 희망 날짜 (선택)
+ *   - preferredTime2: 2순위 희망 시간 (선택)
+ *   - isPaidOk: 유료 상담 동의 여부
+ *   - memo: 추가 메모
+ *
+ * 상태: pending → confirmed → completed | cancelled
+ */
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
+const { randomUUID } = require('crypto');
 
 const client = new DynamoDBClient({ region: 'ap-northeast-2' });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = 'sayme-consultation-requests';
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',

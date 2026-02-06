@@ -1,6 +1,20 @@
-// ticket-assign/index.mjs (Admin: Assign tickets to user)
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand, GetCommand } from '@aws-sdk/lib-dynamodb';
+/**
+ * 티켓 부여 Lambda (관리자 전용)
+ *
+ * 기능: 관리자가 특정 사용자에게 티켓을 부여
+ * 메서드: POST /ticket/assign
+ * 인증: Cognito Authorizer (Admins 그룹 필수)
+ * 테이블: sayme-user-tickets
+ *
+ * 요청 Body:
+ *   - targetUserId: 대상 사용자 ID (Cognito sub)
+ *   - ticketType: tarot | fortune | universe | consultation
+ *   - count: 부여할 수량 (0이면 제거)
+ *
+ * 만료: 발행된 월의 마지막 날 23:59:59
+ */
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, PutCommand, GetCommand } = require('@aws-sdk/lib-dynamodb');
 
 const client = new DynamoDBClient({ region: 'ap-northeast-2' });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -17,7 +31,7 @@ const getExpirationDate = () => {
   return lastDay.toISOString();
 };
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',

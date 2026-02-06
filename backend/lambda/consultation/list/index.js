@@ -1,13 +1,23 @@
-// consultation-list/index.mjs (User's own requests)
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+/**
+ * 상담 요청 목록 조회 Lambda (사용자용)
+ *
+ * 기능: 로그인한 사용자의 상담 요청 내역 조회
+ * 메서드: GET /consultation
+ * 인증: Cognito Authorizer (일반 사용자)
+ * 테이블: sayme-consultation-requests
+ * GSI: userId-createdAt-index
+ *
+ * 응답: 사용자의 상담 요청 목록 (최신순)
+ */
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, QueryCommand } = require('@aws-sdk/lib-dynamodb');
 
 const client = new DynamoDBClient({ region: 'ap-northeast-2' });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = 'sayme-consultation-requests';
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',

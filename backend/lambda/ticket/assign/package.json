@@ -1,0 +1,10 @@
+{
+  "name": "sayme-ticket-assign",
+  "version": "1.0.0",
+  "description": "관리자용 티켓 부여 Lambda",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}

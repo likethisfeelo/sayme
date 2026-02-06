@@ -1,6 +1,15 @@
-// ticket-get/index.mjs (User's tickets)
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+/**
+ * 티켓 조회 Lambda
+ *
+ * 기능: 로그인한 사용자의 보유 티켓 목록을 조회
+ * 메서드: GET /ticket
+ * 인증: Cognito Authorizer (일반 사용자)
+ * 테이블: sayme-user-tickets
+ *
+ * 응답: 티켓 종류별 보유 수량, 만료일 정보
+ */
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, QueryCommand } = require('@aws-sdk/lib-dynamodb');
 
 const client = new DynamoDBClient({ region: 'ap-northeast-2' });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -15,7 +24,7 @@ const TICKET_TYPES = {
   consultation: { name: '1:1 추가 상담', icon: '💬' },
 };
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',

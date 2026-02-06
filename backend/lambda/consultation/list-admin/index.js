@@ -1,13 +1,25 @@
-// consultation-list-admin/index.mjs (Admin: All requests)
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, ScanCommand } from '@aws-sdk/lib-dynamodb';
+/**
+ * 상담 요청 전체 목록 조회 Lambda (관리자 전용)
+ *
+ * 기능: 모든 사용자의 상담 요청 내역 조회
+ * 메서드: GET /consultation/admin
+ * 인증: Cognito Authorizer (Admins 그룹 필수)
+ * 테이블: sayme-consultation-requests
+ *
+ * 쿼리 파라미터:
+ *   - status: pending | confirmed | completed | cancelled (선택, 필터링용)
+ *
+ * 응답: 전체 상담 요청 목록 (최신순, 최대 100건)
+ */
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, ScanCommand } = require('@aws-sdk/lib-dynamodb');
 
 const client = new DynamoDBClient({ region: 'ap-northeast-2' });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = 'sayme-consultation-requests';
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
