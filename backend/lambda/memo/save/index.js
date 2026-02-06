@@ -1,7 +1,23 @@
-// memo-save/index.mjs
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand, QueryCommand } from '@aws-sdk/lib-dynamodb';
-import { randomUUID } from 'crypto';
+/**
+ * 메모 저장 Lambda
+ *
+ * 기능: 사용자 메모 생성
+ * 메서드: POST /memo
+ * 인증: Cognito Authorizer
+ * 테이블: sayme-memos (PK: userId, SK: memoId)
+ *
+ * 제한:
+ *   - 메모 최대 1000자
+ *   - 하루 최대 30개
+ *
+ * 요청 Body:
+ *   - content: 메모 내용 (필수)
+ *
+ * 응답: { success, memo: { memoId, content, createdAt } }
+ */
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, PutCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
+const { randomUUID } = require('crypto');
 
 const client = new DynamoDBClient({ region: 'ap-northeast-2' });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -10,7 +26,7 @@ const TABLE_NAME = 'sayme-memos';
 const MAX_CONTENT_LENGTH = 1000;
 const MAX_MEMOS_PER_DAY = 30;
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
@@ -23,7 +39,7 @@ export const handler = async (event) => {
   }
 
   try {
-    // Authorization
+    // 인증 확인
     const userId = event.requestContext?.authorizer?.claims?.sub;
     if (!userId) {
       return {
@@ -36,7 +52,7 @@ export const handler = async (event) => {
     const body = JSON.parse(event.body || '{}');
     const { content } = body;
 
-    // Validation
+    // 유효성 검사
     if (!content || typeof content !== 'string') {
       return {
         statusCode: 400,
@@ -56,7 +72,7 @@ export const handler = async (event) => {
       };
     }
 
-    // Check daily memo count
+    // 오늘 메모 개수 확인
     const today = new Date().toISOString().split('T')[0];
     const countQuery = new QueryCommand({
       TableName: TABLE_NAME,
@@ -81,7 +97,7 @@ export const handler = async (event) => {
       };
     }
 
-    // Save memo
+    // 메모 저장
     const memoId = randomUUID();
     const now = new Date().toISOString();
 

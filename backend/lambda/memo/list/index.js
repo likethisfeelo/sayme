@@ -1,13 +1,25 @@
-// memo-list/index.mjs
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, QueryCommand } from '@aws-sdk/lib-dynamodb';
+/**
+ * 메모 목록 조회 Lambda
+ *
+ * 기능: 사용자 메모 목록 조회
+ * 메서드: GET /memo
+ * 인증: Cognito Authorizer
+ * 테이블: sayme-memos (PK: userId, SK: memoId)
+ *
+ * 쿼리 파라미터:
+ *   - date: YYYY-MM-DD (선택, 특정 날짜 필터링)
+ *
+ * 응답: { success, memos: [...], count }
+ */
+const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBDocumentClient, QueryCommand } = require('@aws-sdk/lib-dynamodb');
 
 const client = new DynamoDBClient({ region: 'ap-northeast-2' });
 const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = 'sayme-memos';
 
-export const handler = async (event) => {
+exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
     'Access-Control-Allow-Origin': '*',
@@ -20,6 +32,7 @@ export const handler = async (event) => {
   }
 
   try {
+    // 인증 확인
     const userId = event.requestContext?.authorizer?.claims?.sub;
     if (!userId) {
       return {
@@ -29,7 +42,7 @@ export const handler = async (event) => {
       };
     }
 
-    // Optional date filter from query params
+    // 날짜 필터 (선택)
     const date = event.queryStringParameters?.date;
 
     let queryParams = {
@@ -38,11 +51,11 @@ export const handler = async (event) => {
       ExpressionAttributeValues: {
         ':userId': userId,
       },
-      ScanIndexForward: false, // Most recent first
+      ScanIndexForward: false, // 최신순 정렬
       Limit: 100,
     };
 
-    // Filter by date if provided
+    // 날짜 필터 적용
     if (date) {
       queryParams.FilterExpression = 'begins_with(createdAt, :date)';
       queryParams.ExpressionAttributeValues[':date'] = date;
