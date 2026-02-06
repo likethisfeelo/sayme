@@ -1,4 +1,4 @@
-﻿﻿﻿'use client';
+﻿﻿﻿﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -240,7 +240,7 @@ export default function MyProfilePage() {
 
           {adminUser && (
             <button
-              onClick={() => router.push('/admin/quest')}
+              onClick={() => router.push('/admin')}
               className="mt-6 w-full py-3 bg-gradient-to-r from-[#2A2725] to-[#4A4542] text-white rounded-xl font-bold text-sm transition-transform active:scale-[0.98] shadow-md"
             >
               관리자 화면으로 이동

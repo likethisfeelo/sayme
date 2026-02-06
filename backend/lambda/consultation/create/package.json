@@ -1,0 +1,10 @@
+{
+  "name": "sayme-consultation-create",
+  "version": "1.0.0",
+  "description": "상담 요청 생성 Lambda",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "sayme-consultation-list",
+  "version": "1.0.0",
+  "description": "사용자 상담 요청 목록 조회 Lambda",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}

@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { questUserApi } from '@/lib/api/quest';
 import Header from '../components/Header';
 
+// 나눔명조 폰트 로드 (Google Fonts)
+const NANUM_MYEONGJO_URL = 'https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap';
+
 const buildMonthLabel = () => `${new Date().getMonth() + 1}월`;
 
 const getStatusConfig = (status) => {
@@ -34,12 +37,63 @@ const mapQuestStatus = (status) => {
   return 'waiting';
 };
 
+// 월간 정렬 문장 3개 (랜덤 2개 선택용)
+const MONTHLY_ALIGNMENTS = [
+  {
+    keyword: '명료함',
+    sentence: '당신은 오늘 명료함을 향해 가고 있는 사람입니다.',
+  },
+  {
+    keyword: '방향',
+    sentence: '오늘, 당신의 방향은 흐트러진 생각을 정리하는 것입니다.',
+  },
+  {
+    keyword: '균형',
+    sentence: '당신은 오늘 내면의 균형을 찾아가는 여정 위에 있습니다.',
+  },
+];
+
+// 배열에서 n개 랜덤 선택
+const getRandomItems = (arr, n) => {
+  const shuffled = [...arr].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, n);
+};
+
+const API_BASE = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
+
 export default function PremiumHomePage() {
   const router = useRouter();
   const [userData, setUserData] = useState(null);
   const [questions, setQuestions] = useState([]);
+  const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reportEnabled, setReportEnabled] = useState(false);
+  const [alignmentSlide, setAlignmentSlide] = useState(0);
+  const [selectedAlignments, setSelectedAlignments] = useState(() =>
+    getRandomItems(MONTHLY_ALIGNMENTS, 2)
+  );
+
+  // 새로고침 시 랜덤 재선택
+  const refreshAlignments = () => {
+    setSelectedAlignments(getRandomItems(MONTHLY_ALIGNMENTS, 2));
+    setAlignmentSlide(0);
+  };
+
+  // 터치 스와이프 지원
+  const [touchStart, setTouchStart] = useState(null);
+  const handleTouchStart = (e) => setTouchStart(e.touches[0].clientX);
+  const handleTouchEnd = (e) => {
+    if (!touchStart) return;
+    const diff = touchStart - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0 && alignmentSlide < selectedAlignments.length - 1) {
+        setAlignmentSlide(alignmentSlide + 1);
+      } else if (diff < 0 && alignmentSlide > 0) {
+        setAlignmentSlide(alignmentSlide - 1);
+      }
+    }
+    setTouchStart(null);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -67,6 +121,19 @@ export default function PremiumHomePage() {
 
         setQuestions(mappedQuestions);
 
+        // Fetch tickets
+        try {
+          const ticketResponse = await fetch(`${API_BASE}/ticket`, {
+            headers: { Authorization: `Bearer ${idToken}` },
+          });
+          const ticketData = await ticketResponse.json();
+          if (ticketData.success) {
+            setTickets(ticketData.tickets || []);
+          }
+        } catch (ticketError) {
+          console.error('Failed to fetch tickets:', ticketError);
+        }
+
         setUserData({
           month: buildMonthLabel(),
           goals: {
@@ -76,11 +143,6 @@ export default function PremiumHomePage() {
           todayFlow: {
             text: `오늘은 속도를 내기보다 리듬을 회복하는 날입니다.
 작은 선택 하나에 에너지를 과하게 쓰지 않아도 됩니다.`,
-          },
-          todayLuck: {
-            keyword: '정리, 미세한 선택, 한 번의 거절',
-            place: '조용한 책상, 창가, 물 근처',
-            avoid: '즉답을 요구하는 대화',
           },
           event: {
             title: '오늘의 깜짝 이벤트 🎁',
@@ -126,12 +188,18 @@ export default function PremiumHomePage() {
   }
 
   return (
-    <div
-      className="min-h-screen"
-      style={backgroundStyle}
-    >
-      <div className="max-w-[430px] mx-auto min-h-screen flex flex-col">
-        <Header
+    <>
+      {/* 나눔명조 폰트 로드 */}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link href={NANUM_MYEONGJO_URL} rel="stylesheet" />
+
+      <div
+        className="min-h-screen"
+        style={backgroundStyle}
+      >
+        <div className="max-w-[430px] mx-auto min-h-screen flex flex-col">
+          <Header
           subtitle="Premium · 메인 홈"
           showMenuButton
           showMonthChip
@@ -141,48 +209,73 @@ export default function PremiumHomePage() {
 
       {/* Main Content */}
       <main className="px-4 py-3.5 pb-[86px] flex flex-col gap-3.5">
-        {/* HERO - Today Alignment */}
+        {/* HERO - Today Alignment (슬라이드형) */}
         <section className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(123,203,255,0.18)] to-[rgba(255,193,217,0.16)] bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
-          <div className="p-4">
-            <div className="text-xs tracking-[0.12em] text-[#6B6662] uppercase mb-2.5">
+          {/* 라벨 + 새로고침 버튼 */}
+          <div className="flex items-center justify-between px-4 pt-4 pb-2">
+            <div className="text-xs tracking-[0.12em] text-[#6B6662] uppercase">
               Today Alignment
             </div>
+            <button
+              onClick={refreshAlignments}
+              className="w-6 h-6 flex items-center justify-center text-xs text-[#6B6662] hover:text-[#2A2725] bg-white/60 rounded-full border border-[#E6E0DA] transition-all hover:bg-white/80 active:scale-95"
+              title="오늘의 문장 새로고침"
+            >
+              ⟲
+            </button>
+          </div>
 
-            <div className="flex flex-col gap-2.5 mb-3.5">
-              <div className="text-base leading-[1.45] tracking-tight">
-                당신은 오늘{' '}
-                <span className="inline-block px-0.5 border-b border-dashed border-[rgba(42,39,37,0.35)] min-w-[120px] text-[rgba(42,39,37,0.9)] font-[650]">
-                  {userData?.goals.keyword}
-                </span>
-                을 향해 가고 있는 사람입니다.
-              </div>
-              <div className="text-base leading-[1.45] tracking-tight">
-                오늘, 당신의 방향은{' '}
-                <span className="inline-block px-0.5 border-b border-dashed border-[rgba(42,39,37,0.35)] min-w-[120px] text-[rgba(42,39,37,0.9)] font-[650]">
-                  {userData?.goals.direction}
-                </span>{' '}
-                입니다.
-              </div>
+          {/* 슬라이드 카드 영역 */}
+          <div
+            className="relative h-[120px] overflow-hidden"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
+            <div
+              className="flex transition-transform duration-300 ease-out h-full"
+              style={{ transform: `translateX(-${alignmentSlide * 100}%)` }}
+            >
+              {selectedAlignments.map((alignment, index) => (
+                <div
+                  key={index}
+                  className="min-w-full h-full flex items-center justify-center px-6"
+                >
+                  <p
+                    className="text-[21px] leading-[1.7] tracking-tight text-center text-[#2A2725]"
+                    style={{ fontFamily: "'Nanum Myeongjo', serif" }}
+                  >
+                    {alignment.sentence.split(alignment.keyword).map((part, i, arr) =>
+                      i < arr.length - 1 ? (
+                        <span key={i}>
+                          {part}
+                          <span className="font-bold text-[rgba(42,39,37,0.95)]">
+                            {alignment.keyword}
+                          </span>
+                        </span>
+                      ) : (
+                        <span key={i}>{part}</span>
+                      )
+                    )}
+                  </p>
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div className="text-xs text-[#6B6662] leading-relaxed mb-3">
-              * 이 문장은 1:1 상담에서 설정한 목표(키워드)와 연결됩니다. 예언이 아니라, 오늘의 태도를 정렬합니다.
-            </div>
-
-            <div className="flex gap-2.5">
+          {/* Dot Indicator */}
+          <div className="flex items-center justify-center gap-2 pb-4">
+            {selectedAlignments.map((_, index) => (
               <button
-                onClick={() => router.push('/monthly-questions')}
-                className="flex-1 appearance-none border-0 cursor-pointer rounded-[14px] px-3.5 py-3 font-[650] text-sm tracking-tight inline-flex items-center justify-center gap-2 transition-transform active:scale-[0.98] text-[#1f1f1f] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] shadow-[0_10px_22px_rgba(123,203,255,0.18)]"
-              >
-                질문과 함께 생각하기 →
-              </button>
-              <button
-                className="w-11 appearance-none border-0 cursor-pointer rounded-[14px] px-3.5 py-3 bg-white/75 border border-[#E6E0DA] text-[#2A2725] transition-transform active:scale-[0.98]"
-                title="오늘의 문장 새로고침"
-              >
-                ⟲
-              </button>
-            </div>
+                key={index}
+                onClick={() => setAlignmentSlide(index)}
+                className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                  alignmentSlide === index
+                    ? 'bg-[rgba(123,203,255,0.95)] w-4'
+                    : 'bg-[#D1CCC6]'
+                }`}
+                aria-label={`슬라이드 ${index + 1}`}
+              />
+            ))}
           </div>
         </section>
 
@@ -190,19 +283,29 @@ export default function PremiumHomePage() {
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
           <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
             <div>
-              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">이번 달의 생각할 거리</div>
-              <div className="text-xs text-[#6B6662]">최대 10개 · 일반적으로 7개</div>
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">
+                {new Date().getFullYear()}년 {new Date().getMonth() + 1}월
+              </div>
+              <div className="text-xs text-[#6B6662]">나다움을 찾기 위한 질문들</div>
             </div>
-            <div className="text-xs text-[#6B6662]">{userData?.month}</div>
           </div>
 
           <div className="flex flex-col p-2.5 pb-3 gap-2">
-            {questions.length === 0 ? (
-              <div className="p-4 text-center text-sm text-[#6B6662]">
-                아직 할당된 Quest가 없습니다.
+            {/* 답변해야 할 질문만 필터링 (completed 제외) */}
+            {questions.filter(q => q.status !== 'completed').length === 0 ? (
+              <div
+                className="p-4 flex flex-col items-center gap-3 cursor-pointer"
+                onClick={() => router.push('/premium_memo')}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-[rgba(191,167,255,0.15)] border border-[rgba(191,167,255,0.25)] grid place-items-center text-2xl">
+                  📝
+                </div>
+                <p className="text-sm text-[#6B6662] text-center m-0">
+                  오늘의 나다움에 대한 생각을 남겨보세요
+                </p>
               </div>
             ) : (
-              questions.map((q) => {
+              questions.filter(q => q.status !== 'completed').map((q) => {
                 const config = getStatusConfig(q.status);
                 return (
                   <div
@@ -340,7 +443,7 @@ export default function PremiumHomePage() {
           <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
             <div>
               <div className="text-sm font-[750] tracking-tight text-[#2A2725]">오늘의 흐름</div>
-              <div className="text-xs text-[#6B6662]">짧게 소개 · 여백을 남깁니다</div>
+              <div className="text-xs text-[#6B6662]">오늘의 우주에너지</div>
             </div>
             <div className="text-xs text-[#6B6662]">D-0</div>
           </div>
@@ -350,29 +453,62 @@ export default function PremiumHomePage() {
               {userData?.todayFlow.text}
             </p>
             <div className="h-px bg-[#E6E0DA] my-1.5" />
-            <p className="text-xs text-[#6B6662] m-0">* "자세히 보기" 없이, 오늘의 방향만 제시합니다.</p>
+            <p className="text-xs text-[#6B6662] m-0">* 개인별 맞춤 정보로 업데이트 예정입니다.</p>
           </div>
         </section>
 
-        {/* TODAY LUCK */}
+        {/* TICKETS */}
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
           <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
             <div>
-              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">오늘의 행운</div>
-              <div className="text-xs text-[#6B6662]">가벼운 힌트</div>
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">나의 티켓</div>
+              <div className="text-xs text-[#6B6662]">관리자가 부여한 특별 이벤트</div>
             </div>
-            <div className="text-xs">🍀</div>
           </div>
 
-          <div className="px-4 py-3.5 flex flex-col gap-2">
-            <p className="text-[13px] leading-[1.65] text-[rgba(42,39,37,0.92)] tracking-tight m-0">
-              <b>행운 키워드:</b> {userData?.todayLuck.keyword}
-            </p>
-            <p className="text-[13px] leading-[1.65] text-[rgba(42,39,37,0.92)] tracking-tight m-0">
-              <b>좋은 장소:</b> {userData?.todayLuck.place}
-            </p>
-            <p className="text-[13px] leading-[1.65] text-[rgba(42,39,37,0.92)] tracking-tight m-0">
-              <b>피하면 좋은 것:</b> {userData?.todayLuck.avoid}
+          <div className="p-4">
+            <div className="grid grid-cols-2 gap-2.5">
+              {tickets.filter(t => t.ticketType !== 'consultation').map((ticket) => (
+                <div
+                  key={ticket.ticketType}
+                  className={`relative p-3 rounded-xl border ${
+                    ticket.count > 0
+                      ? 'border-[rgba(191,167,255,0.4)] bg-gradient-to-br from-[rgba(191,167,255,0.15)] to-[rgba(123,203,255,0.1)]'
+                      : 'border-[#E6E0DA] bg-[#F5F1ED]/50 opacity-50'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">{ticket.icon}</div>
+                  <div className="text-xs font-bold text-[#2A2725]">{ticket.name}</div>
+                  {ticket.count > 0 ? (
+                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[rgba(191,167,255,0.9)] text-white text-xs font-bold flex items-center justify-center">
+                      {ticket.count}
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-[#6B6662] mt-1">미보유</div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* 1:1 상담 요청 버튼 */}
+            {tickets.find(t => t.ticketType === 'consultation')?.count > 0 ? (
+              <button
+                onClick={() => router.push('/premium_memo')}
+                className="w-full mt-3 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]"
+              >
+                💬 1:1 추가 상담 요청 ({tickets.find(t => t.ticketType === 'consultation')?.count}회)
+              </button>
+            ) : (
+              <button
+                disabled
+                className="w-full mt-3 py-3 rounded-xl text-sm font-medium bg-[#E6E0DA] text-[#6B6662] opacity-60"
+              >
+                💬 1:1 추가 상담 (미보유)
+              </button>
+            )}
+
+            <p className="text-xs text-[#6B6662] mt-2.5 m-0">
+              * 티켓은 이번 달 말까지 유효합니다.
             </p>
           </div>
         </section>
@@ -440,7 +576,8 @@ export default function PremiumHomePage() {
           ))}
         </div>
         </nav>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
