@@ -76,9 +76,14 @@ export const handler = async (event) => {
         body: JSON.stringify({
           success: true,
           goal: {
+            // 월간 목표
             keyword: '명료함',
             direction: '흐트러진 생각을 정리하는',
             sentence3: '차분하게 선택하는',
+            // 주간 목표
+            weeklyKeyword: '집중',
+            weeklyDirection: '한 가지에 깊이 몰입하는',
+            weeklySentence3: '작은 성취를 쌓는',
           },
         }),
       };
@@ -90,9 +95,14 @@ export const handler = async (event) => {
       body: JSON.stringify({
         success: true,
         goal: {
-          keyword: response.Item.keyword,
-          direction: response.Item.direction,
+          // 월간 목표
+          keyword: response.Item.keyword || '',
+          direction: response.Item.direction || '',
           sentence3: response.Item.sentence3 || '',
+          // 주간 목표
+          weeklyKeyword: response.Item.weeklyKeyword || '',
+          weeklyDirection: response.Item.weeklyDirection || '',
+          weeklySentence3: response.Item.weeklySentence3 || '',
         },
       }),
     };

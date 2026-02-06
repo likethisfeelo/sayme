@@ -78,7 +78,7 @@ export default function AdminConsultationsPage() {
         <Header
           subtitle="관리자 · 상담 요청"
           showBackButton
-          onBack={() => router.push('/me')}
+          onBack={() => router.push('/admin')}
         />
 
         <main className="flex-1 px-4 py-4 pb-8">

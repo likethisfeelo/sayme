@@ -94,7 +94,7 @@ export default function AdminTicketsPage() {
         <Header
           subtitle="관리자 · 티켓 부여"
           showBackButton
-          onBack={() => router.push('/me')}
+          onBack={() => router.push('/admin')}
         />
 
         <main className="flex-1 px-4 py-4 pb-8">

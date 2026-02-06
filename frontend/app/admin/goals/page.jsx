@@ -17,9 +17,14 @@ export default function AdminGoalsPage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
   const [goalForm, setGoalForm] = useState({
+    // 월간 목표
     keyword: '',
     direction: '',
     sentence3: '',
+    // 주간 목표
+    weeklyKeyword: '',
+    weeklyDirection: '',
+    weeklySentence3: '',
   });
   const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -32,8 +37,13 @@ export default function AdminGoalsPage() {
   }, [router]);
 
   const handleSave = async () => {
-    if (!targetUserId || !month || !goalForm.keyword) {
-      setMessage({ type: 'error', text: '사용자 ID, 월, 키워드는 필수입니다' });
+    if (!targetUserId || !month) {
+      setMessage({ type: 'error', text: '사용자 ID와 월은 필수입니다' });
+      return;
+    }
+
+    if (!goalForm.keyword && !goalForm.weeklyKeyword) {
+      setMessage({ type: 'error', text: '월간 또는 주간 키워드 중 하나는 필수입니다' });
       return;
     }
 
@@ -51,9 +61,14 @@ export default function AdminGoalsPage() {
         body: JSON.stringify({
           userId: targetUserId,
           month,
+          // 월간 목표
           keyword: goalForm.keyword,
           direction: goalForm.direction,
           sentence3: goalForm.sentence3,
+          // 주간 목표
+          weeklyKeyword: goalForm.weeklyKeyword,
+          weeklyDirection: goalForm.weeklyDirection,
+          weeklySentence3: goalForm.weeklySentence3,
         }),
       });
 
@@ -61,7 +76,14 @@ export default function AdminGoalsPage() {
 
       if (data.success) {
         setMessage({ type: 'success', text: '목표가 저장되었습니다' });
-        setGoalForm({ keyword: '', direction: '', sentence3: '' });
+        setGoalForm({
+          keyword: '',
+          direction: '',
+          sentence3: '',
+          weeklyKeyword: '',
+          weeklyDirection: '',
+          weeklySentence3: '',
+        });
       } else {
         setMessage({ type: 'error', text: data.message || '저장에 실패했습니다' });
       }
@@ -93,12 +115,13 @@ export default function AdminGoalsPage() {
         <Header
           subtitle="관리자 · 목표 관리"
           showBackButton
-          onBack={() => router.push('/me')}
+          onBack={() => router.push('/admin')}
         />
 
-        <main className="flex-1 px-4 py-4 pb-8">
+        <main className="flex-1 px-4 py-4 pb-8 flex flex-col gap-4">
+          {/* 기본 정보 */}
           <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4">
-            <h2 className="text-sm font-bold text-[#2A2725] mb-4">사용자 월간 목표 설정</h2>
+            <h2 className="text-sm font-bold text-[#2A2725] mb-4">기본 정보</h2>
 
             {message.text && (
               <div
@@ -135,10 +158,16 @@ export default function AdminGoalsPage() {
                   className="p-3 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
                 />
               </div>
+            </div>
+          </section>
 
-              {/* Keyword */}
+          {/* 월간 목표 */}
+          <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4">
+            <h2 className="text-sm font-bold text-[#2A2725] mb-4">📅 월간 목표</h2>
+
+            <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-[#6B6662]">키워드 (필수)</label>
+                <label className="text-xs font-medium text-[#6B6662]">월간 키워드</label>
                 <input
                   type="text"
                   value={goalForm.keyword}
@@ -148,9 +177,8 @@ export default function AdminGoalsPage() {
                 />
               </div>
 
-              {/* Direction */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-[#6B6662]">방향</label>
+                <label className="text-xs font-medium text-[#6B6662]">월간 방향</label>
                 <input
                   type="text"
                   value={goalForm.direction}
@@ -160,9 +188,8 @@ export default function AdminGoalsPage() {
                 />
               </div>
 
-              {/* Sentence 3 */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-[#6B6662]">문장 3</label>
+                <label className="text-xs font-medium text-[#6B6662]">월간 문장 3</label>
                 <input
                   type="text"
                   value={goalForm.sentence3}
@@ -171,23 +198,63 @@ export default function AdminGoalsPage() {
                   className="p-3 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
                 />
               </div>
-
-              {/* Save Button */}
-              <button
-                onClick={handleSave}
-                disabled={saving}
-                className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${
-                  saving
-                    ? 'bg-[#E6E0DA] text-[#6B6662]'
-                    : 'bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]'
-                }`}
-              >
-                {saving ? '저장 중...' : '목표 저장'}
-              </button>
             </div>
           </section>
 
-          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+          {/* 주간 목표 */}
+          <section className="bg-gradient-to-br from-[rgba(191,167,255,0.15)] to-[rgba(123,203,255,0.1)] backdrop-blur-sm border border-[rgba(191,167,255,0.3)] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4">
+            <h2 className="text-sm font-bold text-[#2A2725] mb-4">📆 주간 목표</h2>
+
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-[#6B6662]">주간 키워드</label>
+                <input
+                  type="text"
+                  value={goalForm.weeklyKeyword}
+                  onChange={(e) => setGoalForm({ ...goalForm, weeklyKeyword: e.target.value })}
+                  placeholder="예: 집중"
+                  className="p-3 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-[#6B6662]">주간 방향</label>
+                <input
+                  type="text"
+                  value={goalForm.weeklyDirection}
+                  onChange={(e) => setGoalForm({ ...goalForm, weeklyDirection: e.target.value })}
+                  placeholder="예: 한 가지에 깊이 몰입하는"
+                  className="p-3 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-[#6B6662]">주간 문장 3</label>
+                <input
+                  type="text"
+                  value={goalForm.weeklySentence3}
+                  onChange={(e) => setGoalForm({ ...goalForm, weeklySentence3: e.target.value })}
+                  placeholder="예: 작은 성취를 쌓는"
+                  className="p-3 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Save Button */}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all ${
+              saving
+                ? 'bg-[#E6E0DA] text-[#6B6662]'
+                : 'bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]'
+            }`}
+          >
+            {saving ? '저장 중...' : '월간 + 주간 목표 저장'}
+          </button>
+
+          <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
             <p className="text-xs text-yellow-800">
               ℹ️ 사용자 ID는 Cognito의 sub 값입니다. AWS 콘솔 또는 DynamoDB에서 확인할 수 있습니다.
             </p>

@@ -239,33 +239,12 @@ export default function MyProfilePage() {
           )}
 
           {adminUser && (
-            <div className="mt-6 flex flex-col gap-2">
-              <div className="text-sm font-bold text-[#6B6662] mb-2">관리자 메뉴</div>
-              <button
-                onClick={() => router.push('/admin/quest')}
-                className="w-full py-3 bg-gradient-to-r from-[#2A2725] to-[#4A4542] text-white rounded-xl font-bold text-sm transition-transform active:scale-[0.98] shadow-md"
-              >
-                Quest 관리
-              </button>
-              <button
-                onClick={() => router.push('/admin/goals')}
-                className="w-full py-3 bg-gradient-to-r from-[#2A2725] to-[#4A4542] text-white rounded-xl font-bold text-sm transition-transform active:scale-[0.98] shadow-md"
-              >
-                사용자 목표 관리
-              </button>
-              <button
-                onClick={() => router.push('/admin/tickets')}
-                className="w-full py-3 bg-gradient-to-r from-[#2A2725] to-[#4A4542] text-white rounded-xl font-bold text-sm transition-transform active:scale-[0.98] shadow-md"
-              >
-                티켓 부여
-              </button>
-              <button
-                onClick={() => router.push('/admin/consultations')}
-                className="w-full py-3 bg-gradient-to-r from-[#2A2725] to-[#4A4542] text-white rounded-xl font-bold text-sm transition-transform active:scale-[0.98] shadow-md"
-              >
-                상담 요청 목록
-              </button>
-            </div>
+            <button
+              onClick={() => router.push('/admin')}
+              className="mt-6 w-full py-3 bg-gradient-to-r from-[#2A2725] to-[#4A4542] text-white rounded-xl font-bold text-sm transition-transform active:scale-[0.98] shadow-md"
+            >
+              관리자 화면으로 이동
+            </button>
           )}
 
           <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">

@@ -37,15 +37,37 @@ export const handler = async (event) => {
 
     // 요청 본문 파싱
     const body = JSON.parse(event.body || '{}');
-    const { userId, month, keyword, direction, sentence3 } = body;
+    const {
+      userId,
+      month,
+      keyword,
+      direction,
+      sentence3,
+      // 주간 목표 필드
+      weeklyKeyword,
+      weeklyDirection,
+      weeklySentence3,
+    } = body;
 
-    if (!userId || !month || !keyword || !direction) {
+    if (!userId || !month) {
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({
           success: false,
-          message: 'Missing required fields: userId, month, keyword, direction',
+          message: 'Missing required fields: userId, month',
+        }),
+      };
+    }
+
+    // 최소 월간 또는 주간 목표 중 하나는 있어야 함
+    if (!keyword && !weeklyKeyword) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: 'At least one of keyword or weeklyKeyword is required',
         }),
       };
     }
@@ -56,9 +78,14 @@ export const handler = async (event) => {
       Item: {
         userId: userId,
         month: month,
-        keyword: keyword,
-        direction: direction,
+        // 월간 목표
+        keyword: keyword || '',
+        direction: direction || '',
         sentence3: sentence3 || '',
+        // 주간 목표
+        weeklyKeyword: weeklyKeyword || '',
+        weeklyDirection: weeklyDirection || '',
+        weeklySentence3: weeklySentence3 || '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       },
