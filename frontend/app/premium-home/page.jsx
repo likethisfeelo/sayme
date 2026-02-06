@@ -65,7 +65,7 @@ export default function PremiumHomePage() {
   const router = useRouter();
   const [userData, setUserData] = useState(null);
   const [questions, setQuestions] = useState([]);
-  const [tickets, setTickets] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [reportEnabled, setReportEnabled] = useState(false);
   const [alignmentSlide, setAlignmentSlide] = useState(0);
@@ -120,19 +120,6 @@ export default function PremiumHomePage() {
         });
 
         setQuestions(mappedQuestions);
-
-        // Fetch tickets
-        try {
-          const ticketResponse = await fetch(`${API_BASE}/ticket`, {
-            headers: { Authorization: `Bearer ${idToken}` },
-          });
-          const ticketData = await ticketResponse.json();
-          if (ticketData.success) {
-            setTickets(ticketData.tickets || []);
-          }
-        } catch (ticketError) {
-          console.error('Failed to fetch tickets:', ticketError);
-        }
 
         setUserData({
           month: buildMonthLabel(),
@@ -454,62 +441,6 @@ export default function PremiumHomePage() {
             </p>
             <div className="h-px bg-[#E6E0DA] my-1.5" />
             <p className="text-xs text-[#6B6662] m-0">* 개인별 맞춤 정보로 업데이트 예정입니다.</p>
-          </div>
-        </section>
-
-        {/* TICKETS */}
-        <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
-          <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
-            <div>
-              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">나의 티켓</div>
-              <div className="text-xs text-[#6B6662]">관리자가 부여한 특별 이벤트</div>
-            </div>
-          </div>
-
-          <div className="p-4">
-            <div className="grid grid-cols-2 gap-2.5">
-              {tickets.filter(t => t.ticketType !== 'consultation').map((ticket) => (
-                <div
-                  key={ticket.ticketType}
-                  className={`relative p-3 rounded-xl border ${
-                    ticket.count > 0
-                      ? 'border-[rgba(191,167,255,0.4)] bg-gradient-to-br from-[rgba(191,167,255,0.15)] to-[rgba(123,203,255,0.1)]'
-                      : 'border-[#E6E0DA] bg-[#F5F1ED]/50 opacity-50'
-                  }`}
-                >
-                  <div className="text-2xl mb-1">{ticket.icon}</div>
-                  <div className="text-xs font-bold text-[#2A2725]">{ticket.name}</div>
-                  {ticket.count > 0 ? (
-                    <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[rgba(191,167,255,0.9)] text-white text-xs font-bold flex items-center justify-center">
-                      {ticket.count}
-                    </div>
-                  ) : (
-                    <div className="text-[10px] text-[#6B6662] mt-1">미보유</div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* 1:1 상담 요청 버튼 */}
-            {tickets.find(t => t.ticketType === 'consultation')?.count > 0 ? (
-              <button
-                onClick={() => router.push('/premium_memo')}
-                className="w-full mt-3 py-3 rounded-xl text-sm font-bold bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]"
-              >
-                💬 1:1 추가 상담 요청 ({tickets.find(t => t.ticketType === 'consultation')?.count}회)
-              </button>
-            ) : (
-              <button
-                disabled
-                className="w-full mt-3 py-3 rounded-xl text-sm font-medium bg-[#E6E0DA] text-[#6B6662] opacity-60"
-              >
-                💬 1:1 추가 상담 (미보유)
-              </button>
-            )}
-
-            <p className="text-xs text-[#6B6662] mt-2.5 m-0">
-              * 티켓은 이번 달 말까지 유효합니다.
-            </p>
           </div>
         </section>
 
