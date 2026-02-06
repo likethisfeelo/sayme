@@ -528,7 +528,10 @@ export default function PremiumHomePage() {
                   </div>
                 )}
               </div>
-              <button className="w-full mt-3 rounded-[14px] px-3 py-3 border-0 font-[750] cursor-pointer bg-[rgba(42,39,37,0.92)] text-[rgba(245,241,237,0.98)] text-sm">
+              <button
+                onClick={() => window.location.href = userData.event.eventUrl || '/events/free-tarot'}
+                className="w-full mt-3 rounded-[14px] px-3 py-3 border-0 font-[750] cursor-pointer bg-[rgba(42,39,37,0.92)] text-[rgba(245,241,237,0.98)] text-sm transition-transform active:scale-[0.98]"
+              >
                 이벤트 열기 →
               </button>
               <p className="text-xs text-[#6B6662] mt-2.5 m-0 leading-relaxed">
