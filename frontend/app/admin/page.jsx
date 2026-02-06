@@ -27,7 +27,7 @@ const menuItems = [
   {
     title: '상담 요청 목록',
     description: '상담 요청 확인 및 관리',
-    path: '/admin/consultations',
+    path: '/admin/consultation',
     icon: '💬',
   },
 ];
