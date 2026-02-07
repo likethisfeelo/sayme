@@ -54,16 +54,19 @@ export default function PremiumFortunePage() {
 
     try {
       const idToken = localStorage.getItem('idToken');
-      const response = await fetch(`${API_BASE}/consultation/request`, {
+      const response = await fetch(`${API_BASE}/consultation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
-          type: 'paid',
-          preferredSlot1: `${consultDate1} ${consultTime1}`,
-          preferredSlot2: `${consultDate2} ${consultTime2}`,
+          preferredDate1: consultDate1,
+          preferredTime1: consultTime1,
+          preferredDate2: consultDate2,
+          preferredTime2: consultTime2,
+          isPaidOk: true,
+          memo: '프리미엄 우주의 흐름 페이지에서 유료 상담 요청',
         }),
       });
 
