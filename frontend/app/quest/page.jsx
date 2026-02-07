@@ -32,6 +32,21 @@ const getStatusConfig = (status) => {
   return configs[status] || configs.locked;
 };
 
+const isCurrentMonth = (dateStr) => {
+  if (!dateStr) return false;
+  const date = new Date(dateStr);
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return null;
+  return new Date(dateStr).toLocaleDateString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
 export default function QuestPage() {
   const router = useRouter();
   const [quests, setQuests] = useState([]);
@@ -61,6 +76,7 @@ export default function QuestPage() {
           status: mapQuestStatus(quest?.progress?.status),
           progress: quest?.progress?.percent,
           reward: content.reward,
+          assignedAt: quest?.assignedAt,
           completedAt: quest?.progress?.completedAt,
         };
       });
@@ -73,7 +89,10 @@ export default function QuestPage() {
     }
   };
 
-  const filteredQuests = quests.filter((quest) => {
+  // 이번 달 어사인된 퀘스트만 필터
+  const thisMonthQuests = quests.filter((quest) => isCurrentMonth(quest.assignedAt));
+
+  const filteredQuests = thisMonthQuests.filter((quest) => {
     if (filter === 'all') return true;
     if (filter === 'active') return quest.status === 'active';
     if (filter === 'completed') return quest.status === 'completed';
@@ -81,10 +100,12 @@ export default function QuestPage() {
   });
 
   const stats = {
-    total: quests.length,
-    completed: quests.filter((quest) => quest.status === 'completed').length,
-    active: quests.filter((quest) => quest.status === 'active').length,
+    total: thisMonthQuests.length,
+    completed: thisMonthQuests.filter((quest) => quest.status === 'completed').length,
+    active: thisMonthQuests.filter((quest) => quest.status === 'active').length,
   };
+
+  const monthLabel = `${new Date().getMonth() + 1}월`;
 
   if (loading) {
     return (
@@ -114,7 +135,7 @@ export default function QuestPage() {
       }}
     >
       <Header
-        subtitle="Quest · 도전 과제"
+        subtitle={`Quest · ${monthLabel} 도전 과제`}
         showMenuButton
         zIndexClass="z-50"
         leadingAction={
@@ -133,7 +154,7 @@ export default function QuestPage() {
         {/* Stats Summary */}
         <section className="mb-6">
           <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
-            <h2 className="text-lg font-bold text-[#2A2725] mb-4">나의 Quest 현황</h2>
+            <h2 className="text-lg font-bold text-[#2A2725] mb-4">나의 이번달 Quest 현황</h2>
 
             <div className="grid grid-cols-3 gap-3">
               <div className="text-center p-3 bg-[rgba(191,167,255,0.05)] rounded-xl border border-[rgba(191,167,255,0.15)]">
@@ -184,7 +205,7 @@ export default function QuestPage() {
               <div className="text-4xl mb-3">📋</div>
               <p className="text-[#6B6662] text-sm">
                 {filter === 'all'
-                  ? '아직 Quest가 없습니다'
+                  ? `이번 달 Quest가 없습니다`
                   : filter === 'active'
                   ? '진행 중인 Quest가 없습니다'
                   : '완료한 Quest가 없습니다'}
@@ -239,12 +260,18 @@ export default function QuestPage() {
                       </div>
                     )}
 
-                    {/* Completion Date (for completed quests) */}
-                    {quest.status === 'completed' && quest.completedAt && (
-                      <div className="mt-3 text-xs text-[#6B6662]">
-                        완료: {new Date(quest.completedAt).toLocaleDateString('ko-KR')}
-                      </div>
-                    )}
+                    {/* Date Info */}
+                    <div className="mt-3 flex items-center gap-3 text-xs text-[#6B6662]">
+                      {quest.assignedAt && (
+                        <span>할당: {formatDate(quest.assignedAt)}</span>
+                      )}
+                      {quest.status === 'completed' && quest.completedAt && (
+                        <>
+                          <span className="text-[#E6E0DA]">|</span>
+                          <span>완료: {formatDate(quest.completedAt)}</span>
+                        </>
+                      )}
+                    </div>
 
                     {/* Action Hint */}
                     <div className="mt-3 flex items-center gap-1 text-xs text-[#A9B4A0] font-medium">
@@ -258,15 +285,15 @@ export default function QuestPage() {
         </section>
 
         {/* Empty State Illustration */}
-        {quests.length === 0 && (
+        {thisMonthQuests.length === 0 && (
           <section className="mt-8">
             <div className="bg-gradient-to-br from-[rgba(232,223,245,0.3)] to-[rgba(255,232,214,0.3)] bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6 text-center">
               <div className="text-5xl mb-4">🎯</div>
-              <h3 className="text-lg font-bold text-[#2A2725] mb-2">Quest 시작하기</h3>
+              <h3 className="text-lg font-bold text-[#2A2725] mb-2">이번 달 Quest</h3>
               <p className="text-sm text-[#6B6662] leading-relaxed mb-4">
-                도전 과제를 완료하고
+                아직 이번 달 할당된 Quest가 없습니다.
                 <br />
-                특별한 보상을 받아보세요
+                관리자가 곧 새로운 질문을 보내드릴게요.
               </p>
               <button
                 onClick={() => router.push('/premium-home')}
@@ -283,10 +310,10 @@ export default function QuestPage() {
       <nav className="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[430px] bg-[rgba(245,241,237,0.78)] backdrop-blur-[14px] border-t border-[rgba(230,224,218,0.9)] px-2.5 py-2.5 pb-3 z-20">
         <div className="grid grid-cols-5 gap-1.5">
           {[
-            { icon: '2026', label: '연간', path: '/spirit-lab' },
-            { icon: '🐇', label: '이번달', path: '/quest' },
-            { icon: '●', label: '홈', path: '/premium-home', active: true },
-            { icon: '✦', label: '우주', path: '/cosmos' },
+            { icon: '2026', label: '연간', path: '/2026' },
+            { icon: '🐇', label: '이번달', path: '/quest', active: true },
+            { icon: '●', label: '홈', path: '/premium-home' },
+            { icon: '✦', label: '우주', path: '/premium-fortune' },
             { icon: '☺', label: '나', path: '/me' },
           ].map((item) => (
             <button

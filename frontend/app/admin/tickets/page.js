@@ -18,10 +18,15 @@ export default function AdminTicketsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [targetUserId, setTargetUserId] = useState('');
   const [ticketType, setTicketType] = useState('tarot');
   const [count, setCount] = useState(1);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  // Premium users
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     if (!isAdmin()) {
@@ -29,11 +34,40 @@ export default function AdminTicketsPage() {
       return;
     }
     setLoading(false);
+    loadPremiumUsers();
   }, [router]);
 
+  const loadPremiumUsers = async () => {
+    setUsersLoading(true);
+    try {
+      const idToken = localStorage.getItem('idToken');
+      const response = await fetch(`${API_BASE}/quest/admin/users/premium`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(idToken && { Authorization: idToken }),
+        },
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const data = await response.json();
+      setUsers(data.users || []);
+    } catch (error) {
+      console.error('Failed to load premium users:', error);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const filteredUsers = users.filter(
+    (user) =>
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   const handleAssign = async () => {
-    if (!targetUserId) {
-      setMessage({ type: 'error', text: '사용자 ID를 입력해주세요' });
+    if (!selectedUser) {
+      setMessage({ type: 'error', text: '사용자를 선택해주세요' });
       return;
     }
 
@@ -49,7 +83,7 @@ export default function AdminTicketsPage() {
           Authorization: `Bearer ${idToken}`,
         },
         body: JSON.stringify({
-          targetUserId,
+          targetUserId: selectedUser.username,
           ticketType,
           count: Number(count),
         }),
@@ -61,7 +95,7 @@ export default function AdminTicketsPage() {
         const ticketInfo = TICKET_TYPES.find((t) => t.value === ticketType);
         setMessage({
           type: 'success',
-          text: `${ticketInfo?.label} 티켓 ${count}장이 부여되었습니다`,
+          text: `${selectedUser.name || selectedUser.email}님에게 ${ticketInfo?.label} 티켓 ${count}장이 부여되었습니다`,
         });
       } else {
         setMessage({ type: 'error', text: data.message || '부여에 실패했습니다' });
@@ -114,16 +148,63 @@ export default function AdminTicketsPage() {
             )}
 
             <div className="flex flex-col gap-4">
-              {/* Target User ID */}
+              {/* User Selection */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-[#6B6662]">사용자 ID (Cognito sub)</label>
-                <input
-                  type="text"
-                  value={targetUserId}
-                  onChange={(e) => setTargetUserId(e.target.value)}
-                  placeholder="예: 12345678-1234-1234-1234-123456789012"
-                  className="p-3 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
-                />
+                <label className="text-xs font-medium text-[#6B6662]">Premium 사용자 선택</label>
+
+                {selectedUser ? (
+                  <div className="flex items-center justify-between p-3 rounded-xl border border-[#BFA7FF] bg-[rgba(191,167,255,0.1)]">
+                    <div>
+                      <div className="text-sm font-bold text-[#2A2725]">{selectedUser.name || '이름 없음'}</div>
+                      <div className="text-xs text-[#6B6662]">{selectedUser.email}</div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedUser(null)}
+                      className="text-xs px-2.5 py-1.5 rounded-lg border border-[#E6E0DA] bg-white/80 text-[#6B6662] cursor-pointer"
+                    >
+                      변경
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      placeholder="이메일 또는 이름으로 검색..."
+                      className="p-3 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
+                    />
+
+                    <div className="max-h-[240px] overflow-y-auto rounded-xl border border-[#E6E0DA] bg-white/80">
+                      {usersLoading ? (
+                        <div className="p-4 text-center text-xs text-[#6B6662]">사용자 목록 불러오는 중...</div>
+                      ) : filteredUsers.length === 0 ? (
+                        <div className="p-4 text-center text-xs text-[#6B6662]">
+                          {users.length === 0 ? 'Premium 사용자가 없습니다' : '검색 결과가 없습니다'}
+                        </div>
+                      ) : (
+                        filteredUsers.map((user) => (
+                          <button
+                            key={user.username}
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setSearchTerm('');
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 border-0 border-b border-[#E6E0DA] bg-transparent text-left cursor-pointer hover:bg-[rgba(191,167,255,0.08)] transition-colors last:border-b-0"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-[rgba(191,167,255,0.2)] flex items-center justify-center text-xs font-bold text-[#2A2725] flex-shrink-0">
+                              {(user.name || user.email || '?').charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium text-[#2A2725] truncate">{user.name || '이름 없음'}</div>
+                              <div className="text-xs text-[#6B6662] truncate">{user.email}</div>
+                            </div>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Ticket Type */}
@@ -163,9 +244,9 @@ export default function AdminTicketsPage() {
               {/* Assign Button */}
               <button
                 onClick={handleAssign}
-                disabled={saving}
+                disabled={saving || !selectedUser}
                 className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${
-                  saving
+                  saving || !selectedUser
                     ? 'bg-[#E6E0DA] text-[#6B6662]'
                     : 'bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]'
                 }`}

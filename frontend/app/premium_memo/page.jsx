@@ -2,258 +2,306 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearTokens, fetchWithAuth, getAccessToken, getIdTokenPayload } from '../utils/auth';
-import { isAdmin } from '../../lib/auth/checkAdmin';
 import Header from '../components/Header';
 
-export default function MyProfilePage() {
+const API_BASE = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
+const MAX_CONTENT_LENGTH = 1000;
+
+export default function PremiumMemoPage() {
   const router = useRouter();
-  const [user, setUser] = useState(null);
+  const [memoContent, setMemoContent] = useState('');
+  const [memos, setMemos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [homePath, setHomePath] = useState('/');
-  const [adminUser, setAdminUser] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showConsultation, setShowConsultation] = useState(false);
+  const [consultationForm, setConsultationForm] = useState({
+    preferredDate1: '',
+    preferredTime1: '',
+    preferredDate2: '',
+    preferredTime2: '',
+    isPaidOk: false,
+  });
+  const [submittingConsultation, setSubmittingConsultation] = useState(false);
 
   useEffect(() => {
-    fetchUserInfo();
-  }, []);
-
-  const fetchUserInfo = async () => {
-    const accessToken = getAccessToken();
-
-    if (!accessToken) {
+    const idToken = localStorage.getItem('idToken');
+    if (!idToken) {
       router.push('/login');
       return;
     }
+    fetchMemos();
+  }, [router]);
 
+  const fetchMemos = async () => {
     try {
-      const response = await fetchWithAuth(
-        'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/auth/me'
-      );
-
+      const idToken = localStorage.getItem('idToken');
+      const today = new Date().toISOString().split('T')[0];
+      const response = await fetch(`${API_BASE}/memo?date=${today}`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
       const data = await response.json();
-
-      if (response.ok && data.success) {
-        const loadedUser = data.user;
-        setUser(loadedUser);
-
-        const paymentStatus = (loadedUser.paymentStatus || '').toLowerCase();
-        const tokenPayload = getIdTokenPayload();
-        const cognitoGroups = tokenPayload?.['cognito:groups'] || [];
-        const isPremium =
-          loadedUser.preSurveyCompleted ||
-          paymentStatus === 'completed' ||
-          paymentStatus === 'premium' ||
-          cognitoGroups.includes('premium');
-
-        setHomePath(isPremium ? '/premium-home' : '/trial-home');
-        setAdminUser(isAdmin());
-      } else {
-        setError('사용자 정보를 불러올 수 없습니다.');
-        if (response.status === 401) {
-          clearTokens();
-          router.push('/login');
-        }
+      if (data.success) {
+        setMemos(data.memos || []);
       }
-    } catch (err) {
-      console.error('사용자 정보 로드 에러:', err);
-      setError('서버와 통신 중 오류가 발생했습니다.');
+    } catch (error) {
+      console.error('Failed to fetch memos:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    clearTokens();
-    router.push('/login');
+  const saveMemo = async () => {
+    if (!memoContent.trim()) return;
+    setSaving(true);
+    try {
+      const idToken = localStorage.getItem('idToken');
+      const response = await fetch(`${API_BASE}/memo`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ content: memoContent }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setMemoContent('');
+        fetchMemos();
+      } else {
+        alert(data.message || '저장에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('Failed to save memo:', error);
+      alert('저장에 실패했습니다');
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleKakaoConsult = () => {
-    window.open('https://pf.kakao.com/_xjwsxfb/chat', '_blank');
-  };
-
-  const handleLogoClick = () => {
-    const accessToken = getAccessToken();
-    if (!accessToken) {
-      router.push('/');
+  const submitConsultation = async () => {
+    if (!consultationForm.preferredDate1 || !consultationForm.preferredTime1) {
+      alert('최소 1개의 희망 날짜와 시간을 선택해주세요');
       return;
     }
-    router.push(homePath || '/');
+    setSubmittingConsultation(true);
+    try {
+      const idToken = localStorage.getItem('idToken');
+      const response = await fetch(`${API_BASE}/consultation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(consultationForm),
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('상담 요청이 접수되었습니다');
+        setShowConsultation(false);
+        setConsultationForm({
+          preferredDate1: '',
+          preferredTime1: '',
+          preferredDate2: '',
+          preferredTime2: '',
+          isPaidOk: false,
+        });
+      } else {
+        alert(data.message || '접수에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('Failed to submit consultation:', error);
+      alert('접수에 실패했습니다');
+    } finally {
+      setSubmittingConsultation(false);
+    }
+  };
+
+  const backgroundStyle = {
+    background:
+      'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
+    color: '#2A2725',
   };
 
   if (loading) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{
-          fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
-          background:
-            'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
-        }}
-      >
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-[#BFA7FF] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-[#6B6662]">로딩 중...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{
-          fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
-          background:
-            'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
-        }}
-      >
-        <div className="max-w-md mx-auto px-4 text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <button
-            onClick={() => router.push('/login')}
-            className="text-indigo-600 hover:text-indigo-700"
-          >
-            로그인으로 돌아가기
-          </button>
-        </div>
+      <div className="min-h-screen flex items-center justify-center" style={backgroundStyle}>
+        <div className="w-16 h-16 border-4 border-[#BFA7FF] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
-        background:
-          'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
-        color: '#2A2725',
-      }}
-    >
-      <Header
-        subtitle="멘탈 PT 플랫폼"
-        zIndexClass="z-50"
-        onTitleClick={handleLogoClick}
-        rightSlot={
-          <div className="flex gap-2">
-            <button
-              onClick={handleLogoClick}
-              className="text-xs px-3 py-2 text-[#2A2725] hover:text-[rgba(191,167,255,0.95)] transition-colors font-medium"
-            >
-              홈으로
-            </button>
-            <button
-              onClick={handleLogout}
-              className="text-xs px-4 py-2 bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] rounded-full font-bold transition-transform active:scale-95"
-            >
-              로그아웃
-            </button>
-          </div>
-        }
-      />
+    <div className="min-h-screen" style={backgroundStyle}>
+      <div className="max-w-[430px] mx-auto min-h-screen flex flex-col">
+        <Header
+          subtitle="나다움 메모"
+          showBackButton
+          onBack={() => router.back()}
+        />
 
-      <main className="max-w-[430px] mx-auto px-4 py-8">
-        <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
-          <h1 className="text-lg font-bold text-[#2A2725] mb-5">내 정보</h1>
-          {user && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-3 gap-4 py-3 border-b border-[rgba(230,224,218,0.7)]">
-                <div className="font-semibold text-[#6B6662]">이메일</div>
-                <div className="col-span-2 text-[#2A2725]">{user.email}</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b border-[rgba(230,224,218,0.7)]">
-                <div className="font-semibold text-[#6B6662]">이름</div>
-                <div className="col-span-2 text-[#2A2725]">{user.name || '-'}</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b border-[rgba(230,224,218,0.7)]">
-                <div className="font-semibold text-[#6B6662]">닉네임</div>
-                <div className="col-span-2 text-[#2A2725]">{user.nickname || '-'}</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b border-[rgba(230,224,218,0.7)]">
-                <div className="font-semibold text-[#6B6662]">이메일 인증</div>
-                <div className="col-span-2">
-                  {user.emailVerified ? (
-                    <span className="text-green-600">✅ 인증됨</span>
-                  ) : (
-                    <span className="text-red-600">❌ 미인증</span>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b border-[rgba(230,224,218,0.7)]">
-                <div className="font-semibold text-[#6B6662]">생년월일</div>
-                <div className="col-span-2 text-[#2A2725]">{user.birthDate || '-'}</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b border-[rgba(230,224,218,0.7)]">
-                <div className="font-semibold text-[#6B6662]">출생 국가</div>
-                <div className="col-span-2 text-[#2A2725]">{user.birthCountry || '-'}</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b border-[rgba(230,224,218,0.7)]">
-                <div className="font-semibold text-[#6B6662]">출생 도시</div>
-                <div className="col-span-2 text-[#2A2725]">{user.birthCity || '-'}</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b border-[rgba(230,224,218,0.7)]">
-                <div className="font-semibold text-[#6B6662]">마지막 로그인</div>
-                <div className="col-span-2 text-[#2A2725]">
-                  {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString('ko-KR') : '-'}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b border-[rgba(230,224,218,0.7)]">
-                <div className="font-semibold text-[#6B6662]">사전 설문</div>
-                <div className="col-span-2 flex items-center gap-3">
-                  {user.preSurveyCompleted ? (
-                    <span className="text-green-600">✅ 완료</span>
-                  ) : (
-                    <>
-                      <span className="text-[#6B6662]">❌ 미완료</span>
-                      <button
-                        onClick={handleKakaoConsult}
-                        className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-lg font-medium text-sm transition-colors shadow-sm hover:shadow-md"
-                      >
-                        💬 사전 설문 상담 신청
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3 border-b border-[rgba(230,224,218,0.7)]">
-                <div className="font-semibold text-[#6B6662]">할인권</div>
-                <div className="col-span-2 text-[#2A2725]">{user.discountCount || 0}개</div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4 py-3">
-                <div className="font-semibold text-[#6B6662]">리마인더</div>
-                <div className="col-span-2 text-[#2A2725]">{user.reminderTime || '-'}</div>
-              </div>
+        <main className="flex-1 px-4 py-4 pb-32 flex flex-col gap-4">
+          {/* Memo Input */}
+          <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4">
+            <div className="text-sm font-bold text-[#2A2725] mb-3">
+              오늘의 나다움에 대한 생각
             </div>
+            <textarea
+              value={memoContent}
+              onChange={(e) => setMemoContent(e.target.value.slice(0, MAX_CONTENT_LENGTH))}
+              placeholder="오늘 느낀 나다움에 대해 자유롭게 적어보세요..."
+              className="w-full h-32 p-3 rounded-xl border border-[#E6E0DA] bg-white/80 resize-none text-sm focus:outline-none focus:border-[#BFA7FF]"
+            />
+            <div className="flex justify-between items-center mt-2">
+              <span className="text-xs text-[#6B6662]">
+                {memoContent.length} / {MAX_CONTENT_LENGTH}자
+              </span>
+              <button
+                onClick={saveMemo}
+                disabled={saving || !memoContent.trim()}
+                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                  saving || !memoContent.trim()
+                    ? 'bg-[#E6E0DA] text-[#6B6662]'
+                    : 'bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]'
+                }`}
+              >
+                {saving ? '저장 중...' : '저장'}
+              </button>
+            </div>
+          </section>
+
+          {/* Today's Memos */}
+          {memos.length > 0 && (
+            <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4">
+              <div className="text-sm font-bold text-[#2A2725] mb-3">
+                오늘 작성한 메모 ({memos.length}개)
+              </div>
+              <div className="flex flex-col gap-2">
+                {memos.map((memo) => (
+                  <div
+                    key={memo.memoId}
+                    className="p-3 bg-white/60 rounded-xl border border-[rgba(230,224,218,0.9)]"
+                  >
+                    <p className="text-sm text-[#2A2725] whitespace-pre-wrap">{memo.content}</p>
+                    <p className="text-xs text-[#6B6662] mt-2">
+                      {new Date(memo.createdAt).toLocaleTimeString('ko-KR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
 
-          {adminUser && (
+          {/* Consultation Request Button */}
+          <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4">
             <button
-              onClick={() => router.push('/admin')}
-              className="mt-6 w-full py-3 bg-gradient-to-r from-[#2A2725] to-[#4A4542] text-white rounded-xl font-bold text-sm transition-transform active:scale-[0.98] shadow-md"
+              onClick={() => setShowConsultation(!showConsultation)}
+              className="w-full py-3 rounded-xl text-sm font-bold bg-[rgba(42,39,37,0.92)] text-[rgba(245,241,237,0.98)] flex items-center justify-center gap-2"
             >
-              관리자 화면으로 이동
+              💬 상담 요청하기
+              <span className={`transition-transform ${showConsultation ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
             </button>
-          )}
 
-          <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              ℹ️ <strong>읽기 전용 페이지입니다.</strong> 정보 수정 기능은 추후 추가될 예정입니다.
-            </p>
-          </div>
-        </div>
-      </main>
+            {/* Consultation Form */}
+            {showConsultation && (
+              <div className="mt-4 pt-4 border-t border-[#E6E0DA] flex flex-col gap-4">
+                <div className="text-xs text-[#6B6662]">
+                  희망하는 상담 날짜와 시간을 선택해주세요
+                </div>
+
+                {/* Option 1 */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-[#2A2725]">희망 1순위</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={consultationForm.preferredDate1}
+                      onChange={(e) =>
+                        setConsultationForm({ ...consultationForm, preferredDate1: e.target.value })
+                      }
+                      className="flex-1 p-2.5 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
+                    />
+                    <input
+                      type="time"
+                      value={consultationForm.preferredTime1}
+                      onChange={(e) =>
+                        setConsultationForm({ ...consultationForm, preferredTime1: e.target.value })
+                      }
+                      className="w-28 p-2.5 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Option 2 */}
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-[#2A2725]">희망 2순위 (선택)</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="date"
+                      value={consultationForm.preferredDate2}
+                      onChange={(e) =>
+                        setConsultationForm({ ...consultationForm, preferredDate2: e.target.value })
+                      }
+                      className="flex-1 p-2.5 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
+                    />
+                    <input
+                      type="time"
+                      value={consultationForm.preferredTime2}
+                      onChange={(e) =>
+                        setConsultationForm({ ...consultationForm, preferredTime2: e.target.value })
+                      }
+                      className="w-28 p-2.5 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Paid Consultation Checkbox */}
+                <label className="flex items-start gap-3 p-3 bg-[rgba(191,167,255,0.1)] rounded-xl border border-[rgba(191,167,255,0.3)]">
+                  <input
+                    type="checkbox"
+                    checked={consultationForm.isPaidOk}
+                    onChange={(e) =>
+                      setConsultationForm({ ...consultationForm, isPaidOk: e.target.checked })
+                    }
+                    className="mt-0.5 w-4 h-4 accent-[#BFA7FF]"
+                  />
+                  <div>
+                    <div className="text-sm font-medium text-[#2A2725]">유료여도 희망합니다</div>
+                    <div className="text-xs text-[#6B6662] mt-0.5">
+                      체크하시면 유료 상담 우선 배정됩니다
+                    </div>
+                  </div>
+                </label>
+
+                {/* Submit Button */}
+                <button
+                  onClick={submitConsultation}
+                  disabled={submittingConsultation}
+                  className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${
+                    submittingConsultation
+                      ? 'bg-[#E6E0DA] text-[#6B6662]'
+                      : 'bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]'
+                  }`}
+                >
+                  {submittingConsultation ? '접수 중...' : '상담 요청 접수하기'}
+                </button>
+
+                {/* Link to history */}
+                <button
+                  onClick={() => router.push('/consultation-history')}
+                  className="text-sm text-[#6B6662] underline"
+                >
+                  접수 내역 확인하기 →
+                </button>
+              </div>
+            )}
+          </section>
+        </main>
+      </div>
     </div>
   );
 }

@@ -1,10 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearTokens, fetchWithAuth, getAccessToken } from '../utils/auth';
+import { clearTokens, fetchWithAuth, getAccessToken, getIdTokenPayload } from '../utils/auth';
 
 const buildMonthLabel = () => `${new Date().getMonth() + 1}월`;
+
+const checkIsPremium = () => {
+  const tokenPayload = getIdTokenPayload();
+  if (!tokenPayload) return false;
+  const cognitoGroups = tokenPayload['cognito:groups'] || [];
+  return cognitoGroups.includes('premium');
+};
 
 export default function Header({
   title = 'Sayme · Spirit Lab',
@@ -26,12 +33,31 @@ export default function Header({
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(showAuthButtons);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const menuRef = useRef(null);
 
   useEffect(() => {
     if (showAuthButtons) {
       checkLoginStatus();
     }
-  }, [showAuthButtons]);
+    if (showMenuButton) {
+      setIsPremium(checkIsPremium());
+    }
+  }, [showAuthButtons, showMenuButton]);
+
+  // 메뉴 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [menuOpen]);
 
   const checkLoginStatus = async () => {
     const token = getAccessToken();
@@ -80,8 +106,26 @@ export default function Header({
       onMenuClick();
       return;
     }
-    router.push('/me');
+    setMenuOpen(!menuOpen);
   };
+
+  const premiumMenuItems = [
+    { label: '스피릿랩', path: '/premium-home' },
+    { label: '이번 달 질문', path: '/quest' },
+    { label: '나의 이벤트', path: '/tickets' },
+    { label: '우주의 흐름', path: '/premium-fortune' },
+    { label: '나의 정보', path: '/me' },
+  ];
+
+  const trialMenuItems = [
+    { label: '스피릿랩(체험)', path: '/trial-home' },
+    { label: '이번달 질문', path: null, disabled: true },
+    { label: '나의 이벤트', path: null, disabled: true },
+    { label: '우주의 흐름', path: '/fortune' },
+    { label: '나의 정보', path: '/me' },
+  ];
+
+  const menuItems = isPremium ? premiumMenuItems : trialMenuItems;
 
   return (
     <header
@@ -106,14 +150,42 @@ export default function Header({
           )}
 
           {showMenuButton && (
-            <button
-              type="button"
-              onClick={handleMenuClick}
-              className="w-[34px] h-[34px] rounded-[10px] border border-[#E6E0DA] bg-white/65 grid place-items-center cursor-pointer"
-              aria-label={menuAriaLabel}
-            >
-              ☰
-            </button>
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={handleMenuClick}
+                className="w-[34px] h-[34px] rounded-[10px] border border-[#E6E0DA] bg-white/65 grid place-items-center cursor-pointer"
+                aria-label={menuAriaLabel}
+              >
+                {menuOpen ? '✕' : '☰'}
+              </button>
+
+              {menuOpen && (
+                <div className="absolute right-0 top-[42px] w-[200px] bg-white/95 backdrop-blur-md border border-[#E6E0DA] rounded-[14px] shadow-[0_10px_30px_rgba(0,0,0,0.12)] overflow-hidden">
+                  {menuItems.map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        if (!item.disabled && item.path) {
+                          router.push(item.path);
+                          setMenuOpen(false);
+                        }
+                      }}
+                      disabled={item.disabled}
+                      className={`w-full text-left px-4 py-3 text-sm border-0 transition-colors ${
+                        idx < menuItems.length - 1 ? 'border-b border-[#E6E0DA]' : ''
+                      } ${
+                        item.disabled
+                          ? 'text-[#C5BFB9] bg-transparent cursor-default'
+                          : 'text-[#2A2725] bg-transparent hover:bg-[rgba(191,167,255,0.08)] cursor-pointer'
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {showAuthButtons && (
