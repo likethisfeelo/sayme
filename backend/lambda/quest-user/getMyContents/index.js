@@ -126,6 +126,7 @@ exports.handler = async (event) => {
         sourceContentId: assignment.sourceContentId,
         orderIndex: assignment.orderIndex,
         isCustomized: assignment.isCustomized,
+        assignedAt: assignment.assignedAt || assignment.createdAt,
         content: finalContent,
         progress: {
           status: userResponse?.status || 'not_started',
