@@ -14,6 +14,14 @@ const STATUS_CONFIG = {
   cancelled: { label: '취소됨', color: 'text-[#999]', bg: 'bg-[#f5f5f5]' },
 };
 
+const TICKET_NAMES = {
+  tarot: '🎴 타로',
+  fortune: '🔮 사주체크',
+  universe: '🌌 우주흐름체크',
+  consultation: '💬 1:1 추가 상담',
+  urgent: '🚨 급해서 일단 신청',
+};
+
 export default function AdminConsultationsPage() {
   const router = useRouter();
   const [requests, setRequests] = useState([]);
@@ -111,16 +119,40 @@ export default function AdminConsultationsPage() {
                 return (
                   <div
                     key={req.requestId}
-                    className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4"
+                    className={`bg-white/70 backdrop-blur-sm border shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4 ${
+                      req.isUrgent ? 'border-[#FF8A65]' : 'border-[#E6E0DA]'
+                    }`}
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <span
-                        className={`text-xs px-2.5 py-1 rounded-full ${statusConfig.bg} ${statusConfig.color}`}
-                      >
-                        {statusConfig.label}
-                      </span>
-                      <div className="flex gap-2">
-                        {req.isPaidOk && (
+                      <div className="flex gap-1.5 flex-wrap">
+                        <span
+                          className={`text-xs px-2.5 py-1 rounded-full ${statusConfig.bg} ${statusConfig.color}`}
+                        >
+                          {statusConfig.label}
+                        </span>
+                        {req.isUrgent && (
+                          <span className="text-xs px-2.5 py-1 rounded-full bg-[rgba(255,138,101,0.15)] text-[#FF8A65]">
+                            🚨 긴급
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {req.ticketType && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-[rgba(191,167,255,0.15)] text-[#7B6CB5]">
+                            {TICKET_NAMES[req.ticketType] || req.ticketType}
+                          </span>
+                        )}
+                        {req.isUrgent && req.urgentPaidOk && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-[rgba(255,138,101,0.15)] text-[#FF8A65]">
+                            유료 동의
+                          </span>
+                        )}
+                        {req.isUrgent && req.urgentPaidOk === false && (
+                          <span className="text-xs px-2 py-1 rounded-full bg-[#F5F1ED] text-[#9B9590]">
+                            유료 미동의
+                          </span>
+                        )}
+                        {!req.isUrgent && req.isPaidOk && (
                           <span className="text-xs px-2 py-1 rounded-full bg-[rgba(255,193,217,0.3)] text-[#e57399]">
                             유료 희망
                           </span>
@@ -132,6 +164,17 @@ export default function AdminConsultationsPage() {
                     <div className="text-xs text-[#6B6662] mb-2 font-mono bg-[#F5F1ED] p-2 rounded-lg overflow-hidden text-ellipsis">
                       {req.userId}
                     </div>
+
+                    {/* Ticket consumed status */}
+                    {req.ticketType && req.ticketType !== 'urgent' && (
+                      <div className={`text-xs mb-2 px-2 py-1 rounded-lg inline-block ${
+                        req.ticketConsumed
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-yellow-50 text-yellow-700'
+                      }`}>
+                        {req.ticketConsumed ? '티켓 소진 완료' : '티켓 소진 대기'}
+                      </div>
+                    )}
 
                     <div className="flex flex-col gap-1.5 text-sm">
                       <div className="flex gap-2">
