@@ -19,6 +19,32 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = 'sayme-consultation-requests';
 
+/**
+ * Authorization 헤더 또는 Cognito authorizer에서 JWT 파싱
+ */
+function extractTokenPayload(event) {
+  // 1) Cognito authorizer claims
+  const claims = event.requestContext?.authorizer?.claims;
+  if (claims?.sub) return claims;
+
+  // 2) Authorization 헤더에서 JWT 직접 파싱
+  const authHeader =
+    event.headers?.Authorization ||
+    event.headers?.authorization ||
+    '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (token) {
+    try {
+      return JSON.parse(
+        Buffer.from(token.split('.')[1], 'base64').toString('utf-8')
+      );
+    } catch (e) {
+      console.error('Failed to parse JWT:', e.message);
+    }
+  }
+  return null;
+}
+
 exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
@@ -33,8 +59,11 @@ exports.handler = async (event) => {
 
   try {
     // Check if user is admin
-    const groups = event.requestContext?.authorizer?.claims?.['cognito:groups'];
-    const isAdmin = groups?.includes('Admins') || groups === 'Admins';
+    const tokenPayload = extractTokenPayload(event);
+    const groups = tokenPayload?.['cognito:groups'];
+    const isAdmin = Array.isArray(groups)
+      ? groups.includes('Admins')
+      : groups === 'Admins';
 
     if (!isAdmin) {
       return {

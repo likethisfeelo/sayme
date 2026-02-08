@@ -17,6 +17,31 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = 'sayme-consultation-requests';
 
+/**
+ * Authorization 헤더 또는 Cognito authorizer에서 userId(sub) 추출
+ */
+function extractUserId(event) {
+  const sub = event.requestContext?.authorizer?.claims?.sub;
+  if (sub) return sub;
+
+  const authHeader =
+    event.headers?.Authorization ||
+    event.headers?.authorization ||
+    '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (token) {
+    try {
+      const payload = JSON.parse(
+        Buffer.from(token.split('.')[1], 'base64').toString('utf-8')
+      );
+      if (payload.sub) return payload.sub;
+    } catch (e) {
+      console.error('Failed to parse JWT:', e.message);
+    }
+  }
+  return null;
+}
+
 exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
@@ -30,7 +55,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const userId = event.requestContext?.authorizer?.claims?.sub;
+    const userId = extractUserId(event);
     if (!userId) {
       return {
         statusCode: 401,
