@@ -20,6 +20,7 @@ export default function TicketsPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   // Consultation form
   const [preferredDate1, setPreferredDate1] = useState('');
@@ -87,6 +88,7 @@ export default function TicketsPage() {
     if (!canSubmit) return;
 
     setSubmitting(true);
+    setSubmitError('');
     try {
       const idToken = localStorage.getItem('idToken');
       const response = await fetch(`${API_BASE}/consultation`, {
@@ -121,6 +123,7 @@ export default function TicketsPage() {
           );
         }
         setSubmitSuccess(true);
+        setSubmitError('');
         // Reset form
         setPreferredDate1('');
         setPreferredTime1('');
@@ -128,9 +131,12 @@ export default function TicketsPage() {
         setPreferredTime2('');
         setSelectedTicketType(null);
         setUrgentPaidOk(null);
+      } else {
+        setSubmitError(data.message || '신청에 실패했습니다. 다시 시도해주세요.');
       }
     } catch (error) {
       console.error('Failed to submit consultation:', error);
+      setSubmitError(`신청 중 오류가 발생했습니다: ${error.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -228,12 +234,19 @@ export default function TicketsPage() {
             </div>
 
             <div className="p-4 flex flex-col gap-4">
+              {/* Error Message */}
+              {submitError && (
+                <div className="p-3 rounded-xl bg-red-100 text-red-800 text-sm">
+                  {submitError}
+                </div>
+              )}
+
               {/* Success Message */}
               {submitSuccess && (
                 <div className="p-3 rounded-xl bg-green-100 text-green-800 text-sm">
                   상담 신청이 완료되었습니다! 관리자 확인 후 확정됩니다.
                   <button
-                    onClick={() => setSubmitSuccess(false)}
+                    onClick={() => { setSubmitSuccess(false); setSubmitError(''); }}
                     className="block mt-2 text-xs underline bg-transparent border-0 cursor-pointer text-green-700 p-0"
                   >
                     새 상담 신청하기
