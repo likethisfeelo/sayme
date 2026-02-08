@@ -3,7 +3,7 @@
  *
  * 기능: 사용자가 1:1 상담을 요청
  * 메서드: POST /consultation
- * 인증: Cognito Authorizer (일반 사용자)
+ * 인증: Cognito Authorizer 또는 Authorization 헤더에서 JWT 파싱
  * 테이블: sayme-consultation-requests
  *
  * 요청 Body:
@@ -29,6 +29,34 @@ const docClient = DynamoDBDocumentClient.from(client);
 
 const TABLE_NAME = 'sayme-consultation-requests';
 
+/**
+ * Authorization 헤더 또는 Cognito authorizer에서 userId(sub) 추출
+ */
+function extractUserId(event) {
+  // 1) Cognito authorizer claims (proxy integration)
+  const sub = event.requestContext?.authorizer?.claims?.sub;
+  if (sub) return sub;
+
+  // 2) Authorization 헤더에서 JWT 직접 파싱 (non-proxy 또는 authorizer 미설정 시)
+  const authHeader =
+    event.headers?.Authorization ||
+    event.headers?.authorization ||
+    '';
+  const token = authHeader.replace(/^Bearer\s+/i, '');
+  if (token) {
+    try {
+      const payload = JSON.parse(
+        Buffer.from(token.split('.')[1], 'base64').toString('utf-8')
+      );
+      if (payload.sub) return payload.sub;
+    } catch (e) {
+      console.error('Failed to parse JWT:', e.message);
+    }
+  }
+
+  return null;
+}
+
 exports.handler = async (event) => {
   const headers = {
     'Content-Type': 'application/json; charset=utf-8',
@@ -42,7 +70,7 @@ exports.handler = async (event) => {
   }
 
   try {
-    const userId = event.requestContext?.authorizer?.claims?.sub;
+    const userId = extractUserId(event);
     if (!userId) {
       return {
         statusCode: 401,
@@ -104,8 +132,8 @@ exports.handler = async (event) => {
         urgentPaidOk: isUrgent ? Boolean(urgentPaidOk) : null,
         isPaidOk: Boolean(isPaidOk),
         memo: memo || '',
-        ticketConsumed: false, // 관리자 확정 시 true로 변경
-        status: 'pending', // pending, confirmed, completed, cancelled
+        ticketConsumed: false,
+        status: 'pending',
         createdAt: now,
         updatedAt: now,
       },

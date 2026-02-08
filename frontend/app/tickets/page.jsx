@@ -109,7 +109,16 @@ export default function TicketsPage() {
         }),
       });
 
-      const data = await response.json();
+      const raw = await response.json();
+
+      // API Gateway non-proxy integration인 경우 Lambda 응답이 감싸져 옴
+      // { statusCode: 200, headers: {...}, body: "{...}" }
+      let data;
+      if (raw.body && typeof raw.body === 'string') {
+        try { data = JSON.parse(raw.body); } catch { data = raw; }
+      } else {
+        data = raw;
+      }
 
       if (data.success) {
         // Visually consume the ticket
