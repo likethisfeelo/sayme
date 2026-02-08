@@ -87,10 +87,18 @@ export default function AdminConsultationsPage() {
         setRequests((prev) =>
           prev.map((req) =>
             req.requestId === requestId
-              ? { ...req, status: newStatus, updatedAt: new Date().toISOString() }
+              ? {
+                  ...req,
+                  status: newStatus,
+                  updatedAt: new Date().toISOString(),
+                  ticketConsumed: data.request?.ticketConsumed ?? req.ticketConsumed,
+                }
               : req
           )
         );
+        if (data.message) {
+          alert(data.message);
+        }
       } else {
         alert(data.message || '상태 변경에 실패했습니다');
       }
