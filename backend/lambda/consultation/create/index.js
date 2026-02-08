@@ -9,12 +9,16 @@
  * 요청 Body:
  *   - preferredDate1: 1순위 희망 날짜 (필수)
  *   - preferredTime1: 1순위 희망 시간 (필수)
- *   - preferredDate2: 2순위 희망 날짜 (선택)
- *   - preferredTime2: 2순위 희망 시간 (선택)
+ *   - preferredDate2: 2순위 희망 날짜 (필수)
+ *   - preferredTime2: 2순위 희망 시간 (필수)
+ *   - ticketType: 사용 티켓 종류 (필수, 'urgent'=긴급신청)
+ *   - isUrgent: 긴급 신청 여부
+ *   - urgentPaidOk: 긴급 신청 시 유료 동의 여부 (true/false/null)
  *   - isPaidOk: 유료 상담 동의 여부
  *   - memo: 추가 메모
  *
  * 상태: pending → confirmed → completed | cancelled
+ * 참고: 티켓 실소진은 관리자가 상담 확정 시 처리
  */
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
 const { DynamoDBDocumentClient, PutCommand } = require('@aws-sdk/lib-dynamodb');
@@ -53,18 +57,32 @@ exports.handler = async (event) => {
       preferredTime1,
       preferredDate2,
       preferredTime2,
+      ticketType,
+      isUrgent,
+      urgentPaidOk,
       isPaidOk,
       memo
     } = body;
 
     // Validation
-    if (!preferredDate1 || !preferredTime1) {
+    if (!preferredDate1 || !preferredTime1 || !preferredDate2 || !preferredTime2) {
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({
           success: false,
-          message: 'At least one preferred date and time is required'
+          message: '희망 날짜와 시간 2개를 모두 입력해주세요'
+        }),
+      };
+    }
+
+    if (!ticketType) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          message: '사용할 티켓을 선택해주세요'
         }),
       };
     }
@@ -79,10 +97,14 @@ exports.handler = async (event) => {
         userId,
         preferredDate1,
         preferredTime1,
-        preferredDate2: preferredDate2 || null,
-        preferredTime2: preferredTime2 || null,
+        preferredDate2,
+        preferredTime2,
+        ticketType: ticketType || null,
+        isUrgent: Boolean(isUrgent),
+        urgentPaidOk: isUrgent ? Boolean(urgentPaidOk) : null,
         isPaidOk: Boolean(isPaidOk),
         memo: memo || '',
+        ticketConsumed: false, // 관리자 확정 시 true로 변경
         status: 'pending', // pending, confirmed, completed, cancelled
         createdAt: now,
         updatedAt: now,
@@ -103,6 +125,9 @@ exports.handler = async (event) => {
           preferredTime1,
           preferredDate2,
           preferredTime2,
+          ticketType,
+          isUrgent: Boolean(isUrgent),
+          urgentPaidOk: isUrgent ? Boolean(urgentPaidOk) : null,
           isPaidOk: Boolean(isPaidOk),
           status: 'pending',
           createdAt: now,
