@@ -138,15 +138,6 @@ export default function QuestPage() {
         subtitle={`Quest · ${monthLabel} 도전 과제`}
         showMenuButton
         zIndexClass="z-50"
-        leadingAction={
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="text-[#2A2725] hover:text-[#BFA7FF] transition-colors text-sm"
-          >
-            ← 뒤로
-          </button>
-        }
       />
 
       {/* Main Content */}

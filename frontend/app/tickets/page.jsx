@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '../components/Header';
 
 const API_BASE = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 
@@ -207,24 +208,24 @@ export default function TicketsPage() {
   const consultationTicket = tickets.find(t => t.ticketType === 'consultation');
 
   return (
-    <div className="min-h-screen bg-[#F5F1ED] flex justify-center">
-      <div className="w-full max-w-[430px] relative">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-[rgba(245,241,237,0.85)] backdrop-blur-[14px] border-b border-[#E6E0DA]">
-          <div className="flex items-center px-4 py-3.5">
-            <button
-              onClick={() => router.push('/premium-home')}
-              className="text-sm text-[#2A2725] bg-transparent border-0 cursor-pointer p-0 mr-3"
-            >
-              ← 돌아가기
-            </button>
-            <h1 className="text-base font-[750] tracking-tight text-[#2A2725] m-0">
-              나의 티켓
-            </h1>
-          </div>
-        </header>
+    <div
+      className="min-h-screen"
+      style={{
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
+        background:
+          'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
+        color: '#2A2725',
+      }}
+    >
+      <div className="max-w-[430px] mx-auto min-h-screen flex flex-col">
+        <Header
+          subtitle="나의 이벤트"
+          showMenuButton
+          zIndexClass="z-50"
+          maxWidthClass="max-w-[430px]"
+        />
 
-        <main className="px-4 pt-5 pb-8 flex flex-col gap-4">
+        <main className="px-4 pt-5 pb-[86px] flex flex-col gap-4">
           {/* ===== Event Tickets: 보유 현황 ===== */}
           <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
             <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
@@ -549,6 +550,32 @@ export default function TicketsPage() {
             <p className="m-0 mt-1">* 상담 신청 후 관리자 확인을 거쳐 확정됩니다.</p>
           </div>
         </main>
+
+        {/* Bottom Navigation */}
+        <nav className="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[430px] bg-[rgba(245,241,237,0.78)] backdrop-blur-[14px] border-t border-[rgba(230,224,218,0.9)] px-2.5 py-2.5 pb-3 z-20">
+          <div className="grid grid-cols-5 gap-1.5">
+            {[
+              { icon: '2026', label: '연간', path: '/2026' },
+              { icon: '🐇', label: '이번달', path: '/quest' },
+              { icon: '●', label: '홈', path: '/premium-home' },
+              { icon: '✦', label: '우주', path: '/premium-fortune' },
+              { icon: '☺', label: '나', path: '/me' },
+            ].map((item) => (
+              <button
+                key={item.path}
+                onClick={() => router.push(item.path)}
+                className="flex flex-col items-center gap-1.5 px-1.5 py-2 rounded-[14px] border border-transparent"
+              >
+                <div className="w-[34px] h-7 rounded-xl grid place-items-center text-sm bg-white/55 border border-[rgba(230,224,218,0.9)]">
+                  {item.icon}
+                </div>
+                <div className="text-[11px] tracking-tight text-[rgba(42,39,37,0.70)]">
+                  {item.label}
+                </div>
+              </button>
+            ))}
+          </div>
+        </nav>
       </div>
     </div>
   );
