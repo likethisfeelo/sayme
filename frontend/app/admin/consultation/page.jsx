@@ -224,20 +224,17 @@ export default function AdminConsultationsPage() {
 
                     {/* User Info */}
                     <div className="bg-[#F5F1ED] p-2 rounded-lg mb-2">
-                      {(req.userName || req.userNickname) ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium text-[#2A2725]">
-                            {req.userName || req.userNickname}
-                          </span>
+                      {(req.userName || req.userNickname) && (
+                        <div className="text-sm font-medium text-[#2A2725] mb-1">
+                          {req.userName || req.userNickname}
                           {req.userEmail && (
-                            <span className="text-xs text-[#9B9590]">{req.userEmail}</span>
+                            <span className="text-xs text-[#9B9590] ml-2">{req.userEmail}</span>
                           )}
                         </div>
-                      ) : (
-                        <div className="text-xs text-[#6B6662] font-mono overflow-hidden text-ellipsis">
-                          {req.userId}
-                        </div>
                       )}
+                      <div className="text-xs text-[#6B6662] font-mono overflow-hidden text-ellipsis">
+                        {req.userId}
+                      </div>
                     </div>
 
                     {/* Ticket consumed status */}
