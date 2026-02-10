@@ -22,8 +22,8 @@ const { DynamoDBDocumentClient, UpdateCommand, GetCommand } = require('@aws-sdk/
 const client = new DynamoDBClient({ region: 'ap-northeast-2' });
 const docClient = DynamoDBDocumentClient.from(client);
 
-const TABLE_NAME = 'sayme-consultation-requests';
-const TICKETS_TABLE = 'sayme-user-tickets';
+const TABLE_NAME = process.env.DYNAMODB_TABLE || 'sayme-consultation-requests';
+const TICKETS_TABLE = process.env.TICKETS_TABLE || 'sayme-user-tickets';
 
 const VALID_STATUSES = ['pending', 'confirmed', 'completed', 'cancelled'];
 
