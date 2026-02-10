@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getAccessToken, fetchWithAuth, clearTokens } from '../../utils/auth';
 
 // 공통 헤더
 import Header from '../../components/Header';
@@ -45,23 +46,13 @@ export default function Review2025() {
     { component: CompletionScreen, name: 'completion' }
   ];
 
-  // 쿠키에서 토큰 가져오기
-  const getCookie = (name) => {
-    if (typeof window === 'undefined') return null;
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-    return null;
-  };
-
   // 로그인 체크 및 userId 가져오기
   useEffect(() => {
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
-    const token = getCookie('accessToken') || 
-                  (typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null);
+    const token = getAccessToken();
 
     console.log('🔑 토큰 확인:', token ? '있음' : '없음');
 
@@ -76,13 +67,7 @@ export default function Review2025() {
 
     try {
       console.log('📡 /auth/me API 호출 중...');
-      const response = await fetch('https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/auth/me', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetchWithAuth('https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/auth/me');
 
       console.log('📡 응답 상태:', response.status);
       const data = await response.json();
@@ -93,6 +78,7 @@ export default function Review2025() {
         console.log('✅ 인증 성공! userId:', data.user.userId);
       } else {
         console.error('❌ 인증 실패:', data);
+        clearTokens();
         router.push('/login');
       }
     } catch (err) {
@@ -152,6 +138,7 @@ export default function Review2025() {
       });
       
       const payload = {
+        userId,
         sessionId: currentSessionId,
         answers: cleanAnswers,
         currentStep,
@@ -227,6 +214,7 @@ export default function Review2025() {
       console.log('🧹 정제된 selectedWeekdays:', cleanAnswers.selectedWeekdays);
       
       const payload = {
+        userId,
         sessionId: sessionId || Date.now().toString(),
         answers: cleanAnswers,
         selectedWeekdays: cleanAnswers.selectedWeekdays || []
