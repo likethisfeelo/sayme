@@ -120,7 +120,7 @@ exports.handler = async (event) => {
     const groups = tokenPayload?.['cognito:groups'];
     const isAdmin = Array.isArray(groups)
       ? groups.includes('Admins')
-      : groups === 'Admins';
+      : typeof groups === 'string' && groups.includes('Admins');
 
     if (!isAdmin) {
       return {
