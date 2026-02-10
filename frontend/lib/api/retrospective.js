@@ -1,15 +1,18 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 
-export async function saveRetrospective(userId, answers) {
+export async function saveRetrospective({ userId, answers, token, currentStep, status = 'in_progress' }) {
   try {
     const response = await fetch(`${API_URL}/retrospective/save`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
         userId,
-        answers
+        answers,
+        currentStep,
+        status,
       })
     });
 
@@ -24,7 +27,7 @@ export async function saveRetrospective(userId, answers) {
   }
 }
 
-export async function getRetrospective(userId) {
+export async function getRetrospective(userId, token) {
   try {
     const response = await fetch(
       `${API_URL}/retrospective/current?userId=${userId}`,
@@ -32,6 +35,7 @@ export async function getRetrospective(userId) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         }
       }
     );
