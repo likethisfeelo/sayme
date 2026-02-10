@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '../components/Header';
 
 const API_BASE = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 
@@ -14,9 +15,25 @@ const TIME_SLOTS = [
   '20:00', '20:30', '21:00',
 ];
 
+const STATUS_CONFIG = {
+  pending: { label: '대기 중', color: 'text-[#6B6662]', bg: 'bg-[#E6E0DA]' },
+  confirmed: { label: '확정', color: 'text-[#2E8B57]', bg: 'bg-[rgba(46,139,87,0.15)]' },
+  completed: { label: '완료', color: 'text-[#BFA7FF]', bg: 'bg-[rgba(191,167,255,0.15)]' },
+  cancelled: { label: '취소됨', color: 'text-[#999]', bg: 'bg-[#f5f5f5]' },
+};
+
+const TICKET_NAMES = {
+  tarot: '타로',
+  fortune: '사주체크',
+  universe: '우주흐름체크',
+  consultation: '1:1 추가 상담',
+  urgent: '긴급 신청',
+};
+
 export default function TicketsPage() {
   const router = useRouter();
   const [tickets, setTickets] = useState([]);
+  const [consultationRequests, setConsultationRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -33,8 +50,22 @@ export default function TicketsPage() {
   const [showUrgentConfirm, setShowUrgentConfirm] = useState(false);
   const [urgentPaidOk, setUrgentPaidOk] = useState(null);
 
+  const fetchConsultationRequests = async (idToken) => {
+    try {
+      const response = await fetch(`${API_BASE}/consultation/list`, {
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setConsultationRequests(data.requests || []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch consultation requests:', error);
+    }
+  };
+
   useEffect(() => {
-    const fetchTickets = async () => {
+    const fetchData = async () => {
       try {
         const idToken = localStorage.getItem('idToken');
         if (!idToken) {
@@ -42,21 +73,23 @@ export default function TicketsPage() {
           return;
         }
 
-        const response = await fetch(`${API_BASE}/ticket`, {
+        const ticketRes = await fetch(`${API_BASE}/ticket`, {
           headers: { Authorization: `Bearer ${idToken}` },
         });
-        const data = await response.json();
-        if (data.success) {
-          setTickets(data.tickets || []);
+        const ticketData = await ticketRes.json();
+        if (ticketData.success) {
+          setTickets(ticketData.tickets || []);
         }
+
+        await fetchConsultationRequests(idToken);
       } catch (error) {
-        console.error('Failed to fetch tickets:', error);
+        console.error('Failed to fetch data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTickets();
+    fetchData();
   }, [router]);
 
   const today = new Date().toISOString().split('T')[0];
@@ -124,6 +157,9 @@ export default function TicketsPage() {
         }
         setSubmitSuccess(true);
         setSubmitError('');
+        // Refresh consultation requests list
+        const idToken2 = localStorage.getItem('idToken');
+        if (idToken2) fetchConsultationRequests(idToken2);
         // Reset form
         setPreferredDate1('');
         setPreferredTime1('');
@@ -140,6 +176,14 @@ export default function TicketsPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('ko-KR', {
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   const getTicketIcon = (type) => {
@@ -164,24 +208,24 @@ export default function TicketsPage() {
   const consultationTicket = tickets.find(t => t.ticketType === 'consultation');
 
   return (
-    <div className="min-h-screen bg-[#F5F1ED] flex justify-center">
-      <div className="w-full max-w-[430px] relative">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-[rgba(245,241,237,0.85)] backdrop-blur-[14px] border-b border-[#E6E0DA]">
-          <div className="flex items-center px-4 py-3.5">
-            <button
-              onClick={() => router.push('/premium-home')}
-              className="text-sm text-[#2A2725] bg-transparent border-0 cursor-pointer p-0 mr-3"
-            >
-              ← 돌아가기
-            </button>
-            <h1 className="text-base font-[750] tracking-tight text-[#2A2725] m-0">
-              나의 티켓
-            </h1>
-          </div>
-        </header>
+    <div
+      className="min-h-screen"
+      style={{
+        fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
+        background:
+          'radial-gradient(1200px 800px at 50% -10%, rgba(191,167,255,.30), transparent 60%), radial-gradient(1200px 800px at 0% 40%, rgba(123,203,255,.22), transparent 60%), radial-gradient(1200px 800px at 100% 55%, rgba(255,193,217,.20), transparent 60%), #F5F1ED',
+        color: '#2A2725',
+      }}
+    >
+      <div className="max-w-[430px] mx-auto min-h-screen flex flex-col">
+        <Header
+          subtitle="나의 이벤트"
+          showMenuButton
+          zIndexClass="z-50"
+          maxWidthClass="max-w-[430px]"
+        />
 
-        <main className="px-4 pt-5 pb-8 flex flex-col gap-4">
+        <main className="px-4 pt-5 pb-[86px] flex flex-col gap-4">
           {/* ===== Event Tickets: 보유 현황 ===== */}
           <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
             <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
@@ -225,6 +269,76 @@ export default function TicketsPage() {
               )}
             </div>
           </section>
+
+          {/* ===== 상담 신청 내역 ===== */}
+          {consultationRequests.length > 0 && (
+            <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
+                <div className="text-sm font-[750] tracking-tight text-[#2A2725]">상담 신청 내역</div>
+                <div className="text-xs text-[#6B6662] mt-0.5">접수한 상담 요청의 현재 상태</div>
+              </div>
+
+              <div className="p-4 flex flex-col gap-2.5">
+                {consultationRequests.map((req) => {
+                  const statusConfig = STATUS_CONFIG[req.status] || STATUS_CONFIG.pending;
+                  return (
+                    <div key={req.requestId}>
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          req.status === 'confirmed'
+                            ? 'border-[rgba(46,139,87,0.3)] bg-[rgba(46,139,87,0.04)]'
+                            : req.status === 'cancelled'
+                              ? 'border-[#E6E0DA] bg-[#F5F1ED]/50'
+                              : 'border-[#E6E0DA] bg-white/60'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center mb-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig.bg} ${statusConfig.color}`}>
+                            {statusConfig.label}
+                          </span>
+                          <span className="text-[10px] text-[#9B9590]">
+                            {formatDate(req.createdAt)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-[#2A2725]">
+                          <span className="text-[#6B6662]">1순위</span>
+                          <span className="font-medium">{formatDate(req.preferredDate1)} {req.preferredTime1}</span>
+                        </div>
+                        {req.preferredDate2 && (
+                          <div className="flex items-center gap-2 text-xs text-[#2A2725] mt-1">
+                            <span className="text-[#6B6662]">2순위</span>
+                            <span>{formatDate(req.preferredDate2)} {req.preferredTime2}</span>
+                          </div>
+                        )}
+                        <div className="mt-1.5 flex gap-1.5">
+                          {req.ticketType && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(191,167,255,0.12)] text-[#7B6CB5]">
+                              {TICKET_NAMES[req.ticketType] || req.ticketType}
+                            </span>
+                          )}
+                          {req.isUrgent && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(255,138,101,0.12)] text-[#FF8A65]">
+                              긴급
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {req.status === 'cancelled' && (
+                        <a
+                          href="http://pf.kakao.com/_xjwsxfb/chat"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 mt-1.5 w-full py-2.5 rounded-xl text-sm font-bold border border-[rgba(250,225,115,0.6)] bg-[rgba(250,225,115,0.25)] text-[#5C5340] no-underline transition-all active:scale-[0.98]"
+                        >
+                          바로 연락하기
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           {/* ===== 1:1 상담 신청 ===== */}
           <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
@@ -436,6 +550,32 @@ export default function TicketsPage() {
             <p className="m-0 mt-1">* 상담 신청 후 관리자 확인을 거쳐 확정됩니다.</p>
           </div>
         </main>
+
+        {/* Bottom Navigation */}
+        <nav className="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[430px] bg-[rgba(245,241,237,0.78)] backdrop-blur-[14px] border-t border-[rgba(230,224,218,0.9)] px-2.5 py-2.5 pb-3 z-20">
+          <div className="grid grid-cols-5 gap-1.5">
+            {[
+              { icon: '2026', label: '연간', path: '/2026' },
+              { icon: '🐇', label: '이번달', path: '/quest' },
+              { icon: '●', label: '홈', path: '/premium-home' },
+              { icon: '✦', label: '우주', path: '/premium-fortune' },
+              { icon: '☺', label: '나', path: '/me' },
+            ].map((item) => (
+              <button
+                key={item.path}
+                onClick={() => router.push(item.path)}
+                className="flex flex-col items-center gap-1.5 px-1.5 py-2 rounded-[14px] border border-transparent"
+              >
+                <div className="w-[34px] h-7 rounded-xl grid place-items-center text-sm bg-white/55 border border-[rgba(230,224,218,0.9)]">
+                  {item.icon}
+                </div>
+                <div className="text-[11px] tracking-tight text-[rgba(42,39,37,0.70)]">
+                  {item.label}
+                </div>
+              </button>
+            ))}
+          </div>
+        </nav>
       </div>
     </div>
   );

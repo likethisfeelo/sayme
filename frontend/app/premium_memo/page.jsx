@@ -1,4 +1,4 @@
-﻿﻿'use client';
+﻿﻿﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -10,18 +10,20 @@ const MAX_CONTENT_LENGTH = 1000;
 export default function PremiumMemoPage() {
   const router = useRouter();
   const [memoContent, setMemoContent] = useState('');
-  const [memos, setMemos] = useState([]);
+  const [monthlyMemos, setMonthlyMemos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [showConsultation, setShowConsultation] = useState(false);
-  const [consultationForm, setConsultationForm] = useState({
-    preferredDate1: '',
-    preferredTime1: '',
-    preferredDate2: '',
-    preferredTime2: '',
-    isPaidOk: false,
-  });
-  const [submittingConsultation, setSubmittingConsultation] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  const isCurrentMonth = (dateStr) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+  };
 
   useEffect(() => {
     const idToken = localStorage.getItem('idToken');
@@ -29,24 +31,47 @@ export default function PremiumMemoPage() {
       router.push('/login');
       return;
     }
-    fetchMemos();
+    fetchMonthlyMemos();
   }, [router]);
 
-  const fetchMemos = async () => {
+  const fetchMonthlyMemos = async () => {
     try {
       const idToken = localStorage.getItem('idToken');
-      const today = new Date().toISOString().split('T')[0];
-      const response = await fetch(`${API_BASE}/memo?date=${today}`, {
+      const response = await fetch(`${API_BASE}/memo`, {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
       if (data.success) {
-        setMemos(data.memos || []);
+        const filtered = (data.memos || []).filter((m) => isCurrentMonth(m.createdAt));
+        setMonthlyMemos(filtered);
       }
     } catch (error) {
-      console.error('Failed to fetch memos:', error);
+      console.error('Failed to fetch monthly memos:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const deleteMemo = async (memoId) => {
+    if (!confirm('이 메모를 삭제하시겠습니까?')) return;
+    setDeletingId(memoId);
+    try {
+      const idToken = localStorage.getItem('idToken');
+      const response = await fetch(`${API_BASE}/memo/${memoId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${idToken}` },
+      });
+      const data = await response.json();
+      if (data.success) {
+        setMonthlyMemos((prev) => prev.filter((m) => m.memoId !== memoId));
+      } else {
+        alert(data.message || '삭제에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('Failed to delete memo:', error);
+      alert('삭제에 실패했습니다');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -66,7 +91,7 @@ export default function PremiumMemoPage() {
       const data = await response.json();
       if (data.success) {
         setMemoContent('');
-        fetchMemos();
+        fetchMonthlyMemos();
       } else {
         alert(data.message || '저장에 실패했습니다');
       }
@@ -75,44 +100,6 @@ export default function PremiumMemoPage() {
       alert('저장에 실패했습니다');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const submitConsultation = async () => {
-    if (!consultationForm.preferredDate1 || !consultationForm.preferredTime1) {
-      alert('최소 1개의 희망 날짜와 시간을 선택해주세요');
-      return;
-    }
-    setSubmittingConsultation(true);
-    try {
-      const idToken = localStorage.getItem('idToken');
-      const response = await fetch(`${API_BASE}/consultation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify(consultationForm),
-      });
-      const data = await response.json();
-      if (data.success) {
-        alert('상담 요청이 접수되었습니다');
-        setShowConsultation(false);
-        setConsultationForm({
-          preferredDate1: '',
-          preferredTime1: '',
-          preferredDate2: '',
-          preferredTime2: '',
-          isPaidOk: false,
-        });
-      } else {
-        alert(data.message || '접수에 실패했습니다');
-      }
-    } catch (error) {
-      console.error('Failed to submit consultation:', error);
-      alert('접수에 실패했습니다');
-    } finally {
-      setSubmittingConsultation(false);
     }
   };
 
@@ -169,136 +156,52 @@ export default function PremiumMemoPage() {
             </div>
           </section>
 
-          {/* Today's Memos */}
-          {memos.length > 0 && (
-            <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4">
-              <div className="text-sm font-bold text-[#2A2725] mb-3">
-                오늘 작성한 메모 ({memos.length}개)
+          {/* Monthly Memos */}
+          <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+            <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">
+                {currentMonth + 1}월 작성한 메모 ({monthlyMemos.length}개)
               </div>
-              <div className="flex flex-col gap-2">
-                {memos.map((memo) => (
+              <div className="text-xs text-[#6B6662] mt-0.5">
+                {currentYear}년 {currentMonth + 1}월 1일 ~ {currentMonth + 1}월 {new Date(currentYear, currentMonth + 1, 0).getDate()}일
+              </div>
+            </div>
+
+            <div className="p-4 flex flex-col gap-2">
+              {monthlyMemos.length === 0 ? (
+                <div className="text-center py-6 text-sm text-[#6B6662]">
+                  이번 달 작성한 메모가 없습니다.
+                </div>
+              ) : (
+                monthlyMemos.map((memo) => (
                   <div
                     key={memo.memoId}
                     className="p-3 bg-white/60 rounded-xl border border-[rgba(230,224,218,0.9)]"
                   >
-                    <p className="text-sm text-[#2A2725] whitespace-pre-wrap">{memo.content}</p>
-                    <p className="text-xs text-[#6B6662] mt-2">
-                      {new Date(memo.createdAt).toLocaleTimeString('ko-KR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Consultation Request Button */}
-          <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4">
-            <button
-              onClick={() => setShowConsultation(!showConsultation)}
-              className="w-full py-3 rounded-xl text-sm font-bold bg-[rgba(42,39,37,0.92)] text-[rgba(245,241,237,0.98)] flex items-center justify-center gap-2"
-            >
-              💬 상담 요청하기
-              <span className={`transition-transform ${showConsultation ? 'rotate-180' : ''}`}>
-                ▼
-              </span>
-            </button>
-
-            {/* Consultation Form */}
-            {showConsultation && (
-              <div className="mt-4 pt-4 border-t border-[#E6E0DA] flex flex-col gap-4">
-                <div className="text-xs text-[#6B6662]">
-                  희망하는 상담 날짜와 시간을 선택해주세요
-                </div>
-
-                {/* Option 1 */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-[#2A2725]">희망 1순위</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      value={consultationForm.preferredDate1}
-                      onChange={(e) =>
-                        setConsultationForm({ ...consultationForm, preferredDate1: e.target.value })
-                      }
-                      className="flex-1 p-2.5 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
-                    />
-                    <input
-                      type="time"
-                      value={consultationForm.preferredTime1}
-                      onChange={(e) =>
-                        setConsultationForm({ ...consultationForm, preferredTime1: e.target.value })
-                      }
-                      className="w-28 p-2.5 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
-                    />
-                  </div>
-                </div>
-
-                {/* Option 2 */}
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-[#2A2725]">희망 2순위 (선택)</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="date"
-                      value={consultationForm.preferredDate2}
-                      onChange={(e) =>
-                        setConsultationForm({ ...consultationForm, preferredDate2: e.target.value })
-                      }
-                      className="flex-1 p-2.5 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
-                    />
-                    <input
-                      type="time"
-                      value={consultationForm.preferredTime2}
-                      onChange={(e) =>
-                        setConsultationForm({ ...consultationForm, preferredTime2: e.target.value })
-                      }
-                      className="w-28 p-2.5 rounded-xl border border-[#E6E0DA] bg-white/80 text-sm"
-                    />
-                  </div>
-                </div>
-
-                {/* Paid Consultation Checkbox */}
-                <label className="flex items-start gap-3 p-3 bg-[rgba(191,167,255,0.1)] rounded-xl border border-[rgba(191,167,255,0.3)]">
-                  <input
-                    type="checkbox"
-                    checked={consultationForm.isPaidOk}
-                    onChange={(e) =>
-                      setConsultationForm({ ...consultationForm, isPaidOk: e.target.checked })
-                    }
-                    className="mt-0.5 w-4 h-4 accent-[#BFA7FF]"
-                  />
-                  <div>
-                    <div className="text-sm font-medium text-[#2A2725]">유료여도 희망합니다</div>
-                    <div className="text-xs text-[#6B6662] mt-0.5">
-                      체크하시면 유료 상담 우선 배정됩니다
+                    <p className="text-sm text-[#2A2725] whitespace-pre-wrap m-0">{memo.content}</p>
+                    <div className="flex justify-between items-center mt-2">
+                      <span className="text-xs text-[#6B6662]">
+                        {new Date(memo.createdAt).toLocaleDateString('ko-KR', {
+                          month: 'short',
+                          day: 'numeric',
+                        })}{' '}
+                        {new Date(memo.createdAt).toLocaleTimeString('ko-KR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </span>
+                      <button
+                        onClick={() => deleteMemo(memo.memoId)}
+                        disabled={deletingId === memo.memoId}
+                        className="text-xs text-[#999] hover:text-red-500 bg-transparent border-0 cursor-pointer p-0 transition-colors"
+                      >
+                        {deletingId === memo.memoId ? '삭제 중...' : '삭제'}
+                      </button>
                     </div>
                   </div>
-                </label>
-
-                {/* Submit Button */}
-                <button
-                  onClick={submitConsultation}
-                  disabled={submittingConsultation}
-                  className={`w-full py-3 rounded-xl text-sm font-bold transition-all ${
-                    submittingConsultation
-                      ? 'bg-[#E6E0DA] text-[#6B6662]'
-                      : 'bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]'
-                  }`}
-                >
-                  {submittingConsultation ? '접수 중...' : '상담 요청 접수하기'}
-                </button>
-
-                {/* Link to history */}
-                <button
-                  onClick={() => router.push('/consultation-history')}
-                  className="text-sm text-[#6B6662] underline"
-                >
-                  접수 내역 확인하기 →
-                </button>
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </section>
         </main>
       </div>
