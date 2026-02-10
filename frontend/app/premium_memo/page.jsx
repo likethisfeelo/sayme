@@ -10,20 +10,10 @@ const MAX_CONTENT_LENGTH = 1000;
 export default function PremiumMemoPage() {
   const router = useRouter();
   const [memoContent, setMemoContent] = useState('');
-  const [memos, setMemos] = useState([]);
   const [monthlyMemos, setMonthlyMemos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
-  const [showConsultation, setShowConsultation] = useState(false);
-  const [consultationForm, setConsultationForm] = useState({
-    preferredDate1: '',
-    preferredTime1: '',
-    preferredDate2: '',
-    preferredTime2: '',
-    isPaidOk: false,
-  });
-  const [submittingConsultation, setSubmittingConsultation] = useState(false);
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -41,27 +31,8 @@ export default function PremiumMemoPage() {
       router.push('/login');
       return;
     }
-    fetchMemos();
     fetchMonthlyMemos();
   }, [router]);
-
-  const fetchMemos = async () => {
-    try {
-      const idToken = localStorage.getItem('idToken');
-      const today = new Date().toISOString().split('T')[0];
-      const response = await fetch(`${API_BASE}/memo?date=${today}`, {
-        headers: { Authorization: `Bearer ${idToken}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setMemos(data.memos || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch memos:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchMonthlyMemos = async () => {
     try {
@@ -76,6 +47,8 @@ export default function PremiumMemoPage() {
       }
     } catch (error) {
       console.error('Failed to fetch monthly memos:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -90,7 +63,6 @@ export default function PremiumMemoPage() {
       });
       const data = await response.json();
       if (data.success) {
-        setMemos((prev) => prev.filter((m) => m.memoId !== memoId));
         setMonthlyMemos((prev) => prev.filter((m) => m.memoId !== memoId));
       } else {
         alert(data.message || '삭제에 실패했습니다');
@@ -119,7 +91,6 @@ export default function PremiumMemoPage() {
       const data = await response.json();
       if (data.success) {
         setMemoContent('');
-        fetchMemos();
         fetchMonthlyMemos();
       } else {
         alert(data.message || '저장에 실패했습니다');
@@ -129,44 +100,6 @@ export default function PremiumMemoPage() {
       alert('저장에 실패했습니다');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const submitConsultation = async () => {
-    if (!consultationForm.preferredDate1 || !consultationForm.preferredTime1) {
-      alert('최소 1개의 희망 날짜와 시간을 선택해주세요');
-      return;
-    }
-    setSubmittingConsultation(true);
-    try {
-      const idToken = localStorage.getItem('idToken');
-      const response = await fetch(`${API_BASE}/consultation`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify(consultationForm),
-      });
-      const data = await response.json();
-      if (data.success) {
-        alert('상담 요청이 접수되었습니다');
-        setShowConsultation(false);
-        setConsultationForm({
-          preferredDate1: '',
-          preferredTime1: '',
-          preferredDate2: '',
-          preferredTime2: '',
-          isPaidOk: false,
-        });
-      } else {
-        alert(data.message || '접수에 실패했습니다');
-      }
-    } catch (error) {
-      console.error('Failed to submit consultation:', error);
-      alert('접수에 실패했습니다');
-    } finally {
-      setSubmittingConsultation(false);
     }
   };
 
