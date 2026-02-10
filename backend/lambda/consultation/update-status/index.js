@@ -128,7 +128,8 @@ exports.handler = async (event) => {
       };
     }
 
-    const requestId = event.pathParameters?.requestId;
+    const body = JSON.parse(event.body || '{}');
+    const requestId = event.pathParameters?.requestId || body.requestId;
     if (!requestId) {
       return {
         statusCode: 400,
@@ -137,7 +138,6 @@ exports.handler = async (event) => {
       };
     }
 
-    const body = JSON.parse(event.body || '{}');
     const { status: newStatus } = body;
 
     if (!newStatus || !VALID_STATUSES.includes(newStatus)) {

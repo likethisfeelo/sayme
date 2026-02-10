@@ -73,13 +73,13 @@ export default function AdminConsultationsPage() {
 
     try {
       const idToken = localStorage.getItem('idToken');
-      const response = await fetch(`${API_BASE}/consultation/admin/${requestId}/status`, {
+      const response = await fetch(`${API_BASE}/consultation/admin/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ requestId, status: newStatus }),
       });
 
       const data = await response.json();
