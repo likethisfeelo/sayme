@@ -281,46 +281,57 @@ export default function TicketsPage() {
                 {consultationRequests.map((req) => {
                   const statusConfig = STATUS_CONFIG[req.status] || STATUS_CONFIG.pending;
                   return (
-                    <div
-                      key={req.requestId}
-                      className={`p-3 rounded-xl border ${
-                        req.status === 'confirmed'
-                          ? 'border-[rgba(46,139,87,0.3)] bg-[rgba(46,139,87,0.04)]'
-                          : req.status === 'cancelled'
-                            ? 'border-[#E6E0DA] bg-[#F5F1ED]/50'
-                            : 'border-[#E6E0DA] bg-white/60'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center mb-2">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig.bg} ${statusConfig.color}`}>
-                          {statusConfig.label}
-                        </span>
-                        <span className="text-[10px] text-[#9B9590]">
-                          {formatDate(req.createdAt)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-[#2A2725]">
-                        <span className="text-[#6B6662]">1순위</span>
-                        <span className="font-medium">{formatDate(req.preferredDate1)} {req.preferredTime1}</span>
-                      </div>
-                      {req.preferredDate2 && (
-                        <div className="flex items-center gap-2 text-xs text-[#2A2725] mt-1">
-                          <span className="text-[#6B6662]">2순위</span>
-                          <span>{formatDate(req.preferredDate2)} {req.preferredTime2}</span>
+                    <div key={req.requestId}>
+                      <div
+                        className={`p-3 rounded-xl border ${
+                          req.status === 'confirmed'
+                            ? 'border-[rgba(46,139,87,0.3)] bg-[rgba(46,139,87,0.04)]'
+                            : req.status === 'cancelled'
+                              ? 'border-[#E6E0DA] bg-[#F5F1ED]/50'
+                              : 'border-[#E6E0DA] bg-white/60'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center mb-2">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig.bg} ${statusConfig.color}`}>
+                            {statusConfig.label}
+                          </span>
+                          <span className="text-[10px] text-[#9B9590]">
+                            {formatDate(req.createdAt)}
+                          </span>
                         </div>
-                      )}
-                      <div className="mt-1.5 flex gap-1.5">
-                        {req.ticketType && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(191,167,255,0.12)] text-[#7B6CB5]">
-                            {TICKET_NAMES[req.ticketType] || req.ticketType}
-                          </span>
+                        <div className="flex items-center gap-2 text-xs text-[#2A2725]">
+                          <span className="text-[#6B6662]">1순위</span>
+                          <span className="font-medium">{formatDate(req.preferredDate1)} {req.preferredTime1}</span>
+                        </div>
+                        {req.preferredDate2 && (
+                          <div className="flex items-center gap-2 text-xs text-[#2A2725] mt-1">
+                            <span className="text-[#6B6662]">2순위</span>
+                            <span>{formatDate(req.preferredDate2)} {req.preferredTime2}</span>
+                          </div>
                         )}
-                        {req.isUrgent && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(255,138,101,0.12)] text-[#FF8A65]">
-                            긴급
-                          </span>
-                        )}
+                        <div className="mt-1.5 flex gap-1.5">
+                          {req.ticketType && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(191,167,255,0.12)] text-[#7B6CB5]">
+                              {TICKET_NAMES[req.ticketType] || req.ticketType}
+                            </span>
+                          )}
+                          {req.isUrgent && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(255,138,101,0.12)] text-[#FF8A65]">
+                              긴급
+                            </span>
+                          )}
+                        </div>
                       </div>
+                      {req.status === 'cancelled' && (
+                        <a
+                          href="http://pf.kakao.com/_xjwsxfb/chat"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 mt-1.5 w-full py-2.5 rounded-xl text-sm font-bold border border-[rgba(250,225,115,0.6)] bg-[rgba(250,225,115,0.25)] text-[#5C5340] no-underline transition-all active:scale-[0.98]"
+                        >
+                          바로 연락하기
+                        </a>
+                      )}
                     </div>
                   );
                 })}
