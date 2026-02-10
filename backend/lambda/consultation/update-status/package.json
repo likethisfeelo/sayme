@@ -1,0 +1,10 @@
+{
+  "name": "sayme-consultation-update-status",
+  "version": "1.0.0",
+  "description": "관리자용 상담 요청 상태 변경 Lambda (티켓 소진 포함)",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}
