@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { questUserApi } from '@/lib/api/quest';
-import Header from '../components/Header';
+import Header from '../../components/Header';
 
 const mapQuestStatus = (status) => {
   if (status === 'completed') return 'completed';
