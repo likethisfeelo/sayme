@@ -1,15 +1,15 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 
-export async function saveRetrospective({ userId, answers, token, currentStep, status = 'in_progress' }) {
+export async function saveRetrospective({ sessionId, answers, token, currentStep, status = 'in_progress' }) {
   try {
     const response = await fetch(`${API_URL}/retrospective/save`, {
-      method: 'POST',
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
-        userId,
+        sessionId,
         answers,
         currentStep,
         status,
@@ -27,18 +27,15 @@ export async function saveRetrospective({ userId, answers, token, currentStep, s
   }
 }
 
-export async function getRetrospective(userId, token) {
+export async function getRetrospective(token) {
   try {
-    const response = await fetch(
-      `${API_URL}/retrospective/current?userId=${userId}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        }
+    const response = await fetch(`${API_URL}/retrospective/current`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       }
-    );
+    });
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);

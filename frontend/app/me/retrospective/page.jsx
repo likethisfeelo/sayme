@@ -20,7 +20,6 @@ export default function Retrospective2025Page() {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState(null);
   const [accessToken, setAccessToken] = useState(null);
 
   useEffect(() => {
@@ -39,10 +38,10 @@ export default function Retrospective2025Page() {
         );
         const data = await response.json();
 
-        if (response.ok && data.success) {
-          setUserId(data.user.userId);
-        } else if (response.status === 401) {
-          clearTokens();
+        if (!response.ok || !data.success) {
+          if (response.status === 401) {
+            clearTokens();
+          }
           router.push('/login');
           return;
         }
@@ -57,14 +56,14 @@ export default function Retrospective2025Page() {
   }, [router]);
 
   const persistAnswers = async (nextAnswers, nextStep) => {
-    if (!userId || !accessToken) {
+    if (!accessToken) {
       return;
     }
 
     const isCompleted = nextStep >= 8;
 
     await saveRetrospective({
-      userId,
+      sessionId: 'retrospective-2025',
       answers: nextAnswers,
       token: accessToken,
       currentStep: nextStep,
