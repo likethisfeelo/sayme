@@ -52,7 +52,7 @@ export default function TicketsPage() {
 
   const fetchConsultationRequests = async (idToken) => {
     try {
-      const response = await fetch(`${API_BASE}/consultation/list`, {
+      const response = await fetch(`${API_BASE}/consultation`, {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
@@ -191,6 +191,18 @@ export default function TicketsPage() {
       month: 'short',
       day: 'numeric',
     });
+  };
+
+  const getResultScheduleLabel = (req) => {
+    const hasConfirmedSchedule = (req.status === 'confirmed' || req.status === 'completed')
+      && req.confirmedDate
+      && req.confirmedTime;
+
+    if (hasConfirmedSchedule) {
+      return `${formatDate(req.confirmedDate)} ${req.confirmedTime}`;
+    }
+
+    return `${formatDate(req.preferredDate1)} ${req.preferredTime1}`;
   };
 
   if (loading) {
@@ -334,12 +346,12 @@ export default function TicketsPage() {
             <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
               <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
                 <div className="text-sm font-[750] tracking-tight text-[#2A2725]">상담 신청 결과 목록</div>
-                <div className="text-xs text-[#6B6662] mt-0.5">관리자 처리 결과(확정/취소)만 보여요</div>
+                <div className="text-xs text-[#6B6662] mt-0.5">관리자 처리 결과(확정/완료/취소)만 보여요</div>
               </div>
 
               <div className="p-4 flex flex-col gap-2.5">
                 {consultationRequests
-                  .filter((req) => req.status === 'confirmed' || req.status === 'cancelled')
+                  .filter((req) => req.status === 'confirmed' || req.status === 'completed' || req.status === 'cancelled')
                   .map((req) => {
                     const statusConfig = STATUS_CONFIG[req.status] || STATUS_CONFIG.pending;
                     return (
@@ -351,13 +363,16 @@ export default function TicketsPage() {
                           <span className="text-[10px] text-[#9B9590]">{formatDate(req.createdAt)}</span>
                         </div>
                         <div className="mt-2 text-xs text-[#2A2725]">
-                          {TICKET_NAMES[req.ticketType] || req.ticketType || '상담'} · {formatDate(req.preferredDate1)} {req.preferredTime1}
+                          {TICKET_NAMES[req.ticketType] || req.ticketType || '상담'} · {getResultScheduleLabel(req)}
                         </div>
+                        {(req.status === 'confirmed' || req.status === 'completed') && req.confirmedPriority && (
+                          <div className="mt-1 text-[10px] text-[#2E8B57]">관리자 선택: {req.confirmedPriority}순위 일정</div>
+                        )}
                       </div>
                     );
                   })}
 
-                {consultationRequests.filter((req) => req.status === 'confirmed' || req.status === 'cancelled').length === 0 && (
+                {consultationRequests.filter((req) => req.status === 'confirmed' || req.status === 'completed' || req.status === 'cancelled').length === 0 && (
                   <div className="text-center py-5 text-sm text-[#6B6662]">아직 처리된 상담 결과가 없습니다.</div>
                 )}
               </div>

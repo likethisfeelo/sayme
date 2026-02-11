@@ -30,7 +30,7 @@ export default function ConsultationHistoryPage() {
   const fetchRequests = async () => {
     try {
       const idToken = localStorage.getItem('idToken');
-      const response = await fetch(`${API_BASE}/consultation/list`, {
+      const response = await fetch(`${API_BASE}/consultation`, {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
