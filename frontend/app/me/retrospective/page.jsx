@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken, fetchWithAuth, clearTokens } from '../../utils/auth';
-import { saveRetrospective } from '../../../lib/api/retrospective';
+import { saveRetrospective, completeRetrospective } from '../../../lib/api/retrospective';
 
 import WelcomeScreen from './components/WelcomeScreen';
 import CountdownTransition from './components/CountdownTransition';
@@ -20,8 +20,9 @@ export default function Retrospective2025Page() {
   const [currentStep, setCurrentStep] = useState(0);
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState(null);
   const [accessToken, setAccessToken] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [sessionId] = useState(() => `retrospective-${Date.now()}`);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -39,13 +40,15 @@ export default function Retrospective2025Page() {
         );
         const data = await response.json();
 
-        if (response.ok && data.success) {
-          setUserId(data.user.userId);
-        } else if (response.status === 401) {
-          clearTokens();
+        if (!response.ok || !data.success) {
+          if (response.status === 401) {
+            clearTokens();
+          }
           router.push('/login');
           return;
         }
+
+        setUserId(data.user?.userId || null);
       } catch (error) {
         console.error('사용자 정보 확인 실패:', error);
       } finally {
@@ -57,7 +60,7 @@ export default function Retrospective2025Page() {
   }, [router]);
 
   const persistAnswers = async (nextAnswers, nextStep) => {
-    if (!userId || !accessToken) {
+    if (!accessToken) {
       return;
     }
 
@@ -65,10 +68,26 @@ export default function Retrospective2025Page() {
 
     await saveRetrospective({
       userId,
+      sessionId,
       answers: nextAnswers,
       token: accessToken,
       currentStep: nextStep,
       status: isCompleted ? 'completed' : 'in_progress',
+    });
+  };
+
+
+
+  const completeFlow = async (finalAnswers) => {
+    if (!accessToken || !userId) {
+      return;
+    }
+
+    await completeRetrospective({
+      userId,
+      sessionId,
+      answers: finalAnswers,
+      token: accessToken,
     });
   };
 
@@ -81,6 +100,10 @@ export default function Retrospective2025Page() {
 
     try {
       await persistAnswers(nextAnswers, nextStep);
+
+      if (nextStep >= 8) {
+        await completeFlow(nextAnswers);
+      }
     } catch (error) {
       console.error('회고 저장 실패:', error);
     }
