@@ -43,7 +43,7 @@ export default function CompletionScreen() {
   }, []);
 
   const handleGoHome = () => {
-    router.push('/me');
+    router.push('/trial-home');
   };
 
   return (
@@ -101,9 +101,9 @@ export default function CompletionScreen() {
           className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-2xl p-6 mb-8"
         >
           <p className="text-gray-700 mb-4">
-            앞으로 선택하신 요일에
+            스피릿랩 월간 회원이 되시면 선택하신 요일에
             <br />
-            맞춤형 질문을 보내드릴게요 💌
+            맞춤형 질문을 보내드립니다.
           </p>
           <div className="text-sm text-purple-600">
             <p className="mb-2">🎁 완료 보상</p>
@@ -134,9 +134,9 @@ export default function CompletionScreen() {
           transition={{ delay: 1.5 }}
           className="text-sm text-gray-500 mt-6"
         >
-          마이페이지에서 언제든지
+          나다움을 찾아가는 시간
           <br />
-          작성한 내용을 확인할 수 있어요
+          - 스피릿랩
         </motion.p>
       </motion.div>
     </div>
