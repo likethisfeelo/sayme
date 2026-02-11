@@ -44,6 +44,7 @@ export default function TicketsPage() {
   const [preferredDate2, setPreferredDate2] = useState('');
   const [preferredTime2, setPreferredTime2] = useState('');
   const [selectedTicketType, setSelectedTicketType] = useState(null);
+  const [expandedRequestIds, setExpandedRequestIds] = useState({});
 
   // Urgent confirm
   const [showUrgentConfirm, setShowUrgentConfirm] = useState(false);
@@ -177,22 +178,19 @@ export default function TicketsPage() {
     }
   };
 
+  const toggleRequestExpand = (requestId) => {
+    setExpandedRequestIds((prev) => ({
+      ...prev,
+      [requestId]: !prev[requestId],
+    }));
+  };
+
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('ko-KR', {
       month: 'short',
       day: 'numeric',
     });
-  };
-
-  const getTicketIcon = (type) => {
-    const icons = { tarot: '🎴', fortune: '🔮', universe: '🌌', consultation: '💬' };
-    return icons[type] || '🎫';
-  };
-
-  const getTicketName = (type) => {
-    const names = { tarot: '타로', fortune: '사주체크', universe: '우주흐름체크', consultation: '1:1 추가 상담' };
-    return names[type] || type;
   };
 
   if (loading) {
@@ -202,9 +200,6 @@ export default function TicketsPage() {
       </div>
     );
   }
-
-  const regularTickets = tickets.filter(t => t.ticketType !== 'consultation');
-  const consultationTicket = tickets.find(t => t.ticketType === 'consultation');
 
   return (
     <div
@@ -269,75 +264,118 @@ export default function TicketsPage() {
             </div>
           </section>
 
-          {/* ===== 상담 신청 내역 ===== */}
+          {/* ===== 상담 신청 내역 / 결과 ===== */}
           {consultationRequests.length > 0 && (
             <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
               <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
                 <div className="text-sm font-[750] tracking-tight text-[#2A2725]">상담 신청 내역</div>
-                <div className="text-xs text-[#6B6662] mt-0.5">접수한 상담 요청의 현재 상태</div>
+                <div className="text-xs text-[#6B6662] mt-0.5">클릭해서 전체 신청 내용을 펼쳐볼 수 있어요</div>
               </div>
 
               <div className="p-4 flex flex-col gap-2.5">
                 {consultationRequests.map((req) => {
                   const statusConfig = STATUS_CONFIG[req.status] || STATUS_CONFIG.pending;
+                  const isExpanded = !!expandedRequestIds[req.requestId];
                   return (
-                    <div key={req.requestId}>
-                      <div
-                        className={`p-3 rounded-xl border ${
-                          req.status === 'confirmed'
-                            ? 'border-[rgba(46,139,87,0.3)] bg-[rgba(46,139,87,0.04)]'
-                            : req.status === 'cancelled'
-                              ? 'border-[#E6E0DA] bg-[#F5F1ED]/50'
-                              : 'border-[#E6E0DA] bg-white/60'
-                        }`}
-                      >
-                        <div className="flex justify-between items-center mb-2">
-                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig.bg} ${statusConfig.color}`}>
-                            {statusConfig.label}
-                          </span>
-                          <span className="text-[10px] text-[#9B9590]">
-                            {formatDate(req.createdAt)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-[#2A2725]">
-                          <span className="text-[#6B6662]">1순위</span>
-                          <span className="font-medium">{formatDate(req.preferredDate1)} {req.preferredTime1}</span>
-                        </div>
-                        {req.preferredDate2 && (
-                          <div className="flex items-center gap-2 text-xs text-[#2A2725] mt-1">
-                            <span className="text-[#6B6662]">2순위</span>
-                            <span>{formatDate(req.preferredDate2)} {req.preferredTime2}</span>
-                          </div>
-                        )}
-                        <div className="mt-1.5 flex gap-1.5">
-                          {req.ticketType && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(191,167,255,0.12)] text-[#7B6CB5]">
-                              {TICKET_NAMES[req.ticketType] || req.ticketType}
-                            </span>
-                          )}
-                          {req.isUrgent && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(255,138,101,0.12)] text-[#FF8A65]">
-                              긴급
-                            </span>
-                          )}
-                        </div>
+                    <button
+                      key={req.requestId}
+                      type="button"
+                      onClick={() => toggleRequestExpand(req.requestId)}
+                      className={`text-left p-3 rounded-xl border transition-all ${
+                        req.status === 'confirmed'
+                          ? 'border-[rgba(46,139,87,0.3)] bg-[rgba(46,139,87,0.04)]'
+                          : req.status === 'cancelled'
+                            ? 'border-[#E6E0DA] bg-[#F5F1ED]/50'
+                            : 'border-[#E6E0DA] bg-white/60'
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig.bg} ${statusConfig.color}`}>
+                          {statusConfig.label}
+                        </span>
+                        <span className="text-[10px] text-[#9B9590]">{formatDate(req.createdAt)}</span>
                       </div>
-                      {req.status === 'cancelled' && (
-                        <a
-                          href="http://pf.kakao.com/_xjwsxfb/chat"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-2 mt-1.5 w-full py-2.5 rounded-xl text-sm font-bold border border-[rgba(250,225,115,0.6)] bg-[rgba(250,225,115,0.25)] text-[#5C5340] no-underline transition-all active:scale-[0.98]"
-                        >
-                          바로 연락하기
-                        </a>
+
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <div className="text-xs font-semibold text-[#2A2725]">{TICKET_NAMES[req.ticketType] || req.ticketType || '상담 신청'}</div>
+                        <span className="text-xs text-[#6B6662]">{isExpanded ? '접기 ▲' : '펼치기 ▼'}</span>
+                      </div>
+
+                      {isExpanded && (
+                        <>
+                          <div className="mt-2.5 flex items-center gap-2 text-xs text-[#2A2725]">
+                            <span className="text-[#6B6662]">1순위</span>
+                            <span className="font-medium">{formatDate(req.preferredDate1)} {req.preferredTime1}</span>
+                          </div>
+                          {req.preferredDate2 && (
+                            <div className="flex items-center gap-2 text-xs text-[#2A2725] mt-1">
+                              <span className="text-[#6B6662]">2순위</span>
+                              <span>{formatDate(req.preferredDate2)} {req.preferredTime2}</span>
+                            </div>
+                          )}
+                          <div className="mt-1.5 flex gap-1.5">
+                            {req.isUrgent && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(255,138,101,0.12)] text-[#FF8A65]">
+                                긴급
+                              </span>
+                            )}
+                          </div>
+                        </>
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </div>
             </section>
           )}
+
+          {/* ===== 상담 신청 결과 목록 ===== */}
+          {consultationRequests.length > 0 && (
+            <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
+                <div className="text-sm font-[750] tracking-tight text-[#2A2725]">상담 신청 결과 목록</div>
+                <div className="text-xs text-[#6B6662] mt-0.5">관리자 처리 결과(확정/취소)만 보여요</div>
+              </div>
+
+              <div className="p-4 flex flex-col gap-2.5">
+                {consultationRequests
+                  .filter((req) => req.status === 'confirmed' || req.status === 'cancelled')
+                  .map((req) => {
+                    const statusConfig = STATUS_CONFIG[req.status] || STATUS_CONFIG.pending;
+                    return (
+                      <div key={`result-${req.requestId}`} className="p-3 rounded-xl border border-[#E6E0DA] bg-white/60">
+                        <div className="flex justify-between items-center">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig.bg} ${statusConfig.color}`}>
+                            {statusConfig.label}
+                          </span>
+                          <span className="text-[10px] text-[#9B9590]">{formatDate(req.createdAt)}</span>
+                        </div>
+                        <div className="mt-2 text-xs text-[#2A2725]">
+                          {TICKET_NAMES[req.ticketType] || req.ticketType || '상담'} · {formatDate(req.preferredDate1)} {req.preferredTime1}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                {consultationRequests.filter((req) => req.status === 'confirmed' || req.status === 'cancelled').length === 0 && (
+                  <div className="text-center py-5 text-sm text-[#6B6662]">아직 처리된 상담 결과가 없습니다.</div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* ===== 리더 메시지 CTA ===== */}
+          <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+            <div className="p-4">
+              <p className="text-sm font-semibold text-[#2A2725] mb-3">리더에게 바로 메시지를 보내보세요</p>
+              <a
+                href="/chat"
+                className="w-full flex items-center justify-center px-4 py-3 bg-[#FEE500] text-[#000000] rounded-xl text-sm font-bold no-underline hover:bg-[#FDD835] transition-all"
+              >
+                카카오톡으로 문의하기
+              </a>
+            </div>
+          </section>
 
           {/* ===== 1:1 상담 신청 ===== */}
           <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
