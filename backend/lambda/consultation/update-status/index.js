@@ -139,6 +139,7 @@ exports.handler = async (event) => {
     }
 
     const { status: newStatus } = body;
+    const selectedPriority = body.selectedPriority != null ? Number(body.selectedPriority) : null;
 
     if (!newStatus || !VALID_STATUSES.includes(newStatus)) {
       return {
@@ -148,6 +149,14 @@ exports.handler = async (event) => {
           success: false,
           message: `유효하지 않은 상태입니다. 가능한 값: ${VALID_STATUSES.join(', ')}`,
         }),
+      };
+    }
+
+    if (selectedPriority != null && ![1, 2].includes(selectedPriority)) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ success: false, message: 'selectedPriority는 1 또는 2만 가능합니다' }),
       };
     }
 
@@ -181,6 +190,32 @@ exports.handler = async (event) => {
 
     const now = new Date().toISOString();
     let ticketConsumed = consultation.ticketConsumed || false;
+    let confirmedDate = consultation.confirmedDate || null;
+    let confirmedTime = consultation.confirmedTime || null;
+    let confirmedPriority = consultation.confirmedPriority || null;
+
+    if (newStatus === 'confirmed') {
+      confirmedPriority = selectedPriority || 1;
+
+      if (confirmedPriority === 1) {
+        confirmedDate = consultation.preferredDate1;
+        confirmedTime = consultation.preferredTime1;
+      } else {
+        confirmedDate = consultation.preferredDate2;
+        confirmedTime = consultation.preferredTime2;
+      }
+
+      if (!confirmedDate || !confirmedTime) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            message: `${confirmedPriority}순위 희망 일정 정보가 없어 확정할 수 없습니다`,
+          }),
+        };
+      }
+    }
 
     // 확정(confirmed) 전환 시 티켓 소진 처리
     // - urgent(긴급신청)는 티켓 소진 제외
@@ -202,23 +237,45 @@ exports.handler = async (event) => {
       ticketConsumed = true;
     }
 
-    // 상태 + ticketConsumed 업데이트
+    const updateExpressionParts = [
+      '#status = :status',
+      'updatedAt = :now',
+      'ticketConsumed = :consumed',
+    ];
+    const expressionAttributeNames = { '#status': 'status' };
+    const expressionAttributeValues = {
+      ':status': newStatus,
+      ':now': now,
+      ':consumed': ticketConsumed,
+    };
+
+    if (newStatus === 'confirmed') {
+      updateExpressionParts.push('confirmedDate = :confirmedDate');
+      updateExpressionParts.push('confirmedTime = :confirmedTime');
+      updateExpressionParts.push('confirmedPriority = :confirmedPriority');
+      updateExpressionParts.push('confirmedAt = :confirmedAt');
+      expressionAttributeValues[':confirmedDate'] = confirmedDate;
+      expressionAttributeValues[':confirmedTime'] = confirmedTime;
+      expressionAttributeValues[':confirmedPriority'] = confirmedPriority;
+      expressionAttributeValues[':confirmedAt'] = now;
+    }
+
+    // 상태 + ticketConsumed(+선택 확정 일정) 업데이트
     const result = await docClient.send(
       new UpdateCommand({
         TableName: TABLE_NAME,
         Key: { requestId },
-        UpdateExpression: 'SET #status = :status, updatedAt = :now, ticketConsumed = :consumed',
-        ExpressionAttributeNames: { '#status': 'status' },
-        ExpressionAttributeValues: {
-          ':status': newStatus,
-          ':now': now,
-          ':consumed': ticketConsumed,
-        },
+        UpdateExpression: `SET ${updateExpressionParts.join(', ')}`,
+        ExpressionAttributeNames: expressionAttributeNames,
+        ExpressionAttributeValues: expressionAttributeValues,
         ReturnValues: 'ALL_NEW',
       })
     );
 
     const messages = [`상태가 '${newStatus}'(으)로 변경되었습니다`];
+    if (newStatus === 'confirmed') {
+      messages.push(`${confirmedPriority}순위 일정(${confirmedDate} ${confirmedTime})으로 확정되었습니다`);
+    }
     if (newStatus === 'confirmed' && ticketConsumed && !consultation.ticketConsumed) {
       messages.push(`'${consultation.ticketType}' 티켓 1장이 소진되었습니다`);
     }

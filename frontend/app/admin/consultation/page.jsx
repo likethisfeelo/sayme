@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '../../components/Header';
 import { isAdmin } from '../../../lib/auth/checkAdmin';
@@ -37,15 +37,7 @@ export default function AdminConsultationsPage() {
   const [updatingId, setUpdatingId] = useState(null);
   const [expandedId, setExpandedId] = useState(null);
 
-  useEffect(() => {
-    if (!isAdmin()) {
-      router.push('/me');
-      return;
-    }
-    fetchRequests();
-  }, [router, statusFilter]);
-
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
       const idToken = localStorage.getItem('idToken');
@@ -65,21 +57,34 @@ export default function AdminConsultationsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter]);
 
-  const updateStatus = async (requestId, newStatus) => {
+  useEffect(() => {
+    if (!isAdmin()) {
+      router.push('/me');
+      return;
+    }
+    fetchRequests();
+  }, [router, fetchRequests]);
+
+  const updateStatus = async (requestId, newStatus, selectedPriority = null) => {
     if (updatingId) return;
     setUpdatingId(requestId);
 
     try {
       const idToken = localStorage.getItem('idToken');
+      const payload = { requestId, status: newStatus };
+      if (newStatus === 'confirmed' && selectedPriority) {
+        payload.selectedPriority = selectedPriority;
+      }
+
       const response = await fetch(`${API_BASE}/consultation/admin/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ requestId, status: newStatus }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
@@ -89,6 +94,7 @@ export default function AdminConsultationsPage() {
             req.requestId === requestId
               ? {
                   ...req,
+                  ...data.request,
                   status: newStatus,
                   updatedAt: new Date().toISOString(),
                   ticketConsumed: data.request?.ticketConsumed ?? req.ticketConsumed,
@@ -261,6 +267,12 @@ export default function AdminConsultationsPage() {
                       )}
                     </div>
 
+                    {(req.status === 'confirmed' || req.status === 'completed') && req.confirmedDate && req.confirmedTime && (
+                      <div className="mt-2 text-xs text-[#2E8B57] bg-[rgba(46,139,87,0.08)] border border-[rgba(46,139,87,0.18)] rounded-lg px-2 py-1.5 inline-block">
+                        확정 일정{req.confirmedPriority ? ` (${req.confirmedPriority}순위)` : ''}: {formatDate(req.confirmedDate)} {req.confirmedTime}
+                      </div>
+                    )}
+
                     {/* Memo */}
                     {req.memo && (
                       <div
@@ -288,31 +300,60 @@ export default function AdminConsultationsPage() {
 
                     {/* Status change buttons */}
                     {transitions.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-[#E6E0DA] flex gap-2">
-                        {transitions.map((nextStatus) => {
-                          const nextConfig = STATUS_CONFIG[nextStatus];
-                          const isUpdating = updatingId === req.requestId;
-                          return (
+                      <div className="mt-3 pt-3 border-t border-[#E6E0DA] flex flex-col gap-2">
+                        {transitions.includes('confirmed') && (
+                          <div className="grid grid-cols-2 gap-2">
                             <button
-                              key={nextStatus}
-                              onClick={() => updateStatus(req.requestId, nextStatus)}
-                              disabled={isUpdating}
-                              className={`flex-1 text-xs py-2 px-3 rounded-lg font-medium transition-all ${
-                                isUpdating
+                              onClick={() => updateStatus(req.requestId, 'confirmed', 1)}
+                              disabled={updatingId === req.requestId}
+                              className={`text-xs py-2 px-3 rounded-lg font-medium transition-all ${
+                                updatingId === req.requestId
                                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  : nextStatus === 'cancelled'
-                                    ? 'bg-[#f5f5f5] text-[#999] hover:bg-[#eee]'
-                                    : nextStatus === 'confirmed'
-                                      ? 'bg-[rgba(46,139,87,0.15)] text-[#2E8B57] hover:bg-[rgba(46,139,87,0.25)]'
-                                      : nextStatus === 'completed'
-                                        ? 'bg-[rgba(191,167,255,0.15)] text-[#7B6CB5] hover:bg-[rgba(191,167,255,0.25)]'
-                                        : 'bg-[#E6E0DA] text-[#6B6662] hover:bg-[#ddd8d2]'
+                                  : 'bg-[rgba(46,139,87,0.15)] text-[#2E8B57] hover:bg-[rgba(46,139,87,0.25)]'
                               }`}
                             >
-                              {isUpdating ? '처리 중...' : `${nextConfig?.label || nextStatus}(으)로 변경`}
+                              {updatingId === req.requestId ? '처리 중...' : '1순위로 확정'}
                             </button>
-                          );
-                        })}
+                            <button
+                              onClick={() => updateStatus(req.requestId, 'confirmed', 2)}
+                              disabled={updatingId === req.requestId || !req.preferredDate2 || !req.preferredTime2}
+                              className={`text-xs py-2 px-3 rounded-lg font-medium transition-all ${
+                                updatingId === req.requestId || !req.preferredDate2 || !req.preferredTime2
+                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                  : 'bg-[rgba(46,139,87,0.15)] text-[#2E8B57] hover:bg-[rgba(46,139,87,0.25)]'
+                              }`}
+                            >
+                              {updatingId === req.requestId ? '처리 중...' : '2순위로 확정'}
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          {transitions
+                            .filter((nextStatus) => nextStatus !== 'confirmed')
+                            .map((nextStatus) => {
+                              const nextConfig = STATUS_CONFIG[nextStatus];
+                              const isUpdating = updatingId === req.requestId;
+                              return (
+                                <button
+                                  key={nextStatus}
+                                  onClick={() => updateStatus(req.requestId, nextStatus)}
+                                  disabled={isUpdating}
+                                  className={`flex-1 text-xs py-2 px-3 rounded-lg font-medium transition-all ${
+                                    isUpdating
+                                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                      : nextStatus === 'cancelled'
+                                        ? 'bg-[#f5f5f5] text-[#999] hover:bg-[#eee]'
+                                        : nextStatus === 'completed'
+                                          ? 'bg-[rgba(191,167,255,0.15)] text-[#7B6CB5] hover:bg-[rgba(191,167,255,0.25)]'
+                                          : 'bg-[#E6E0DA] text-[#6B6662] hover:bg-[#ddd8d2]'
+                                  }`}
+                                >
+                                  {isUpdating ? '처리 중...' : `${nextConfig?.label || nextStatus}(으)로 변경`}
+                                </button>
+                              );
+                            })}
+                        </div>
                       </div>
                     )}
                   </div>

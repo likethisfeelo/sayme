@@ -193,6 +193,18 @@ export default function TicketsPage() {
     });
   };
 
+  const getResultScheduleLabel = (req) => {
+    const hasConfirmedSchedule = (req.status === 'confirmed' || req.status === 'completed')
+      && req.confirmedDate
+      && req.confirmedTime;
+
+    if (hasConfirmedSchedule) {
+      return `${formatDate(req.confirmedDate)} ${req.confirmedTime}`;
+    }
+
+    return `${formatDate(req.preferredDate1)} ${req.preferredTime1}`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F5F1ED] flex items-center justify-center">
@@ -351,8 +363,11 @@ export default function TicketsPage() {
                           <span className="text-[10px] text-[#9B9590]">{formatDate(req.createdAt)}</span>
                         </div>
                         <div className="mt-2 text-xs text-[#2A2725]">
-                          {TICKET_NAMES[req.ticketType] || req.ticketType || '상담'} · {formatDate(req.preferredDate1)} {req.preferredTime1}
+                          {TICKET_NAMES[req.ticketType] || req.ticketType || '상담'} · {getResultScheduleLabel(req)}
                         </div>
+                        {(req.status === 'confirmed' || req.status === 'completed') && req.confirmedPriority && (
+                          <div className="mt-1 text-[10px] text-[#2E8B57]">관리자 선택: {req.confirmedPriority}순위 일정</div>
+                        )}
                       </div>
                     );
                   })}
