@@ -5,15 +5,15 @@ import { useRouter } from 'next/navigation';
 import { getAccessToken, fetchWithAuth, clearTokens } from '../../utils/auth';
 import { saveRetrospective, completeRetrospective } from '../../../lib/api/retrospective';
 
-import WelcomeScreen from './components/WelcomeScreen';
-import CountdownTransition from './components/CountdownTransition';
-import LifeChangeQuestion from './components/LifeChangeQuestion';
-import EventQuestion from './components/EventQuestion';
-import PeopleQuestion from './components/PeopleQuestion';
-import NewBehaviorQuestion from './components/NewBehaviorQuestion';
-import BestWordsQuestion from './components/BestWordsQuestion';
-import ReasonQuestion from './components/ReasonQuestion';
-import CompletionScreen from './components/CompletionScreen';
+import WelcomeScreen from '../../me/retrospective/components/WelcomeScreen';
+import CountdownTransition from '../../me/retrospective/components/CountdownTransition';
+import LifeChangeQuestion from '../../me/retrospective/components/LifeChangeQuestion';
+import EventQuestion from '../../me/retrospective/components/EventQuestion';
+import PeopleQuestion from '../../me/retrospective/components/PeopleQuestion';
+import NewBehaviorQuestion from '../../me/retrospective/components/NewBehaviorQuestion';
+import BestWordsQuestion from '../../me/retrospective/components/BestWordsQuestion';
+import ReasonQuestion from '../../me/retrospective/components/ReasonQuestion';
+import CompletionScreen from '../../me/retrospective/components/CompletionScreen';
 
 export default function Retrospective2025Page() {
   const router = useRouter();
