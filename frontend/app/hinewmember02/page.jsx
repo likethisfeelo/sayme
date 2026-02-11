@@ -9,7 +9,7 @@ const API_BASE_URL = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.co
 
 const KAKAO_CHAT_URL = 'https://pf.kakao.com/_xjwsxfb/chat';
 
-export default function HiNewMemberPage() {
+export default function HiNewMember02Page() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
