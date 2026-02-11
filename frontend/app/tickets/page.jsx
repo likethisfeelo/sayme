@@ -52,7 +52,7 @@ export default function TicketsPage() {
 
   const fetchConsultationRequests = async (idToken) => {
     try {
-      const response = await fetch(`${API_BASE}/consultation/list`, {
+      const response = await fetch(`${API_BASE}/consultation`, {
         headers: { Authorization: `Bearer ${idToken}` },
       });
       const data = await response.json();
