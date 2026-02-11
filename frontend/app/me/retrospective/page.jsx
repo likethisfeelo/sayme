@@ -21,6 +21,8 @@ export default function Retrospective2025Page() {
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [sessionId] = useState(() => `retrospective-${Date.now()}`);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -45,6 +47,8 @@ export default function Retrospective2025Page() {
           router.push('/login');
           return;
         }
+
+        setUserId(data.user?.userId || null);
       } catch (error) {
         console.error('사용자 정보 확인 실패:', error);
       } finally {
@@ -63,7 +67,8 @@ export default function Retrospective2025Page() {
     const isCompleted = nextStep >= 8;
 
     await saveRetrospective({
-      sessionId: 'retrospective-2025',
+      userId,
+      sessionId,
       answers: nextAnswers,
       token: accessToken,
       currentStep: nextStep,
