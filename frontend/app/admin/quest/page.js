@@ -1,147 +1,56 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { getAccessToken, fetchWithAuth, clearTokens } from '../../utils/auth';
-import { saveRetrospective, completeRetrospective } from '../../../lib/api/retrospective';
+import { useEffect } from 'react';
+import Link from 'next/link';
+import { requireAdmin } from '@/lib/auth/checkAdmin';
 
-import WelcomeScreen from '../../me/retrospective/components/WelcomeScreen';
-import CountdownTransition from '../../me/retrospective/components/CountdownTransition';
-import LifeChangeQuestion from '../../me/retrospective/components/LifeChangeQuestion';
-import EventQuestion from '../../me/retrospective/components/EventQuestion';
-import PeopleQuestion from '../../me/retrospective/components/PeopleQuestion';
-import NewBehaviorQuestion from '../../me/retrospective/components/NewBehaviorQuestion';
-import BestWordsQuestion from '../../me/retrospective/components/BestWordsQuestion';
-import ReasonQuestion from '../../me/retrospective/components/ReasonQuestion';
-import CompletionScreen from '../../me/retrospective/components/CompletionScreen';
+const menuCards = [
+  {
+    title: '퀘스트 생성',
+    description: '퀘스트 콘텐츠를 생성하고 수정합니다',
+    href: '/admin/quest/contents',
+    icon: '📝',
+  },
+  {
+    title: '퀘스트 할당',
+    description: '사용자별 퀘스트를 할당하고 관리합니다',
+    href: '/admin/quest/assignments',
+    icon: '🎯',
+  },
+];
 
-export default function Retrospective2025Page() {
-  const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [answers, setAnswers] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [accessToken, setAccessToken] = useState(null);
-  const [userId, setUserId] = useState(null);
-  const [sessionId] = useState(() => `retrospective-${Date.now()}`);
-
+export default function AdminQuestPage() {
   useEffect(() => {
-    const initializeAuth = async () => {
-      const token = getAccessToken();
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-
-      setAccessToken(token);
-
-      try {
-        const response = await fetchWithAuth(
-          'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev/auth/me'
-        );
-        const data = await response.json();
-
-        if (!response.ok || !data.success) {
-          if (response.status === 401) {
-            clearTokens();
-          }
-          router.push('/login');
-          return;
-        }
-
-        setUserId(data.user?.userId || null);
-      } catch (error) {
-        console.error('사용자 정보 확인 실패:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    initializeAuth();
-  }, [router]);
-
-  const persistAnswers = async (nextAnswers, nextStep) => {
-    if (!accessToken) {
-      return;
-    }
-
-    const isCompleted = nextStep >= 8;
-
-    await saveRetrospective({
-      userId,
-      sessionId,
-      answers: nextAnswers,
-      token: accessToken,
-      currentStep: nextStep,
-      status: isCompleted ? 'completed' : 'in_progress',
-    });
-  };
-
-
-
-  const completeFlow = async (finalAnswers) => {
-    if (!accessToken || !userId) {
-      return;
-    }
-
-    await completeRetrospective({
-      userId,
-      sessionId,
-      answers: finalAnswers,
-      token: accessToken,
-    });
-  };
-
-  const handleNext = async (newAnswers) => {
-    const nextAnswers = { ...answers, ...newAnswers };
-    const nextStep = currentStep + 1;
-
-    setAnswers(nextAnswers);
-    setCurrentStep(nextStep);
-
-    try {
-      await persistAnswers(nextAnswers, nextStep);
-
-      if (nextStep >= 8) {
-        await completeFlow(nextAnswers);
-      }
-    } catch (error) {
-      console.error('회고 저장 실패:', error);
-    }
-  };
-
-  const handleBack = () => {
-    setCurrentStep(prev => Math.max(0, prev - 1));
-  };
-
-  const steps = [
-    <WelcomeScreen key="welcome" onNext={handleNext} />,
-    <CountdownTransition key="countdown" onNext={handleNext} />,
-    <LifeChangeQuestion key="lifeChange" answers={answers} onNext={handleNext} />,
-    <EventQuestion key="event" answers={answers} onNext={handleNext} onBack={handleBack} />,
-    <PeopleQuestion key="people" answers={answers} onNext={handleNext} onBack={handleBack} />,
-    <NewBehaviorQuestion key="newBehavior" answers={answers} onNext={handleNext} onBack={handleBack} />,
-    <BestWordsQuestion key="bestWords" answers={answers} onNext={handleNext} onBack={handleBack} />,
-    <ReasonQuestion key="reason" answers={answers} onNext={handleNext} onBack={handleBack} />,
-    <CompletionScreen key="completion" />,
-  ];
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #E879F9 0%, #C084FC 30%, #818CF8 60%, #60A5FA 100%)' }}>
-        <div className="text-white text-base">로딩 중...</div>
-      </div>
-    );
-  }
+    requireAdmin();
+  }, []);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{
-        fontFamily: 'ui-sans-serif, system-ui, -apple-system, "Pretendard", "Noto Sans KR", sans-serif',
-        background: 'linear-gradient(135deg, #E879F9 0%, #C084FC 30%, #818CF8 60%, #60A5FA 100%)',
-      }}
-    >
-      {steps[currentStep] || <CompletionScreen />}
+    <div className="min-h-screen bg-gray-50 p-8">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">퀘스트 관리</h1>
+          <span className="text-sm text-gray-500">👑 관리자 모드</span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {menuCards.map((card) => (
+            <Link key={card.href} href={card.href}>
+              <div className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer h-full">
+                <h2 className="text-2xl font-bold mb-2">
+                  {card.icon} {card.title}
+                </h2>
+                <p className="text-gray-600">{card.description}</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        <div className="mt-6">
+          <Link href="/admin" className="text-blue-500 hover:underline text-sm">
+            ← 관리자 메뉴로 돌아가기
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
