@@ -149,6 +149,7 @@ export default function PremiumHomePage() {
 
   const goToQuestDetail = (assignmentId) => {
     if (!assignmentId) return;
+    sessionStorage.setItem('activeQuestAssignmentId', assignmentId);
     router.push(`/quest/detail?id=${assignmentId}`);
   };
 

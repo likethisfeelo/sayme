@@ -1,6 +1,5 @@
 'use client';
 
-import { useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Header from '@/app/components/Header';
 import QuestDetail from '@/components/quest/QuestDetail';
@@ -8,7 +7,15 @@ import QuestDetail from '@/components/quest/QuestDetail';
 export default function QuestDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const assignmentId = useMemo(() => searchParams.get('id') || '', [searchParams]);
+  const queryId = searchParams.get('id') || '';
+
+  if (queryId && typeof window !== 'undefined') {
+    sessionStorage.setItem('activeQuestAssignmentId', queryId);
+  }
+
+  const assignmentId = queryId || (typeof window !== 'undefined'
+    ? sessionStorage.getItem('activeQuestAssignmentId') || ''
+    : '');
 
   if (!assignmentId) {
     return (
