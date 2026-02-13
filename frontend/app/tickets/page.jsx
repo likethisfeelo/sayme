@@ -44,7 +44,7 @@ export default function TicketsPage() {
   const [preferredDate2, setPreferredDate2] = useState('');
   const [preferredTime2, setPreferredTime2] = useState('');
   const [selectedTicketType, setSelectedTicketType] = useState(null);
-  const [expandedRequestIds, setExpandedRequestIds] = useState({});
+  const [consultationHistoryOpen, setConsultationHistoryOpen] = useState(false);
 
   // Urgent confirm
   const [showUrgentConfirm, setShowUrgentConfirm] = useState(false);
@@ -178,13 +178,6 @@ export default function TicketsPage() {
     }
   };
 
-  const toggleRequestExpand = (requestId) => {
-    setExpandedRequestIds((prev) => ({
-      ...prev,
-      [requestId]: !prev[requestId],
-    }));
-  };
-
   const formatDate = (dateStr) => {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleDateString('ko-KR', {
@@ -279,74 +272,85 @@ export default function TicketsPage() {
           {/* ===== 상담 신청 내역 / 결과 ===== */}
           {consultationRequests.length > 0 && (
             <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
-              <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
-                <div className="text-sm font-[750] tracking-tight text-[#2A2725]">상담 신청 내역</div>
-                <div className="text-xs text-[#6B6662] mt-0.5">클릭해서 전체 신청 내용을 펼쳐볼 수 있어요</div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setConsultationHistoryOpen((prev) => !prev)}
+                className="w-full text-left px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55 hover:bg-white/70 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-[750] tracking-tight text-[#2A2725]">상담 신청 내역</div>
+                    <div className="text-xs text-[#6B6662] mt-0.5">섹션 전체를 눌러 신청 내역을 펼쳐 확인하세요</div>
+                  </div>
+                  <span className="text-xs font-semibold text-[rgba(99,102,241,1)]">
+                    {consultationHistoryOpen ? '접기 ▲' : '펼치기 ▼'}
+                  </span>
+                </div>
+              </button>
 
-              <div className="p-4 flex flex-col gap-2.5">
-                {consultationRequests.map((req) => {
-                  const statusConfig = STATUS_CONFIG[req.status] || STATUS_CONFIG.pending;
-                  const isExpanded = !!expandedRequestIds[req.requestId];
-                  return (
-                    <button
-                      key={req.requestId}
-                      type="button"
-                      onClick={() => toggleRequestExpand(req.requestId)}
-                      className={`text-left p-3 rounded-xl border transition-all ${
-                        req.status === 'confirmed'
-                          ? 'border-[rgba(46,139,87,0.3)] bg-[rgba(46,139,87,0.04)]'
-                          : req.status === 'cancelled'
-                            ? 'border-[#E6E0DA] bg-[#F5F1ED]/50'
-                            : 'border-[#E6E0DA] bg-white/60'
-                      }`}
-                    >
-                      <div className="flex justify-between items-center">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig.bg} ${statusConfig.color}`}>
-                          {statusConfig.label}
-                        </span>
-                        <span className="text-[10px] text-[#9B9590]">{formatDate(req.createdAt)}</span>
-                      </div>
+              {consultationHistoryOpen && (
+                <div className="p-4 flex flex-col gap-2.5">
+                  {consultationRequests.map((req) => {
+                    const statusConfig = STATUS_CONFIG[req.status] || STATUS_CONFIG.pending;
+                    return (
+                      <div
+                        key={req.requestId}
+                        className={`text-left p-3 rounded-xl border ${
+                          req.status === 'confirmed'
+                            ? 'border-[rgba(46,139,87,0.3)] bg-[rgba(46,139,87,0.04)]'
+                            : req.status === 'cancelled'
+                              ? 'border-[#E6E0DA] bg-[#F5F1ED]/50'
+                              : 'border-[#E6E0DA] bg-white/60'
+                        }`}
+                      >
+                        <div className="flex justify-between items-center">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusConfig.bg} ${statusConfig.color}`}>
+                            {statusConfig.label}
+                          </span>
+                          <span className="text-[10px] text-[#9B9590]">{formatDate(req.createdAt)}</span>
+                        </div>
 
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <div className="text-xs font-semibold text-[#2A2725]">{TICKET_NAMES[req.ticketType] || req.ticketType || '상담 신청'}</div>
-                        <span className="text-xs text-[#6B6662]">{isExpanded ? '접기 ▲' : '펼치기 ▼'}</span>
-                      </div>
+                        <div className="mt-2 flex items-center justify-between gap-2">
+                          <div className="text-xs font-semibold text-[#2A2725]">{TICKET_NAMES[req.ticketType] || req.ticketType || '상담 신청'}</div>
+                        </div>
 
-                      {isExpanded && (
-                        <>
-                          <div className="mt-2.5 flex items-center gap-2 text-xs text-[#2A2725]">
-                            <span className="text-[#6B6662]">1순위</span>
-                            <span className="font-medium">{formatDate(req.preferredDate1)} {req.preferredTime1}</span>
+                        <div className="mt-2.5 flex items-center gap-2 text-xs text-[#2A2725]">
+                          <span className="text-[#6B6662]">1순위</span>
+                          <span className="font-medium">{formatDate(req.preferredDate1)} {req.preferredTime1}</span>
+                        </div>
+                        {req.preferredDate2 && (
+                          <div className="flex items-center gap-2 text-xs text-[#2A2725] mt-1">
+                            <span className="text-[#6B6662]">2순위</span>
+                            <span>{formatDate(req.preferredDate2)} {req.preferredTime2}</span>
                           </div>
-                          {req.preferredDate2 && (
-                            <div className="flex items-center gap-2 text-xs text-[#2A2725] mt-1">
-                              <span className="text-[#6B6662]">2순위</span>
-                              <span>{formatDate(req.preferredDate2)} {req.preferredTime2}</span>
-                            </div>
+                        )}
+                        <div className="mt-1.5 flex gap-1.5">
+                          {req.isUrgent && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(255,138,101,0.12)] text-[#FF8A65]">
+                              긴급
+                            </span>
                           )}
-                          <div className="mt-1.5 flex gap-1.5">
-                            {req.isUrgent && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[rgba(255,138,101,0.12)] text-[#FF8A65]">
-                                긴급
-                              </span>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </section>
           )}
 
           {/* ===== 상담 신청 결과 목록 ===== */}
           {consultationRequests.length > 0 && (
-            <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
-              <div className="px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
-                <div className="text-sm font-[750] tracking-tight text-[#2A2725]">상담 신청 결과 목록</div>
-                <div className="text-xs text-[#6B6662] mt-0.5">관리자 처리 결과(확정/완료/취소)만 보여요</div>
+            <section className="bg-gradient-to-br from-[rgba(244,241,255,0.95)] via-[rgba(235,246,255,0.88)] to-[rgba(255,245,251,0.9)] backdrop-blur-sm border-2 border-[rgba(99,102,241,0.32)] shadow-[0_14px_34px_rgba(99,102,241,0.16)] rounded-[18px] overflow-hidden">
+              <div className="px-4 py-3.5 border-b border-[rgba(99,102,241,0.2)] bg-[rgba(255,255,255,0.75)]">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[rgba(99,102,241,0.15)] text-[rgba(99,102,241,1)] font-bold">중요</span>
+                  <div className="text-sm font-[800] tracking-tight text-[rgba(66,56,157,1)]">상담 신청 결과 목록</div>
+                </div>
+                <div className="text-xs text-[rgba(66,56,157,0.88)] mt-0.5">
+                  실제 상담 진행은 이 섹션의 기록으로 진행됩니다.<br />
+                  관리자 처리 결과(확정/완료/취소)를 확인하세요.
+                </div>
               </div>
 
               <div className="p-4 flex flex-col gap-2.5">
