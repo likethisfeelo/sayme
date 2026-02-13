@@ -271,7 +271,7 @@ export default function TrialHomePage() {
               매주 개인화된 심층 리포트를 받으실 수 있습니다.
             </p>
             <button
-              onClick={() => router.push('/hinewmember')}
+              onClick={() => router.push('/hinewmember02')}
               className="w-full px-4 py-3 bg-white border-2 border-[rgba(99,102,241,1)] text-[rgba(99,102,241,1)] rounded-xl text-sm font-semibold mb-2 hover:bg-[rgba(99,102,241,0.05)] transition-all"
             >
               분석 신청하기

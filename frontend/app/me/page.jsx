@@ -69,7 +69,7 @@ export default function MyProfilePage() {
   };
 
   const handleKakaoConsult = () => {
-    window.open('https://pf.kakao.com/_xjwsxfb/chat', '_blank');
+    router.push('/hinewmember02');
   };
 
   const handleLogoClick = () => {
