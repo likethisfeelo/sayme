@@ -30,6 +30,12 @@ const menuItems = [
     path: '/admin/consultation',
     icon: '💬',
   },
+  {
+    title: '정회원 전환 신청',
+    description: 'hinewmember/hinewmember02 신청 확인',
+    path: '/admin/premium-requests',
+    icon: '🪄',
+  },
 ];
 
 export default function AdminPage() {

@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessToken, fetchWithAuth } from '../utils/auth';
+import { getAccessToken } from '../utils/auth';
 import { premiumRegistrationApi } from '@/lib/api/premium-registration';
 
 const API_BASE_URL = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 
 const KAKAO_CHAT_URL = 'https://pf.kakao.com/_xjwsxfb/chat';
+const SHOW_PREMIUM_NOTICE = false;
 
 export default function HiNewMemberPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function HiNewMemberPage() {
   const [user, setUser] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [isPremiumUser, setIsPremiumUser] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
 
   // Form state
@@ -25,6 +27,7 @@ export default function HiNewMemberPage() {
   const [birthDay, setBirthDay] = useState('');
   const [birthHour, setBirthHour] = useState('');
   const [birthMinute, setBirthMinute] = useState('');
+  const [birthTimeCertainty, setBirthTimeCertainty] = useState('');
   const [birthCity, setBirthCity] = useState('');
   const [privacyRequired, setPrivacyRequired] = useState(false);
   const [serviceRequired, setServiceRequired] = useState(false);
@@ -52,11 +55,15 @@ export default function HiNewMemberPage() {
       const data = await res.json();
       const u = data.user;
 
-      // 이미 premium이면 premium-home으로
+      // premium 유저 처리
       const status = (u.paymentStatus || '').toLowerCase();
-      if (status === 'completed' || status === 'premium' || u.preSurveyCompleted) {
-        router.push('/premium-home');
-        return;
+      const premiumUser = status === 'completed' || status === 'premium' || u.preSurveyCompleted;
+      if (premiumUser) {
+        if (!SHOW_PREMIUM_NOTICE) {
+          router.push('/premium-home');
+          return;
+        }
+        setIsPremiumUser(true);
       }
 
       // 이미 신청 완료 상태
@@ -81,6 +88,9 @@ export default function HiNewMemberPage() {
           setBirthHour(timeParts[0]);
           setBirthMinute(timeParts[1]);
         }
+      }
+      if (u.birthTimeCertainty) {
+        setBirthTimeCertainty(u.birthTimeCertainty);
       }
       if (u.birthCity) setBirthCity(u.birthCity);
 
@@ -110,7 +120,10 @@ export default function HiNewMemberPage() {
   };
 
   const isStep1Valid = phoneNumber.trim() && gender;
-  const isStep2Valid = birthYear && birthMonth && birthDay;
+  const hasPreciseTime = birthHour !== '' && birthMinute !== '';
+  const isStep2Valid = birthYear && birthMonth && birthDay && birthTimeCertainty && (
+    birthTimeCertainty === 'unknown' || hasPreciseTime
+  );
   const isStep3Valid = privacyRequired && serviceRequired;
   const canSubmit = isStep1Valid && isStep2Valid && isStep3Valid;
 
@@ -132,10 +145,12 @@ export default function HiNewMemberPage() {
         birthYear: parseInt(birthYear),
         birthMonth: parseInt(birthMonth),
         birthDay: parseInt(birthDay),
-        birthHour: birthHour !== '' ? parseInt(birthHour) : null,
-        birthMinute: birthMinute !== '' ? parseInt(birthMinute) : null,
+        birthHour: birthTimeCertainty === 'unknown' ? null : (birthHour !== '' ? parseInt(birthHour) : null),
+        birthMinute: birthTimeCertainty === 'unknown' ? null : (birthMinute !== '' ? parseInt(birthMinute) : null),
+        birthTimeCertainty,
         birthCity: birthCity || null,
         marketingConsent,
+        requestSource: SHOW_PREMIUM_NOTICE ? 'hinewmember02' : 'hinewmember',
       });
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -193,41 +208,48 @@ export default function HiNewMemberPage() {
         {/* 신청 완료 화면 */}
         {submitted ? (
           <section
-            className="bg-gradient-to-br from-[rgba(240,253,244,1)] to-[rgba(220,252,231,1)] border-2 border-[rgba(22,163,74,0.3)] rounded-[18px] p-8 text-center"
+            className="relative overflow-hidden bg-white/75 backdrop-blur-sm border border-[#E6E0DA] rounded-[22px] p-7 shadow-[0_20px_45px_rgba(99,102,241,0.12)]"
             style={{ animation: 'fadeInUp 0.5s ease-out' }}
           >
-            <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-[22px] font-bold text-[#2A2725] mb-3">신청이 완료되었습니다!</h2>
-            <p className="text-sm text-[#6B6662] leading-relaxed mb-6">
-              스피릿랩 프리미엄 서비스 신청을 환영합니다.<br />
-              곧 새로운 리듬이 시작됩니다.
-            </p>
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(500px_250px_at_10%_-20%,rgba(191,167,255,0.28),transparent_70%),radial-gradient(500px_250px_at_90%_-10%,rgba(123,203,255,0.22),transparent_70%)]" />
 
-            <div className="bg-white border border-[rgba(22,163,74,0.2)] rounded-xl p-4 mb-4 text-left">
-              <p className="text-xs text-[#166534] leading-[1.7]">
-                <strong>📱 다음 단계</strong><br /><br />
-                관리자가 확인 후 입력하신 전화번호의<br />
-                <strong>카카오톡으로 먼저 연락</strong>드린 후<br />
-                결제 방식을 안내해 드립니다.<br /><br />
-                <span className="text-[#999] text-[11px]">
-                  보통 24시간 이내에 연락드리고 있습니다
-                </span>
+            <div className="relative"> 
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[rgba(99,102,241,0.12)] text-[rgba(99,102,241,1)] text-xs font-semibold mb-4">
+                <span>✨</span>
+                <span>등록 완료</span>
+              </div>
+
+              <h2 className="text-[24px] leading-tight font-bold text-[#2A2725] mb-3">신청이 접수되었어요</h2>
+              <p className="text-sm text-[#6B6662] leading-relaxed mb-6">
+                이제 당신만의 분석 리듬을 준비하고 있습니다.
+                <br />
+                입력해주신 연락처로 빠르게 안내드릴게요.
               </p>
+
+              <div className="bg-white/85 border border-[rgba(99,102,241,0.2)] rounded-2xl p-4 mb-4">
+                <div className="text-xs font-semibold text-[rgba(99,102,241,1)] mb-2">다음 진행</div>
+                <ul className="text-xs text-[#2A2725] leading-6 list-disc pl-4">
+                  <li>관리자가 신청 정보를 확인합니다.</li>
+                  <li>카카오톡 또는 전화로 결제/이용 안내를 드립니다.</li>
+                  <li>보통 24시간 내 첫 안내가 진행됩니다.</li>
+                </ul>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => window.open(KAKAO_CHAT_URL, '_blank')}
+                  className="py-3 bg-[#FEE500] text-[#000000] rounded-xl text-sm font-semibold transition-transform active:scale-[0.98]"
+                >
+                  카카오 문의 💬
+                </button>
+                <button
+                  onClick={() => router.push('/trial-home')}
+                  className="py-3 bg-white border border-[#D9D4FF] text-[rgba(99,102,241,1)] rounded-xl text-sm font-semibold hover:bg-[rgba(245,243,255,0.65)] transition-colors"
+                >
+                  홈으로 이동
+                </button>
+              </div>
             </div>
-
-            <button
-              onClick={() => window.open(KAKAO_CHAT_URL, '_blank')}
-              className="w-full py-3 bg-[#FEE500] text-[#000000] rounded-xl text-sm font-semibold mb-3 transition-transform active:scale-[0.98]"
-            >
-              연락이 없는 경우 1:1 채팅으로 확인 요청하기 💬
-            </button>
-
-            <button
-              onClick={() => router.push('/trial-home')}
-              className="text-sm text-[#6B6662] hover:text-[#2A2725] transition-colors"
-            >
-              ← 홈으로 돌아가기
-            </button>
           </section>
         ) : (
           <>
@@ -240,6 +262,16 @@ export default function HiNewMemberPage() {
                 사주와 점성술 기반의 개인 맞춤 질문을 설계하기 위한<br />
                 정보이며, 안전하게 보관됩니다.
               </p>
+
+              {isPremiumUser && SHOW_PREMIUM_NOTICE && (
+                <div className="mb-5 bg-[rgba(255,243,205,0.85)] border border-[rgba(245,158,11,0.35)] rounded-xl p-3.5">
+                  <p className="text-xs text-[#7C4A03] leading-relaxed">
+                    ✅ 이미 프리미엄 회원입니다. 별도의 가입 절차는 필수가 아닙니다.
+                    <br />
+                    다만 원하시면 아래 정보를 다시 입력해 신청 흐름을 확인하실 수 있습니다.
+                  </p>
+                </div>
+              )}
 
               {/* Step Indicator */}
               <div className="flex justify-between mb-4">
@@ -400,8 +432,9 @@ export default function HiNewMemberPage() {
                   <div className="grid grid-cols-2 gap-2">
                     <select
                       value={birthHour}
-                      onChange={(e) => setBirthHour(e.target.value)}
-                      className="w-full px-3 py-3 border-2 border-[#E6E0DA] rounded-xl text-sm bg-white focus:outline-none focus:border-[rgba(99,102,241,1)] appearance-none"
+                      onChange={(e) => { setBirthHour(e.target.value); if (birthTimeCertainty !== 'approximate') setBirthTimeCertainty('approximate'); }}
+                      className="w-full px-3 py-3 border-2 border-[#E6E0DA] rounded-xl text-sm bg-white focus:outline-none focus:border-[rgba(99,102,241,1)] appearance-none disabled:bg-[rgba(245,241,237,0.7)] disabled:text-[#A8A39F]"
+                      disabled={birthTimeCertainty === 'unknown'}
                     >
                       <option value="">시</option>
                       {hours.map((h) => (
@@ -410,8 +443,9 @@ export default function HiNewMemberPage() {
                     </select>
                     <select
                       value={birthMinute}
-                      onChange={(e) => setBirthMinute(e.target.value)}
-                      className="w-full px-3 py-3 border-2 border-[#E6E0DA] rounded-xl text-sm bg-white focus:outline-none focus:border-[rgba(99,102,241,1)] appearance-none"
+                      onChange={(e) => { setBirthMinute(e.target.value); if (birthTimeCertainty !== 'approximate') setBirthTimeCertainty('approximate'); }}
+                      className="w-full px-3 py-3 border-2 border-[#E6E0DA] rounded-xl text-sm bg-white focus:outline-none focus:border-[rgba(99,102,241,1)] appearance-none disabled:bg-[rgba(245,241,237,0.7)] disabled:text-[#A8A39F]"
+                      disabled={birthTimeCertainty === 'unknown'}
                     >
                       <option value="">분</option>
                       {minutes.map((m) => (
@@ -420,9 +454,37 @@ export default function HiNewMemberPage() {
                     </select>
                   </div>
                   <p className="text-xs text-[#6B6662] mt-1.5 leading-relaxed">
-                    정확한 시간을 모르시면 비워두셔도 됩니다.<br />
                     시간 정보가 있으면 더 정밀한 분석이 가능합니다.
                   </p>
+
+                  <div className="mt-3 space-y-2">
+                    <button
+                      type="button"
+                      onClick={() => setBirthTimeCertainty('approximate')}
+                      className={`w-full px-3 py-2.5 rounded-xl border text-sm text-left transition-all ${
+                        birthTimeCertainty === 'approximate'
+                          ? 'border-[rgba(99,102,241,1)] bg-[rgba(245,243,255,1)] text-[rgba(99,102,241,1)]'
+                          : 'border-[#E6E0DA] bg-white text-[#2A2725]'
+                      }`}
+                    >
+                      대략적인 이 시간대 근처로 알고있음
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBirthTimeCertainty('unknown');
+                        setBirthHour('');
+                        setBirthMinute('');
+                      }}
+                      className={`w-full px-3 py-2.5 rounded-xl border text-sm text-left transition-all ${
+                        birthTimeCertainty === 'unknown'
+                          ? 'border-[rgba(99,102,241,1)] bg-[rgba(245,243,255,1)] text-[rgba(99,102,241,1)]'
+                          : 'border-[#E6E0DA] bg-white text-[#2A2725]'
+                      }`}
+                    >
+                      시간대 정보 전혀 모름
+                    </button>
+                  </div>
                 </div>
 
                 {/* 태어난 도시 */}
