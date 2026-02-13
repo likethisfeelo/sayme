@@ -41,6 +41,7 @@ export default function QuestBanner({ quest, index, onComplete }) {
   const statusInfo = getStatusInfo();
 
   const handleClick = () => {
+    sessionStorage.setItem('activeQuestAssignmentId', quest.assignmentId);
     router.push(`/quest/detail?id=${quest.assignmentId}`);
   };
 
