@@ -209,7 +209,10 @@ export default function QuestPage() {
               return (
                 <button
                   key={quest.questId || index}
-                  onClick={() => router.push(`/quest/detail?id=${quest.questId}`)}
+                  onClick={() => {
+                    sessionStorage.setItem('activeQuestAssignmentId', quest.questId);
+                    router.push(`/quest/detail?id=${quest.questId}`);
+                  }}
                   className="w-full text-left transition-all hover:scale-[1.02] cursor-pointer"
                 >
                   <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)] hover:shadow-lg transition-all">
