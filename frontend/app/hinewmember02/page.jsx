@@ -9,6 +9,7 @@ const API_BASE_URL = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.co
 
 const KAKAO_CHAT_URL = 'https://pf.kakao.com/_xjwsxfb/chat';
 const SHOW_PREMIUM_NOTICE = true;
+const REQUEST_SOURCE = 'hinewmember02';
 
 export default function HiNewMember02Page() {
   const router = useRouter();
@@ -150,7 +151,7 @@ export default function HiNewMember02Page() {
         birthTimeCertainty,
         birthCity: birthCity || null,
         marketingConsent,
-        requestSource: SHOW_PREMIUM_NOTICE ? 'hinewmember02' : 'hinewmember',
+        requestSource: REQUEST_SOURCE,
       });
       setSubmitted(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
