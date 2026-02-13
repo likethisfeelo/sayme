@@ -42,32 +42,36 @@ exports.handler = async (event) => {
  
     const body = JSON.parse(event.body || '{}');
  
-    const { phoneNumber, gender, birthYear, birthMonth, birthDay, birthHour, birthMinute, birthCity, marketingConsent } = body;
+    const { phoneNumber, gender, birthYear, birthMonth, birthDay, birthHour, birthMinute, birthTimeCertainty, birthCity, marketingConsent, requestSource } = body;
  
     // 필수값 검증
-    if (!phoneNumber || !gender || !birthYear || !birthMonth || !birthDay) {
+    if (!phoneNumber || !gender || !birthYear || !birthMonth || !birthDay || !birthTimeCertainty) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: '필수 정보를 모두 입력해주세요.' })
+        body: JSON.stringify({ error: '필수 정보를 모두 입력해주세요. (태어난 시간 정보 포함)' })
       };
     }
  
     const now = new Date().toISOString();
     const birthDate = `${birthYear}-${String(birthMonth).padStart(2, '0')}-${String(birthDay).padStart(2, '0')}`;
-    const birthTime = (birthHour !== undefined && birthHour !== null && birthHour !== '')
+    const birthTime = birthTimeCertainty === 'unknown'
+      ? null
+      : (birthHour !== undefined && birthHour !== null && birthHour !== ''
       ? `${String(birthHour).padStart(2, '0')}:${String(birthMinute || 0).padStart(2, '0')}`
-      : null;
+      : null);
  
     const updateExpression = [
       'phoneNumber = :phone',
       'gender = :gender',
       'birthDate = :birthDate',
       'birthTime = :birthTime',
+      'birthTimeCertainty = :birthTimeCertainty',
       'birthCity = :birthCity',
       'marketingConsent = :marketing',
       'consultationStatus = :consultation',
       'premiumRequestedAt = :requestedAt',
+      'premiumRequestSource = :requestSource',
       'updatedAt = :now',
     ];
  
@@ -76,10 +80,12 @@ exports.handler = async (event) => {
       ':gender': gender,
       ':birthDate': birthDate,
       ':birthTime': birthTime,
+      ':birthTimeCertainty': birthTimeCertainty,
       ':birthCity': birthCity || null,
       ':marketing': !!marketingConsent,
       ':consultation': 'requested',
       ':requestedAt': now,
+      ':requestSource': requestSource || 'unknown',
       ':now': now,
     };
  
