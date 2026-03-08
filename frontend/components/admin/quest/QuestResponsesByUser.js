@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 const API_BASE_URL = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 
@@ -355,6 +356,7 @@ const buildReportText = (visibleAssignments, userName, month) => {
 };
 
 export default function QuestResponsesByUser() {
+  const searchParams = useSearchParams();
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedAltUserId, setSelectedAltUserId] = useState('');
@@ -367,6 +369,7 @@ export default function QuestResponsesByUser() {
   const [selectedAssignmentKey, setSelectedAssignmentKey] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('');
   const [showAll, setShowAll] = useState(false);
+  const [autoSelectedFromUrl, setAutoSelectedFromUrl] = useState(false);
 
   const copyJsonToClipboard = async (payload) => {
     try {
@@ -420,6 +423,26 @@ export default function QuestResponsesByUser() {
 
     loadUsers();
   }, []);
+
+  // URL 파라미터로 사용자 자동 선택 (UserAssignmentList에서 "응답 보기" 버튼으로 진입 시)
+  useEffect(() => {
+    if (loadingUsers || users.length === 0 || autoSelectedFromUrl) return;
+    const urlUserId = searchParams.get('userId');
+    if (!urlUserId) return;
+
+    const selected = users.find((u) => (u.sub || u.username) === urlUserId);
+    if (!selected) return;
+
+    const nextUserId = selected.sub || selected.username;
+    const nextAltUserId = selected.sub ? selected.username : '';
+    const nextExtraUserIds = [selected.email, selected.username, selected.sub].filter(Boolean).join(',');
+
+    setSelectedUserId(nextUserId);
+    setSelectedAltUserId(nextAltUserId);
+    setSelectedExtraUserIds(nextExtraUserIds);
+    setAutoSelectedFromUrl(true);
+    loadUserResponses(nextUserId, nextAltUserId, nextExtraUserIds);
+  }, [loadingUsers, users, searchParams, autoSelectedFromUrl]);
 
   const loadUserResponses = async (userId, altUserId = '', extraUserIds = '', assignmentId = '') => {
     if (!userId) {
