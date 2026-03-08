@@ -57,6 +57,7 @@ const normalizeQuestionItems = (assignment) => {
 export default function QuestResponsesByUser() {
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedAltUserId, setSelectedAltUserId] = useState('');
   const [assignments, setAssignments] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingResponses, setLoadingResponses] = useState(false);
@@ -82,7 +83,7 @@ export default function QuestResponsesByUser() {
     loadUsers();
   }, []);
 
-  const loadUserResponses = async (userId) => {
+  const loadUserResponses = async (userId, altUserId = '') => {
     if (!userId) {
       setAssignments([]);
       setLastLoadedAt(null);
@@ -91,7 +92,10 @@ export default function QuestResponsesByUser() {
 
     setLoadingResponses(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/quest/admin/assignments/user/${userId}?includeResponses=true`, {
+      const query = new URLSearchParams({ includeResponses: 'true' });
+      if (altUserId) query.set('altUserId', altUserId);
+
+      const response = await fetch(`${API_BASE_URL}/quest/admin/assignments/user/${userId}?${query.toString()}`, {
         headers: getAuthHeaders(),
       });
 
@@ -122,16 +126,20 @@ export default function QuestResponsesByUser() {
           <select
             value={selectedUserId}
             onChange={(event) => {
-              const nextUserId = event.target.value;
+              const selected = users.find((user) => (user.sub || user.username) === event.target.value);
+              const nextUserId = selected?.sub || selected?.username || '';
+              const nextAltUserId = selected?.sub ? selected.username : '';
+
               setSelectedUserId(nextUserId);
-              loadUserResponses(nextUserId);
+              setSelectedAltUserId(nextAltUserId);
+              loadUserResponses(nextUserId, nextAltUserId);
             }}
             className="w-full min-w-[320px] border rounded px-3 py-2"
             disabled={loadingUsers}
           >
             <option value="">사용자를 선택하세요</option>
             {users.map((user) => (
-              <option key={user.username} value={user.username}>
+              <option key={user.username} value={user.sub || user.username}>
                 {user.name || user.username} ({user.email || '이메일 없음'})
               </option>
             ))}
@@ -140,7 +148,7 @@ export default function QuestResponsesByUser() {
 
         <button
           type="button"
-          onClick={() => loadUserResponses(selectedUserId)}
+          onClick={() => loadUserResponses(selectedUserId, selectedAltUserId)}
           disabled={!selectedUserId || loadingResponses}
           className="px-4 py-2 rounded bg-gray-800 text-white disabled:opacity-50"
         >
