@@ -37,6 +37,7 @@ const mapQuestStatus = (status) => {
   return 'waiting';
 };
 
+
 // 월간 정렬 문장 3개 (랜덤 2개 선택용)
 const MONTHLY_ALIGNMENTS = [
   {
@@ -59,7 +60,6 @@ const getRandomItems = (arr, n) => {
   return shuffled.slice(0, n);
 };
 
-const API_BASE = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 
 export default function PremiumHomePage() {
   const router = useRouter();
@@ -279,21 +279,10 @@ export default function PremiumHomePage() {
           </div>
 
           <div className="flex flex-col p-2.5 pb-3 gap-2">
-            {/* 답변해야 할 질문만 필터링 (completed 제외) */}
-            {questions.filter(q => q.status !== 'completed').length === 0 ? (
-              <div
-                className="p-4 flex flex-col items-center gap-3 cursor-pointer"
-                onClick={() => router.push('/premium_memo')}
-              >
-                <div className="w-12 h-12 rounded-2xl bg-[rgba(191,167,255,0.15)] border border-[rgba(191,167,255,0.25)] grid place-items-center text-2xl">
-                  📝
-                </div>
-                <p className="text-sm text-[#6B6662] text-center m-0">
-                  오늘의 나다움에 대한 생각을 남겨보세요
-                </p>
-              </div>
+            {questions.length === 0 ? (
+              <div className="p-4 text-center text-sm text-[#6B6662]">아직 할당된 질문이 없습니다.</div>
             ) : (
-              questions.filter(q => q.status !== 'completed').map((q) => {
+              questions.map((q) => {
                 const config = getStatusConfig(q.status);
                 return (
                   <div
@@ -305,80 +294,51 @@ export default function PremiumHomePage() {
 
                     <div className="flex-1 flex flex-col gap-1.5 min-w-0">
                       <div className="flex items-center gap-2 text-xs text-[#6B6662]">
-                        <span className={`text-[11px] px-2 py-1 rounded-full border ${config.badge}`}>
-                          {config.label}
-                        </span>
+                        <span className={`text-[11px] px-2 py-1 rounded-full border ${config.badge}`}>{config.label}</span>
                         <span>{q.number}</span>
                       </div>
 
-                      <div className="text-sm font-[680] leading-[1.35] tracking-tight whitespace-normal break-keep">
-                        {q.title}
-                      </div>
+                      <div className="text-sm font-[680] leading-[1.35] tracking-tight whitespace-normal break-keep">{q.title}</div>
 
-                      <div className="flex gap-2 mt-0.5">
-                        {q.status === 'completed' && (
-                          <>
-                            <button
-                              className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                goToQuestDetail(q.assignmentId);
-                              }}
-                            >
-                              답변 보기
-                            </button>
-                            {q.hasFeedback && (
-                              <button
-                                className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  goToQuestDetail(q.assignmentId);
-                                }}
-                              >
-                                피드백
-                              </button>
-                            )}
-                          </>
-                        )}
-                        {q.status === 'progress' && (
-                          <>
-                            <button
-                              className="text-xs bg-[rgba(42,39,37,0.92)] border-[rgba(42,39,37,0.10)] text-[rgba(245,241,237,0.98)] px-2.5 py-1.5 rounded-xl cursor-pointer"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                goToQuestDetail(q.assignmentId);
-                              }}
-                            >
-                              계속 생각하기 →
-                            </button>
-                            <button
-                              className="text-xs border border-[#E6E0DA] bg-white/80 text-[#2A2725] px-2.5 py-1.5 rounded-xl cursor-pointer"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                goToQuestDetail(q.assignmentId);
-                              }}
-                            >
-                              메모
-                            </button>
-                          </>
-                        )}
-                        {q.status === 'waiting' && (
-                          <button
-                            className="text-xs bg-[rgba(42,39,37,0.92)] border-[rgba(42,39,37,0.10)] text-[rgba(245,241,237,0.98)] px-2.5 py-1.5 rounded-xl cursor-pointer"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              goToQuestDetail(q.assignmentId);
-                            }}
-                          >
-                            열기
-                          </button>
-                        )}
-                      </div>
+                      <button
+                        className="w-fit text-xs bg-[rgba(42,39,37,0.92)] border-[rgba(42,39,37,0.10)] text-[rgba(245,241,237,0.98)] px-2.5 py-1.5 rounded-xl cursor-pointer mt-0.5"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          goToQuestDetail(q.assignmentId);
+                        }}
+                      >
+                        {q.status === 'completed' ? '답변 보기' : q.status === 'progress' ? '계속 생각하기 →' : '질문 보기'}
+                      </button>
                     </div>
                   </div>
                 );
               })
             )}
+          </div>
+        </section>
+
+        {/* MEMO SECTION */}
+        <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+          <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
+            <div>
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">메모</div>
+              <div className="text-xs text-[#6B6662]">질문과 상관없이 자유롭게 기록하기</div>
+            </div>
+          </div>
+
+          <div className="p-4">
+            <button
+              onClick={() => router.push('/premium_memo')}
+              className="w-full p-4 rounded-[14px] border border-[#E6E0DA] bg-white/85 hover:bg-white flex items-center justify-between cursor-pointer"
+            >
+              <div className="text-left">
+                <p className="text-sm font-semibold text-[#2A2725] m-0">메모 작성하기</p>
+                <p className="text-xs text-[#6B6662] m-0 mt-1">떠오르는 생각을 바로 저장해보세요</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-[rgba(191,167,255,0.15)] border border-[rgba(191,167,255,0.25)] grid place-items-center text-2xl">
+                📝
+              </div>
+            </button>
           </div>
         </section>
 

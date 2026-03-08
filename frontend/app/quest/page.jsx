@@ -32,13 +32,6 @@ const getStatusConfig = (status) => {
   return configs[status] || configs.locked;
 };
 
-const isCurrentMonth = (dateStr) => {
-  if (!dateStr) return false;
-  const date = new Date(dateStr);
-  const now = new Date();
-  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
-};
-
 const formatDate = (dateStr) => {
   if (!dateStr) return null;
   return new Date(dateStr).toLocaleDateString('ko-KR', {
@@ -89,10 +82,7 @@ export default function QuestPage() {
     }
   };
 
-  // 이번 달 어사인된 퀘스트만 필터
-  const thisMonthQuests = quests.filter((quest) => isCurrentMonth(quest.assignedAt));
-
-  const filteredQuests = thisMonthQuests.filter((quest) => {
+  const filteredQuests = quests.filter((quest) => {
     if (filter === 'all') return true;
     if (filter === 'active') return quest.status === 'active';
     if (filter === 'completed') return quest.status === 'completed';
@@ -100,12 +90,10 @@ export default function QuestPage() {
   });
 
   const stats = {
-    total: thisMonthQuests.length,
-    completed: thisMonthQuests.filter((quest) => quest.status === 'completed').length,
-    active: thisMonthQuests.filter((quest) => quest.status === 'active').length,
+    total: quests.length,
+    completed: quests.filter((quest) => quest.status === 'completed').length,
+    active: quests.filter((quest) => quest.status === 'active').length,
   };
-
-  const monthLabel = `${new Date().getMonth() + 1}월`;
 
   if (loading) {
     return (
@@ -135,7 +123,7 @@ export default function QuestPage() {
       }}
     >
       <Header
-        subtitle={`Quest · ${monthLabel} 도전 과제`}
+        subtitle="Quest · 전체 도전 과제"
         showMenuButton
         zIndexClass="z-50"
       />
@@ -145,7 +133,7 @@ export default function QuestPage() {
         {/* Stats Summary */}
         <section className="mb-6">
           <div className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-5 shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
-            <h2 className="text-lg font-bold text-[#2A2725] mb-4">나의 이번달 Quest 현황</h2>
+            <h2 className="text-lg font-bold text-[#2A2725] mb-4">나의 전체 Quest 현황</h2>
 
             <div className="grid grid-cols-3 gap-3">
               <div className="text-center p-3 bg-[rgba(191,167,255,0.05)] rounded-xl border border-[rgba(191,167,255,0.15)]">
@@ -196,7 +184,7 @@ export default function QuestPage() {
               <div className="text-4xl mb-3">📋</div>
               <p className="text-[#6B6662] text-sm">
                 {filter === 'all'
-                  ? `이번 달 Quest가 없습니다`
+                  ? '할당된 Quest가 없습니다'
                   : filter === 'active'
                   ? '진행 중인 Quest가 없습니다'
                   : '완료한 Quest가 없습니다'}
