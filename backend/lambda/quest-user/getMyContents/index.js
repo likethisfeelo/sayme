@@ -78,6 +78,7 @@ exports.handler = async (event) => {
     const responsePromises = assignments.map(assignment =>
       docClient.send(new QueryCommand({
         TableName: 'Quest_UserResponse',
+        ConsistentRead: true,
         KeyConditionExpression: 'userId = :userId AND contentId = :contentId',
         ExpressionAttributeValues: {
           ':userId': userId,

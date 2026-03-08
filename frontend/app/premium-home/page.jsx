@@ -98,15 +98,27 @@ export default function PremiumHomePage() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
+    const waitForIdToken = async () => {
+      for (let i = 0; i < 12; i += 1) {
+        const token = localStorage.getItem('idToken');
+        if (token) return token;
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
+      return null;
+    };
+
     const fetchData = async () => {
       try {
-        const idToken = localStorage.getItem('idToken');
+        const idToken = await waitForIdToken();
         if (!idToken) {
           router.push('/login');
           return;
         }
 
-        const questData = await questUserApi.getMyContents(idToken);
+        const questData = await questUserApi.getMyContents(idToken, { noStore: true });
+        if (cancelled) return;
         const assignments = questData?.contents || [];
 
         const mappedQuestions = assignments.map((quest, index) => {
@@ -145,11 +157,15 @@ export default function PremiumHomePage() {
       } catch (error) {
         console.error('Failed to fetch data:', error);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchData();
+
+    return () => {
+      cancelled = true;
+    };
   }, [router]);
 
   const goToQuestDetail = (assignmentId) => {
