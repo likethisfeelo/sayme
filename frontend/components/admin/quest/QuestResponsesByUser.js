@@ -61,6 +61,39 @@ const getResponseDisplayText = (responseItem, questionItem) => {
   return '응답 없음';
 };
 
+
+const toItemIndex = (value, fallbackIndex = 0) => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (/^\d+$/.test(trimmed)) return Number(trimmed);
+
+    const match = trimmed.match(/(\d+)/);
+    if (match) return Number(match[1]);
+  }
+
+  return fallbackIndex;
+};
+
+const normalizeResponseEntry = (item, index, objectKey) => {
+  if (item && typeof item === 'object' && !Array.isArray(item)) {
+    const derivedIndex = item.itemIndex ?? item.index ?? objectKey ?? index;
+    return {
+      itemIndex: toItemIndex(derivedIndex, index),
+      answer: item.answer ?? item.value ?? item.text ?? item.response ?? item.selectedOption ?? '',
+      selectedOptionIndex: item.selectedOptionIndex ?? item.optionIndex,
+      selectedOptionId: item.selectedOptionId,
+      read: item.read,
+      watched: item.watched,
+    };
+  }
+
+  return {
+    itemIndex: toItemIndex(objectKey, index),
+    answer: typeof item === 'string' ? item : JSON.stringify(item),
+  };
+};
+
 const normalizeResponses = (assignment) => {
   const candidates = [
     assignment?.progress?.responses,
@@ -78,34 +111,20 @@ const normalizeResponses = (assignment) => {
     if (!candidate) continue;
 
     if (Array.isArray(candidate)) {
-      return candidate.map((item, index) => {
-        if (item && typeof item === 'object') {
-          return {
-            itemIndex: item.itemIndex ?? item.index ?? index,
-            answer: item.answer ?? item.value ?? item.text ?? item.response ?? item.selectedOption ?? '',
-            selectedOptionIndex: item.selectedOptionIndex ?? item.optionIndex,
-            selectedOptionId: item.selectedOptionId,
-            read: item.read,
-            watched: item.watched,
-          };
-        }
-
-        return {
-          itemIndex: index,
-          answer: typeof item === 'string' ? item : JSON.stringify(item),
-        };
-      });
+      return candidate.map((item, index) => normalizeResponseEntry(item, index));
     }
 
     if (typeof candidate === 'string') {
       try {
         const parsed = JSON.parse(candidate);
-        if (Array.isArray(parsed)) return parsed;
+        if (Array.isArray(parsed)) {
+          return parsed.map((item, index) => normalizeResponseEntry(item, index));
+        }
+
         if (parsed && typeof parsed === 'object') {
-          return Object.entries(parsed).map(([itemIndex, answer]) => ({
-            itemIndex: Number(itemIndex),
-            answer: typeof answer === 'string' ? answer : JSON.stringify(answer),
-          }));
+          return Object.entries(parsed).map(([itemIndex, answer], index) =>
+            normalizeResponseEntry(answer, index, itemIndex)
+          );
         }
       } catch {
         // 문자열이 JSON이 아니면 응답 본문 텍스트로 취급
@@ -114,23 +133,9 @@ const normalizeResponses = (assignment) => {
     }
 
     if (typeof candidate === 'object') {
-      return Object.entries(candidate).map(([itemIndex, answer]) => {
-        if (answer && typeof answer === 'object' && !Array.isArray(answer)) {
-          return {
-            itemIndex: Number(itemIndex),
-            answer: answer.answer ?? answer.value ?? answer.text ?? answer.response ?? JSON.stringify(answer),
-            selectedOptionIndex: answer.selectedOptionIndex ?? answer.optionIndex,
-            selectedOptionId: answer.selectedOptionId,
-            read: answer.read,
-            watched: answer.watched,
-          };
-        }
-
-        return {
-          itemIndex: Number(itemIndex),
-          answer: typeof answer === 'string' ? answer : JSON.stringify(answer),
-        };
-      });
+      return Object.entries(candidate).map(([itemIndex, answer], index) =>
+        normalizeResponseEntry(answer, index, itemIndex)
+      );
     }
   }
 
@@ -150,7 +155,7 @@ const normalizeQuestionItems = (assignment) => {
   return items
     .map((item, index) => ({
       ...item,
-      itemIndex: item?.itemIndex ?? index,
+      itemIndex: toItemIndex(item?.itemIndex ?? item?.index, index),
     }))
     .filter((item) => QUESTION_TYPES.has(item?.type));
 };
@@ -336,7 +341,7 @@ export default function QuestResponsesByUser() {
             }
 
             const questionItems = normalizeQuestionItems(assignment);
-            const questionMap = new Map(questionItems.map((item) => [item.itemIndex, item]));
+            const questionMap = new Map(questionItems.map((item) => [toItemIndex(item.itemIndex, -1), item]));
             const responses = normalizeResponses(assignment);
 
             return (
@@ -408,7 +413,7 @@ export default function QuestResponsesByUser() {
                       <ul className="space-y-2 text-sm">
                         {questionItems.map((questionItem, questionIndex) => {
                           const responseItem = responses.find(
-                            (candidate) => Number(candidate.itemIndex) === Number(questionItem.itemIndex)
+                            (candidate) => toItemIndex(candidate.itemIndex, -1) === toItemIndex(questionItem.itemIndex, -2)
                           );
                           const answerText = getResponseDisplayText(responseItem, questionItem);
                           const isNoResponse = answerText === '응답 없음';
@@ -432,7 +437,7 @@ export default function QuestResponsesByUser() {
                         })}
 
                         {responses
-                          .filter((responseItem) => !questionMap.has(Number(responseItem.itemIndex)))
+                          .filter((responseItem) => !questionMap.has(toItemIndex(responseItem.itemIndex, -1)))
                           .map((responseItem, extraIndex) => (
                             <li key={`${assignment.assignmentId}-orphan-response-${extraIndex}`} className="rounded border border-amber-200 bg-amber-50 p-2">
                               <div className="mb-1 text-xs text-amber-700">질문 매핑 실패 응답</div>
