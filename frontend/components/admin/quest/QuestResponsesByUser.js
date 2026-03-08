@@ -63,6 +63,22 @@ const normalizeResponses = (assignment) => {
       }
     }
 
+    if (typeof candidate === 'string') {
+      try {
+        const parsed = JSON.parse(candidate);
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && typeof parsed === 'object') {
+          return Object.entries(parsed).map(([itemIndex, answer]) => ({
+            itemIndex: Number(itemIndex),
+            answer: typeof answer === 'string' ? answer : JSON.stringify(answer),
+          }));
+        }
+      } catch {
+        // 문자열이 JSON이 아니면 응답 본문 텍스트로 취급
+        return [{ itemIndex: 0, answer: candidate }];
+      }
+    }
+
     if (typeof candidate === 'object') {
       return Object.entries(candidate).map(([itemIndex, answer]) => {
         if (answer && typeof answer === 'object' && !Array.isArray(answer)) {
