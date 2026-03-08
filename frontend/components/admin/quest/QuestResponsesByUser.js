@@ -46,6 +46,21 @@ const resolveObjectiveAnswer = (responseItem, questionItem) => {
   return responseItem.answer;
 };
 
+
+const getResponseDisplayText = (responseItem, questionItem) => {
+  if (!responseItem) return '응답 없음';
+
+  if (questionItem?.type === 'question_objective') {
+    const resolvedObjectiveAnswer = resolveObjectiveAnswer(responseItem, questionItem);
+    if (resolvedObjectiveAnswer) return resolvedObjectiveAnswer;
+  }
+
+  if (responseItem.answer) return responseItem.answer;
+  if (responseItem.read) return '읽음';
+  if (responseItem.watched) return '시청 완료';
+  return '응답 없음';
+};
+
 const normalizeResponses = (assignment) => {
   const candidates = [
     assignment?.progress?.responses,
@@ -387,33 +402,45 @@ export default function QuestResponsesByUser() {
 
                   <div className="border rounded p-3 bg-gray-50">
                     <h3 className="font-semibold mb-2">사용자 응답</h3>
-                    {responses.length === 0 ? (
-                      <p className="text-sm text-gray-500">아직 응답이 없습니다.</p>
+                    {questionItems.length === 0 ? (
+                      <p className="text-sm text-gray-500">질문 데이터가 없습니다.</p>
                     ) : (
                       <ul className="space-y-2 text-sm">
-                        {responses
-                          .slice()
-                          .sort((a, b) => (a.itemIndex || 0) - (b.itemIndex || 0))
-                          .map((responseItem, responseIndex) => {
-                            const question = questionMap.get(responseItem.itemIndex);
-                            const answerText = question?.type === 'question_objective'
-                              ? resolveObjectiveAnswer(responseItem, question)
-                              : responseItem.answer;
+                        {questionItems.map((questionItem, questionIndex) => {
+                          const responseItem = responses.find(
+                            (candidate) => Number(candidate.itemIndex) === Number(questionItem.itemIndex)
+                          );
+                          const answerText = getResponseDisplayText(responseItem, questionItem);
+                          const isNoResponse = answerText === '응답 없음';
 
-                            return (
-                              <li key={`${assignment.assignmentId}-r-${responseIndex}`} className="rounded border bg-white p-2">
-                                <div className="mb-1 flex items-center gap-2">
-                                  <span className="font-semibold">Q{(responseItem.itemIndex || 0) + 1}.</span>
-                                  {question?.type && (
-                                    <span className="rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">
-                                      {formatQuestionTypeLabel(question.type)}
-                                    </span>
-                                  )}
-                                </div>
-                                <p>{answerText || (responseItem.read ? '읽음' : responseItem.watched ? '시청 완료' : '응답 없음')}</p>
-                              </li>
-                            );
-                          })}
+                          return (
+                            <li key={`${assignment.assignmentId}-response-by-question-${questionIndex}`} className="rounded border bg-white p-2">
+                              <div className="mb-1 flex items-center gap-2">
+                                <span className="font-semibold">Q{questionIndex + 1}.</span>
+                                {questionItem?.type && (
+                                  <span className="rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">
+                                    {formatQuestionTypeLabel(questionItem.type)}
+                                  </span>
+                                )}
+                                {isNoResponse && (
+                                  <span className="rounded bg-red-100 px-2 py-0.5 text-xs text-red-700">응답 없음</span>
+                                )}
+                              </div>
+                              <p className={isNoResponse ? 'text-sm text-red-600' : ''}>{answerText}</p>
+                            </li>
+                          );
+                        })}
+
+                        {responses
+                          .filter((responseItem) => !questionMap.has(Number(responseItem.itemIndex)))
+                          .map((responseItem, extraIndex) => (
+                            <li key={`${assignment.assignmentId}-orphan-response-${extraIndex}`} className="rounded border border-amber-200 bg-amber-50 p-2">
+                              <div className="mb-1 text-xs text-amber-700">질문 매핑 실패 응답</div>
+                              <p>
+                                Q{(responseItem.itemIndex || 0) + 1}. {getResponseDisplayText(responseItem)}
+                              </p>
+                            </li>
+                          ))}
                       </ul>
                     )}
                   </div>
