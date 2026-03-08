@@ -17,6 +17,12 @@ const menuCards = [
     href: '/admin/quest/assignments',
     icon: '🎯',
   },
+  {
+    title: '사용자 응답 조회',
+    description: '사용자별 할당 질문과 응답을 함께 조회합니다',
+    href: '/admin/quest/responses',
+    icon: '📋',
+  },
 ];
 
 export default function AdminQuestPage() {
@@ -32,7 +38,7 @@ export default function AdminQuestPage() {
           <span className="text-sm text-gray-500">👑 관리자 모드</span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {menuCards.map((card) => (
             <Link key={card.href} href={card.href}>
               <div className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition cursor-pointer h-full">
