@@ -129,7 +129,7 @@ export default function QuestResponsesByUser() {
     loadUsers();
   }, []);
 
-  const loadUserResponses = async (userId, altUserId = '', extraUserIds = '') => {
+  const loadUserResponses = async (userId, altUserId = '', extraUserIds = '', assignmentId = '') => {
     if (!userId) {
       setAssignments([]);
       setLastLoadedAt(null);
@@ -141,6 +141,7 @@ export default function QuestResponsesByUser() {
       const query = new URLSearchParams({ includeResponses: 'true' });
       if (altUserId) query.set('altUserId', altUserId);
       if (extraUserIds) query.set('extraUserIds', extraUserIds);
+      if (assignmentId) query.set('assignmentId', assignmentId);
 
       const response = await fetch(`${API_BASE_URL}/quest/admin/assignments/user/${userId}?${query.toString()}`, {
         headers: getAuthHeaders(),
@@ -258,7 +259,7 @@ export default function QuestResponsesByUser() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => loadUserResponses(selectedUserId, selectedAltUserId, selectedExtraUserIds)}
+                    onClick={() => loadUserResponses(selectedUserId, selectedAltUserId, selectedExtraUserIds, assignment.contentId)}
                     className="text-xs px-3 py-1 rounded border bg-gray-50 hover:bg-gray-100"
                   >
                     이 질문 응답 새로고침

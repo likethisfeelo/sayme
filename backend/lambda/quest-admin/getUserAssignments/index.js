@@ -42,6 +42,7 @@ exports.handler = async (event) => {
     const requestedUserId = event.pathParameters?.userId;
     const includeResponses = event.queryStringParameters?.includeResponses === 'true';
     const alternateUserId = event.queryStringParameters?.altUserId;
+    const requestedAssignmentId = event.queryStringParameters?.assignmentId;
     const extraUserIds = (event.queryStringParameters?.extraUserIds || '')
       .split(',')
       .map((value) => value.trim())
@@ -68,6 +69,12 @@ exports.handler = async (event) => {
         assignments = fallbackAssignments;
         resolvedAssignmentUserId = alternateUserId;
       }
+    }
+
+    if (requestedAssignmentId) {
+      assignments = assignments.filter((assignment) =>
+        assignment.contentId === requestedAssignmentId || assignment.sourceContentId === requestedAssignmentId
+      );
     }
 
     // 원본 콘텐츠 정보 가져오기
@@ -173,6 +180,7 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           requestedUserId,
           resolvedAssignmentUserId,
+          requestedAssignmentId: requestedAssignmentId || null,
           candidateUserIds: includeResponses ? [...new Set(responseUserPriority)] : [],
           assignments: enrichedAssignments,
           count: enrichedAssignments.length
@@ -190,6 +198,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         requestedUserId,
         resolvedAssignmentUserId,
+        requestedAssignmentId: requestedAssignmentId || null,
         candidateUserIds: [],
         assignments: [],
         count: 0

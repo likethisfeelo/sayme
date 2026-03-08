@@ -143,6 +143,8 @@ exports.handler = async (event) => {
     const userResponse = {
       userId,  // ✅ userId 명시적 포함
       contentId: assignmentId,
+      assignmentId,
+      sourceContentId: assignmentCheck.Item?.sourceContentId || null,
       responses: responses || existingResponse?.responses || [],
       feedback: feedback || existingResponse?.feedback || {},
       status: status || existingResponse?.status || 'in_progress',

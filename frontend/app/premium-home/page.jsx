@@ -69,6 +69,7 @@ export default function PremiumHomePage() {
   const [questions, setQuestions] = useState([]);
 
   const [loading, setLoading] = useState(true);
+  const [questionRefreshing, setQuestionRefreshing] = useState(false);
   const [reportEnabled, setReportEnabled] = useState(false);
   const [alignmentSlide, setAlignmentSlide] = useState(0);
   const [selectedAlignments, setSelectedAlignments] = useState(() =>
@@ -167,6 +168,41 @@ export default function PremiumHomePage() {
       cancelled = true;
     };
   }, [router]);
+
+  const refreshQuestions = async () => {
+    try {
+      setQuestionRefreshing(true);
+      const idToken = localStorage.getItem('idToken');
+      if (!idToken) {
+        router.push('/login');
+        return;
+      }
+
+      const questData = await questUserApi.getMyContents(idToken, { noStore: true });
+      const assignments = questData?.contents || [];
+
+      const mappedQuestions = assignments.map((quest, index) => {
+        const content = quest?.content || {};
+        return {
+          id: quest.assignmentId || `${index}`,
+          assignmentId: quest.assignmentId,
+          number: `Q${index + 1}`,
+          title: content.title || content.question || content.description || '제목 없음',
+          status: mapQuestStatus(quest),
+          hasFeedback: Boolean(quest?.feedbackCount),
+          questionItems: (content.contentItems || []).filter(
+            (item) => item?.type === 'question_subjective' || item?.type === 'question_objective'
+          ),
+        };
+      });
+
+      setQuestions(mappedQuestions);
+    } catch (error) {
+      console.error('Failed to refresh questions:', error);
+    } finally {
+      setQuestionRefreshing(false);
+    }
+  };
 
   const goToQuestDetail = (assignmentId) => {
     if (!assignmentId) return;
@@ -297,6 +333,14 @@ export default function PremiumHomePage() {
               </div>
               <div className="text-xs text-[#6B6662]">나다움을 찾기 위한 질문들</div>
             </div>
+            <button
+              type="button"
+              onClick={refreshQuestions}
+              disabled={questionRefreshing}
+              className="text-[11px] px-2.5 py-1.5 rounded-lg border border-[#D8D1CB] bg-white/80 text-[#6B6662] disabled:opacity-50"
+            >
+              {questionRefreshing ? '조회 중...' : '질문조회새로고침'}
+            </button>
           </div>
 
           <div className="flex flex-col p-2.5 pb-3 gap-2">
