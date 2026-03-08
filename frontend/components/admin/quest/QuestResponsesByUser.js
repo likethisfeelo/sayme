@@ -47,6 +47,20 @@ const resolveObjectiveAnswer = (responseItem, questionItem) => {
 };
 
 
+const prettifyAnswerText = (answer) => {
+  if (!answer) return '';
+  const parsed = tryParseJson(answer);
+
+  if (typeof parsed === 'string') return parsed;
+  if (Array.isArray(parsed)) return parsed.join(', ');
+
+  if (parsed && typeof parsed === 'object') {
+    return parsed.answer || parsed.value || parsed.text || parsed.response || JSON.stringify(parsed);
+  }
+
+  return String(parsed);
+};
+
 const getResponseDisplayText = (responseItem, questionItem) => {
   if (!responseItem) return '응답 없음';
 
@@ -55,7 +69,7 @@ const getResponseDisplayText = (responseItem, questionItem) => {
     if (resolvedObjectiveAnswer) return resolvedObjectiveAnswer;
   }
 
-  if (responseItem.answer) return responseItem.answer;
+  if (responseItem.answer) return prettifyAnswerText(responseItem.answer);
   if (responseItem.read) return '읽음';
   if (responseItem.watched) return '시청 완료';
   return '응답 없음';
@@ -96,20 +110,54 @@ const normalizeResponseEntry = (item, index, objectKey) => {
 
 
 
-const unwrapResponseCandidate = (candidate) => {
-  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+const tryParseJson = (value) => {
+  if (typeof value !== 'string') return value;
+
+  const trimmed = value.trim();
+  if (!trimmed) return value;
+
+  if (!['{', '['].includes(trimmed[0])) return value;
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+};
+
+const unwrapResponseCandidate = (candidate, depth = 0) => {
+  if (depth > 4 || candidate === null || candidate === undefined) {
     return candidate;
   }
 
-  const nestedCandidates = [
-    candidate.responses,
-    candidate.response,
-    candidate.answers,
-    candidate.answer,
-  ];
+  const parsedCandidate = tryParseJson(candidate);
 
-  const nested = nestedCandidates.find((value) => value !== undefined && value !== null);
-  return nested ?? candidate;
+  if (Array.isArray(parsedCandidate)) {
+    return parsedCandidate;
+  }
+
+  if (!parsedCandidate || typeof parsedCandidate !== 'object') {
+    return parsedCandidate;
+  }
+
+  const nestedCandidates = [
+    parsedCandidate.responses,
+    parsedCandidate.response,
+    parsedCandidate.answers,
+    parsedCandidate.answer,
+    parsedCandidate.data,
+    parsedCandidate.payload,
+    parsedCandidate.result,
+  ].filter((value) => value !== undefined && value !== null);
+
+  for (const nested of nestedCandidates) {
+    const unwrapped = unwrapResponseCandidate(nested, depth + 1);
+    if (hasMeaningfulResponseCandidate(unwrapped)) {
+      return unwrapped;
+    }
+  }
+
+  return parsedCandidate;
 };
 
 const hasMeaningfulResponseCandidate = (candidate) => {
