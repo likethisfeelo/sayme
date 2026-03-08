@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { questUserApi } from '@/lib/api/quest';
 import Header from '../components/Header';
+import { resolveAssignmentProgressStatus } from '@/lib/questStatus';
 
-const mapQuestStatus = (status) => {
+const mapQuestStatus = (assignment) => {
+  const status = resolveAssignmentProgressStatus(assignment);
   if (status === 'completed') return 'completed';
   if (status === 'in_progress') return 'active';
   return 'active';
@@ -66,7 +68,7 @@ export default function QuestPage() {
           questId: quest.assignmentId || `${index}`,
           title: content.title || content.question || content.description || '제목 없음',
           description: content.description || content.question || '',
-          status: mapQuestStatus(quest?.progress?.status),
+          status: mapQuestStatus(quest),
           progress: quest?.progress?.percent,
           reward: content.reward,
           assignedAt: quest?.assignedAt,
@@ -199,7 +201,8 @@ export default function QuestPage() {
                   key={quest.questId || index}
                   onClick={() => {
                     sessionStorage.setItem('activeQuestAssignmentId', quest.questId);
-                    router.push(`/quest/detail?id=${quest.questId}`);
+                    const isCompleted = quest.status === 'completed';
+                    router.push(`/quest/detail?id=${quest.questId}${isCompleted ? '&mode=readonly' : ''}`);
                   }}
                   className="w-full text-left transition-all hover:scale-[1.02] cursor-pointer"
                 >
