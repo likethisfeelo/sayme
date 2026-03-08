@@ -30,7 +30,37 @@ const normalizeResponses = (assignment) => {
     if (!candidate) continue;
 
     if (Array.isArray(candidate)) {
-      return candidate;
+      return candidate.map((item, index) => {
+        if (item && typeof item === 'object') {
+          return {
+            itemIndex: item.itemIndex ?? item.index ?? index,
+            answer: item.answer ?? item.value ?? item.text ?? item.response ?? item.selectedOption ?? '',
+            read: item.read,
+            watched: item.watched,
+          };
+        }
+
+        return {
+          itemIndex: index,
+          answer: typeof item === 'string' ? item : JSON.stringify(item),
+        };
+      });
+    }
+
+    if (typeof candidate === 'string') {
+      try {
+        const parsed = JSON.parse(candidate);
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && typeof parsed === 'object') {
+          return Object.entries(parsed).map(([itemIndex, answer]) => ({
+            itemIndex: Number(itemIndex),
+            answer: typeof answer === 'string' ? answer : JSON.stringify(answer),
+          }));
+        }
+      } catch {
+        // 문자열이 JSON이 아니면 응답 본문 텍스트로 취급
+        return [{ itemIndex: 0, answer: candidate }];
+      }
     }
 
     if (typeof candidate === 'string') {
@@ -50,10 +80,21 @@ const normalizeResponses = (assignment) => {
     }
 
     if (typeof candidate === 'object') {
-      return Object.entries(candidate).map(([itemIndex, answer]) => ({
-        itemIndex: Number(itemIndex),
-        answer: typeof answer === 'string' ? answer : JSON.stringify(answer),
-      }));
+      return Object.entries(candidate).map(([itemIndex, answer]) => {
+        if (answer && typeof answer === 'object' && !Array.isArray(answer)) {
+          return {
+            itemIndex: Number(itemIndex),
+            answer: answer.answer ?? answer.value ?? answer.text ?? answer.response ?? JSON.stringify(answer),
+            read: answer.read,
+            watched: answer.watched,
+          };
+        }
+
+        return {
+          itemIndex: Number(itemIndex),
+          answer: typeof answer === 'string' ? answer : JSON.stringify(answer),
+        };
+      });
     }
   }
 
@@ -76,6 +117,7 @@ export default function QuestResponsesByUser() {
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedAltUserId, setSelectedAltUserId] = useState('');
+  const [selectedExtraUserIds, setSelectedExtraUserIds] = useState('');
   const [assignments, setAssignments] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingResponses, setLoadingResponses] = useState(false);
@@ -101,7 +143,7 @@ export default function QuestResponsesByUser() {
     loadUsers();
   }, []);
 
-  const loadUserResponses = async (userId, altUserId = '') => {
+  const loadUserResponses = async (userId, altUserId = '', extraUserIds = '') => {
     if (!userId) {
       setAssignments([]);
       setLastLoadedAt(null);
@@ -112,6 +154,7 @@ export default function QuestResponsesByUser() {
     try {
       const query = new URLSearchParams({ includeResponses: 'true' });
       if (altUserId) query.set('altUserId', altUserId);
+      if (extraUserIds) query.set('extraUserIds', extraUserIds);
 
       const response = await fetch(`${API_BASE_URL}/quest/admin/assignments/user/${userId}?${query.toString()}`, {
         headers: getAuthHeaders(),
@@ -147,10 +190,14 @@ export default function QuestResponsesByUser() {
               const selected = users.find((user) => (user.sub || user.username) === event.target.value);
               const nextUserId = selected?.sub || selected?.username || '';
               const nextAltUserId = selected?.sub ? selected.username : '';
+              const nextExtraUserIds = [selected?.email, selected?.username, selected?.sub]
+                .filter(Boolean)
+                .join(',');
 
               setSelectedUserId(nextUserId);
               setSelectedAltUserId(nextAltUserId);
-              loadUserResponses(nextUserId, nextAltUserId);
+              setSelectedExtraUserIds(nextExtraUserIds);
+              loadUserResponses(nextUserId, nextAltUserId, nextExtraUserIds);
             }}
             className="w-full min-w-[320px] border rounded px-3 py-2"
             disabled={loadingUsers}
@@ -166,7 +213,7 @@ export default function QuestResponsesByUser() {
 
         <button
           type="button"
-          onClick={() => loadUserResponses(selectedUserId, selectedAltUserId)}
+          onClick={() => loadUserResponses(selectedUserId, selectedAltUserId, selectedExtraUserIds)}
           disabled={!selectedUserId || loadingResponses}
           className="px-4 py-2 rounded bg-gray-800 text-white disabled:opacity-50"
         >

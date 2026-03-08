@@ -42,6 +42,10 @@ exports.handler = async (event) => {
     const requestedUserId = event.pathParameters?.userId;
     const includeResponses = event.queryStringParameters?.includeResponses === 'true';
     const alternateUserId = event.queryStringParameters?.altUserId;
+    const extraUserIds = (event.queryStringParameters?.extraUserIds || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
 
     if (!requestedUserId) {
       return {
@@ -96,7 +100,8 @@ exports.handler = async (event) => {
         const candidateUserIds = [...new Set([
           resolvedAssignmentUserId,
           requestedUserId,
-          alternateUserId
+          alternateUserId,
+          ...extraUserIds
         ].filter(Boolean))];
 
         const queriedResponses = await Promise.all(
@@ -128,7 +133,12 @@ exports.handler = async (event) => {
         });
       });
 
-      const responseUserPriority = [resolvedAssignmentUserId, requestedUserId, alternateUserId].filter(Boolean);
+      const responseUserPriority = [
+        resolvedAssignmentUserId,
+        requestedUserId,
+        alternateUserId,
+        ...extraUserIds
+      ].filter(Boolean);
 
       // 할당에 원본 콘텐츠 정보 추가
       const enrichedAssignments = assignments.map((assignment) => {
@@ -163,6 +173,7 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           requestedUserId,
           resolvedAssignmentUserId,
+          candidateUserIds: includeResponses ? [...new Set(responseUserPriority)] : [],
           assignments: enrichedAssignments,
           count: enrichedAssignments.length
         })
@@ -179,6 +190,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         requestedUserId,
         resolvedAssignmentUserId,
+        candidateUserIds: [],
         assignments: [],
         count: 0
       })
