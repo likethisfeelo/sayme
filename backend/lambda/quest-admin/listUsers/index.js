@@ -17,7 +17,7 @@ exports.handler = async (event) => {
       sub: user.userId,
       username: user.username,
       email: user.email,
-      name: user.name || user.email.split('@')[0],
+      name: user.name || (user.email ? user.email.split('@')[0] : ''),
       nickname: user.nickname
     }));
 
