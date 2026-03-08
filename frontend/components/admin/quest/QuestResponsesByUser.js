@@ -14,8 +14,52 @@ const getAuthHeaders = () => {
 
 const QUESTION_TYPES = new Set(['question_subjective', 'question_objective']);
 
+const QUESTION_TYPE_LABEL = {
+  question_subjective: '주관식',
+  question_objective: '객관식',
+};
+
 const getAssignmentKey = (assignment) =>
   assignment?.contentId || assignment?.sourceContentId || assignment?.assignmentId || '';
+
+const formatQuestionTypeLabel = (type) => QUESTION_TYPE_LABEL[type] || type || '기타';
+
+const resolveObjectiveAnswer = (responseItem, questionItem) => {
+  const options = Array.isArray(questionItem?.options) ? questionItem.options : [];
+  if (options.length === 0) return responseItem.answer;
+
+  const indexCandidates = [
+    responseItem?.selectedOptionIndex,
+    responseItem?.optionIndex,
+    typeof responseItem?.answer === 'number' ? responseItem.answer : null,
+    typeof responseItem?.answer === 'string' && /^\d+$/.test(responseItem.answer.trim())
+      ? Number(responseItem.answer.trim())
+      : null,
+  ].filter((value) => Number.isInteger(value));
+
+  for (const index of indexCandidates) {
+    if (index >= 0 && index < options.length) {
+      return options[index];
+    }
+  }
+
+  return responseItem.answer;
+};
+
+
+const getResponseDisplayText = (responseItem, questionItem) => {
+  if (!responseItem) return '응답 없음';
+
+  if (questionItem?.type === 'question_objective') {
+    const resolvedObjectiveAnswer = resolveObjectiveAnswer(responseItem, questionItem);
+    if (resolvedObjectiveAnswer) return resolvedObjectiveAnswer;
+  }
+
+  if (responseItem.answer) return responseItem.answer;
+  if (responseItem.read) return '읽음';
+  if (responseItem.watched) return '시청 완료';
+  return '응답 없음';
+};
 
 const normalizeResponses = (assignment) => {
   const candidates = [
@@ -39,6 +83,8 @@ const normalizeResponses = (assignment) => {
           return {
             itemIndex: item.itemIndex ?? item.index ?? index,
             answer: item.answer ?? item.value ?? item.text ?? item.response ?? item.selectedOption ?? '',
+            selectedOptionIndex: item.selectedOptionIndex ?? item.optionIndex,
+            selectedOptionId: item.selectedOptionId,
             read: item.read,
             watched: item.watched,
           };
@@ -73,6 +119,8 @@ const normalizeResponses = (assignment) => {
           return {
             itemIndex: Number(itemIndex),
             answer: answer.answer ?? answer.value ?? answer.text ?? answer.response ?? JSON.stringify(answer),
+            selectedOptionIndex: answer.selectedOptionIndex ?? answer.optionIndex,
+            selectedOptionId: answer.selectedOptionId,
             read: answer.read,
             watched: answer.watched,
           };
@@ -98,7 +146,13 @@ const normalizeQuestionItems = (assignment) => {
   ];
 
   const items = candidates.find((candidate) => Array.isArray(candidate)) || [];
-  return items.filter((item) => QUESTION_TYPES.has(item?.type));
+
+  return items
+    .map((item, index) => ({
+      ...item,
+      itemIndex: item?.itemIndex ?? index,
+    }))
+    .filter((item) => QUESTION_TYPES.has(item?.type));
 };
 
 export default function QuestResponsesByUser() {
@@ -282,6 +336,7 @@ export default function QuestResponsesByUser() {
             }
 
             const questionItems = normalizeQuestionItems(assignment);
+            const questionMap = new Map(questionItems.map((item) => [item.itemIndex, item]));
             const responses = normalizeResponses(assignment);
 
             return (
@@ -322,8 +377,23 @@ export default function QuestResponsesByUser() {
                     ) : (
                       <ul className="space-y-2 text-sm">
                         {questionItems.map((item, itemIndex) => (
-                          <li key={`${assignment.contentId}-q-${itemIndex}`}>
-                            <span className="font-semibold">Q{itemIndex + 1}.</span> {item.question || '질문 없음'}
+                          <li key={`${assignment.contentId}-q-${itemIndex}`} className="rounded border bg-white p-2">
+                            <div className="mb-1 flex items-center gap-2">
+                              <span className="font-semibold">Q{itemIndex + 1}.</span>
+                              <span className="rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">
+                                {formatQuestionTypeLabel(item.type)}
+                              </span>
+                            </div>
+                            <p>{item.question || '질문 없음'}</p>
+                            {item.type === 'question_objective' && (
+                              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-gray-600">
+                                {(item.options || []).map((option, optionIndex) => (
+                                  <li key={`${assignment.contentId}-q-${itemIndex}-o-${optionIndex}`}>
+                                    {optionIndex + 1}. {option}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
                           </li>
                         ))}
                       </ul>
@@ -332,17 +402,43 @@ export default function QuestResponsesByUser() {
 
                   <div className="border rounded p-3 bg-gray-50">
                     <h3 className="font-semibold mb-2">사용자 응답</h3>
-                    {responses.length === 0 ? (
-                      <p className="text-sm text-gray-500">아직 응답이 없습니다.</p>
+                    {questionItems.length === 0 ? (
+                      <p className="text-sm text-gray-500">질문 데이터가 없습니다.</p>
                     ) : (
                       <ul className="space-y-2 text-sm">
+                        {questionItems.map((questionItem, questionIndex) => {
+                          const responseItem = responses.find(
+                            (candidate) => Number(candidate.itemIndex) === Number(questionItem.itemIndex)
+                          );
+                          const answerText = getResponseDisplayText(responseItem, questionItem);
+                          const isNoResponse = answerText === '응답 없음';
+
+                          return (
+                            <li key={`${assignment.assignmentId}-response-by-question-${questionIndex}`} className="rounded border bg-white p-2">
+                              <div className="mb-1 flex items-center gap-2">
+                                <span className="font-semibold">Q{questionIndex + 1}.</span>
+                                {questionItem?.type && (
+                                  <span className="rounded bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">
+                                    {formatQuestionTypeLabel(questionItem.type)}
+                                  </span>
+                                )}
+                                {isNoResponse && (
+                                  <span className="rounded bg-red-100 px-2 py-0.5 text-xs text-red-700">응답 없음</span>
+                                )}
+                              </div>
+                              <p className={isNoResponse ? 'text-sm text-red-600' : ''}>{answerText}</p>
+                            </li>
+                          );
+                        })}
+
                         {responses
-                          .slice()
-                          .sort((a, b) => (a.itemIndex || 0) - (b.itemIndex || 0))
-                          .map((responseItem, responseIndex) => (
-                            <li key={`${assignment.assignmentId}-r-${responseIndex}`}>
-                              <span className="font-semibold">Q{(responseItem.itemIndex || 0) + 1}.</span>{' '}
-                              {responseItem.answer || (responseItem.read ? '읽음' : responseItem.watched ? '시청 완료' : '응답 없음')}
+                          .filter((responseItem) => !questionMap.has(Number(responseItem.itemIndex)))
+                          .map((responseItem, extraIndex) => (
+                            <li key={`${assignment.assignmentId}-orphan-response-${extraIndex}`} className="rounded border border-amber-200 bg-amber-50 p-2">
+                              <div className="mb-1 text-xs text-amber-700">질문 매핑 실패 응답</div>
+                              <p>
+                                Q{(responseItem.itemIndex || 0) + 1}. {getResponseDisplayText(responseItem)}
+                              </p>
                             </li>
                           ))}
                       </ul>
