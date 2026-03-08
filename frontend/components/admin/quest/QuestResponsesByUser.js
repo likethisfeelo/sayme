@@ -95,6 +95,23 @@ const normalizeResponseEntry = (item, index, objectKey) => {
 };
 
 
+
+const unwrapResponseCandidate = (candidate) => {
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    return candidate;
+  }
+
+  const nestedCandidates = [
+    candidate.responses,
+    candidate.response,
+    candidate.answers,
+    candidate.answer,
+  ];
+
+  const nested = nestedCandidates.find((value) => value !== undefined && value !== null);
+  return nested ?? candidate;
+};
+
 const hasMeaningfulResponseCandidate = (candidate) => {
   if (candidate === null || candidate === undefined) return false;
 
@@ -128,15 +145,16 @@ const normalizeResponses = (assignment) => {
   ];
 
   for (const candidate of candidates) {
-    if (!hasMeaningfulResponseCandidate(candidate)) continue;
+    const normalizedCandidate = unwrapResponseCandidate(candidate);
+    if (!hasMeaningfulResponseCandidate(normalizedCandidate)) continue;
 
-    if (Array.isArray(candidate)) {
-      return candidate.map((item, index) => normalizeResponseEntry(item, index));
+    if (Array.isArray(normalizedCandidate)) {
+      return normalizedCandidate.map((item, index) => normalizeResponseEntry(item, index));
     }
 
-    if (typeof candidate === 'string') {
+    if (typeof normalizedCandidate === 'string') {
       try {
-        const parsed = JSON.parse(candidate);
+        const parsed = JSON.parse(normalizedCandidate);
         if (Array.isArray(parsed)) {
           return parsed.map((item, index) => normalizeResponseEntry(item, index));
         }
@@ -148,12 +166,12 @@ const normalizeResponses = (assignment) => {
         }
       } catch {
         // 문자열이 JSON이 아니면 응답 본문 텍스트로 취급
-        return [{ itemIndex: 0, answer: candidate }];
+        return [{ itemIndex: 0, answer: normalizedCandidate }];
       }
     }
 
-    if (typeof candidate === 'object') {
-      return Object.entries(candidate).map(([itemIndex, answer], index) =>
+    if (typeof normalizedCandidate === 'object') {
+      return Object.entries(normalizedCandidate).map(([itemIndex, answer], index) =>
         normalizeResponseEntry(answer, index, itemIndex)
       );
     }
