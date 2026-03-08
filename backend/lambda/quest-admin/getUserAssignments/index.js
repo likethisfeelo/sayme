@@ -63,10 +63,15 @@ exports.handler = async (event) => {
       }
 
       // includeResponses=true 인 경우 사용자 응답도 함께 조회
+      // - 현재는 assignment.contentId 기준 저장이 표준
+      // - 과거/예외 데이터는 sourceContentId 기준으로 저장된 경우가 있어 함께 조회
       if (includeResponses) {
-        const assignmentContentIds = [...new Set(assignments.map((assignment) => assignment.contentId).filter(Boolean))];
+        const responseContentIds = [...new Set([
+          ...assignments.map((assignment) => assignment.contentId),
+          ...assignments.map((assignment) => assignment.sourceContentId)
+        ].filter(Boolean))];
 
-        if (assignmentContentIds.length > 0) {
+        if (responseContentIds.length > 0) {
           const candidateUserIds = [...new Set([
             resolvedAssignmentUserId,
             requestedUserId,
@@ -75,7 +80,7 @@ exports.handler = async (event) => {
 
           const responseKeys = [];
           candidateUserIds.forEach((candidateUserId) => {
-            assignmentContentIds.forEach((contentId) => {
+            responseContentIds.forEach((contentId) => {
               responseKeys.push({ userId: candidateUserId, contentId });
             });
           });
@@ -113,9 +118,16 @@ exports.handler = async (event) => {
 
       // 할당에 원본 콘텐츠 정보 추가
       const enrichedAssignments = assignments.map((assignment) => {
-        const matchedResponse = responseUserPriority
-          .map((candidateUserId) => responseMap[`${assignment.contentId}::${candidateUserId}`])
-          .find(Boolean);
+        const candidateContentIds = [assignment.contentId, assignment.sourceContentId].filter(Boolean);
+        let matchedResponse = null;
+
+        for (const candidateUserId of responseUserPriority) {
+          matchedResponse = candidateContentIds
+            .map((candidateContentId) => responseMap[`${candidateContentId}::${candidateUserId}`])
+            .find(Boolean);
+
+          if (matchedResponse) break;
+        }
 
         return {
           ...assignment,
