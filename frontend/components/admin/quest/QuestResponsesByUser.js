@@ -4,12 +4,36 @@ import { useEffect, useState } from 'react';
 
 const API_BASE_URL = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 
-const getAuthHeaders = () => {
+const getAuthHeaders = (useBearer = false) => {
   const idToken = localStorage.getItem('idToken');
   return {
     'Content-Type': 'application/json',
-    ...(idToken && { Authorization: idToken }),
+    ...(idToken && { Authorization: useBearer ? `Bearer ${idToken}` : idToken }),
   };
+};
+
+const fetchWithAuthRetry = async (url, options = {}) => {
+  const baseOptions = {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...getAuthHeaders(false),
+    },
+  };
+
+  let response = await fetch(url, baseOptions);
+
+  if (response.status === 401) {
+    response = await fetch(url, {
+      ...baseOptions,
+      headers: {
+        ...(options.headers || {}),
+        ...getAuthHeaders(true),
+      },
+    });
+  }
+
+  return response;
 };
 
 const QUESTION_TYPES = new Set(['question_subjective', 'question_objective']);
@@ -305,9 +329,7 @@ export default function QuestResponsesByUser() {
     const loadUsers = async () => {
       setLoadingUsers(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/quest/admin/users/premium`, {
-          headers: getAuthHeaders(),
-        });
+        const response = await fetchWithAuthRetry(`${API_BASE_URL}/quest/admin/users/premium`);
         const data = await response.json();
         setUsers(data.users || []);
       } catch (error) {
@@ -336,13 +358,15 @@ export default function QuestResponsesByUser() {
       if (extraUserIds) query.set('extraUserIds', extraUserIds);
       if (assignmentId) query.set('assignmentId', assignmentId);
 
-      const response = await fetch(`${API_BASE_URL}/quest/admin/assignments/user/${userId}?${query.toString()}`, {
-        headers: getAuthHeaders(),
+      const response = await fetchWithAuthRetry(`${API_BASE_URL}/quest/admin/assignments/user/${userId}?${query.toString()}`, {
         cache: 'no-store',
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+        const message = response.status === 401
+          ? '인증이 만료되었거나 권한이 없습니다. 다시 로그인 후 시도해주세요.'
+          : `HTTP ${response.status}`;
+        throw new Error(message);
       }
 
       const data = await response.json();
@@ -356,7 +380,7 @@ export default function QuestResponsesByUser() {
       setLastLoadedAt(new Date());
     } catch (error) {
       console.error('Failed to load user assignments:', error);
-      setErrorMessage('사용자별 질문/응답 조회에 실패했습니다. 사용자 ID 매핑과 할당 데이터 상태를 확인해주세요.');
+      setErrorMessage(`사용자별 질문/응답 조회에 실패했습니다. ${error.message || ''}`.trim());
     } finally {
       setLoadingResponses(false);
     }
