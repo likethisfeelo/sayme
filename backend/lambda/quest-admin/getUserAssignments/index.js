@@ -20,6 +20,21 @@ const queryAssignmentsByUserId = async (userId) => {
   return assignmentResult.Items || [];
 };
 
+const queryResponsesByUserId = async (userId) => {
+  if (!userId) return [];
+
+  const command = new QueryCommand({
+    TableName: 'Quest_UserResponse',
+    KeyConditionExpression: 'userId = :userId',
+    ExpressionAttributeValues: {
+      ':userId': userId
+    }
+  });
+
+  const result = await docClient.send(command);
+  return result.Items || [];
+};
+
 exports.handler = async (event) => {
   console.log('Received event:', JSON.stringify(event, null, 2));
 
@@ -63,32 +78,9 @@ exports.handler = async (event) => {
       }
 
       // includeResponses=true 인 경우 사용자 응답도 함께 조회
-      // - 현재는 assignment.contentId 기준 저장이 표준
-      // - 과거/예외 데이터는 sourceContentId 기준으로 저장된 경우가 있어 함께 조회
+      // 응답은 키 추정(BatchGet)보다 사용자 파티션 Query가 누락 가능성이 낮아 우선 사용
       if (includeResponses) {
-        const responseContentIds = [...new Set([
-          ...assignments.map((assignment) => assignment.contentId),
-          ...assignments.map((assignment) => assignment.sourceContentId)
-        ].filter(Boolean))];
-
-        if (responseContentIds.length > 0) {
-          const candidateUserIds = [...new Set([
-            resolvedAssignmentUserId,
-            requestedUserId,
-            alternateUserId
-          ].filter(Boolean))];
-
-          const responseKeys = [];
-          candidateUserIds.forEach((candidateUserId) => {
-            responseContentIds.forEach((contentId) => {
-              responseKeys.push({ userId: candidateUserId, contentId });
-            });
-          });
-
-          requestItems.Quest_UserResponse = {
-            Keys: responseKeys
-          };
-        }
+        // no-op: responses are fetched below via Query by userId
       }
 
       let contents = [];
@@ -98,7 +90,20 @@ exports.handler = async (event) => {
         const batchGetCommand = new BatchGetCommand({ RequestItems: requestItems });
         const batchResult = await docClient.send(batchGetCommand);
         contents = batchResult.Responses?.Quest_ContentLibrary || [];
-        responses = batchResult.Responses?.Quest_UserResponse || [];
+      }
+
+      if (includeResponses) {
+        const candidateUserIds = [...new Set([
+          resolvedAssignmentUserId,
+          requestedUserId,
+          alternateUserId
+        ].filter(Boolean))];
+
+        const queriedResponses = await Promise.all(
+          candidateUserIds.map((candidateUserId) => queryResponsesByUserId(candidateUserId))
+        );
+
+        responses = queriedResponses.flat();
       }
 
       // 콘텐츠 정보를 매핑
@@ -110,8 +115,17 @@ exports.handler = async (event) => {
       // 응답 정보를 contentId + userId 단위로 매핑
       const responseMap = {};
       responses.forEach((response) => {
-        if (!response.contentId || !response.userId) return;
-        responseMap[`${response.contentId}::${response.userId}`] = response;
+        if (!response.userId) return;
+
+        const responseContentIdCandidates = [
+          response.contentId,
+          response.assignmentId,
+          response.sourceContentId
+        ].filter(Boolean);
+
+        responseContentIdCandidates.forEach((candidateContentId) => {
+          responseMap[`${candidateContentId}::${response.userId}`] = response;
+        });
       });
 
       const responseUserPriority = [resolvedAssignmentUserId, requestedUserId, alternateUserId].filter(Boolean);

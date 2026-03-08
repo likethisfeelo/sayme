@@ -19,7 +19,9 @@ const normalizeResponses = (assignment) => {
     assignment?.progress?.responses,
     assignment?.progress?.answers,
     assignment?.userResponse?.responses,
+    assignment?.userResponse?.response,
     assignment?.response?.responses,
+    assignment?.response,
     assignment?.responses,
     assignment?.answers,
   ];
@@ -29,6 +31,22 @@ const normalizeResponses = (assignment) => {
 
     if (Array.isArray(candidate)) {
       return candidate;
+    }
+
+    if (typeof candidate === 'string') {
+      try {
+        const parsed = JSON.parse(candidate);
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && typeof parsed === 'object') {
+          return Object.entries(parsed).map(([itemIndex, answer]) => ({
+            itemIndex: Number(itemIndex),
+            answer: typeof answer === 'string' ? answer : JSON.stringify(answer),
+          }));
+        }
+      } catch {
+        // 문자열이 JSON이 아니면 응답 본문 텍스트로 취급
+        return [{ itemIndex: 0, answer: candidate }];
+      }
     }
 
     if (typeof candidate === 'object') {
