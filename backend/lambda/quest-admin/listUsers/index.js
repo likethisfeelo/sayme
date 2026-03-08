@@ -14,6 +14,7 @@ exports.handler = async (event) => {
     }));
 
     const users = (result.Items || []).map(user => ({
+      sub: user.userId,
       username: user.username,
       email: user.email,
       name: user.name || user.email.split('@')[0],
