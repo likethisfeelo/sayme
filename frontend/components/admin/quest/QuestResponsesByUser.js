@@ -291,6 +291,69 @@ const normalizeQuestionItems = (assignment) => {
     .filter((item) => QUESTION_TYPES.has(item?.type));
 };
 
+const getAssignmentMonth = (assignment) => {
+  const dateStr = assignment?.assignedAt || assignment?.createdAt || '';
+  if (!dateStr) return '';
+  const match = dateStr.match(/^(\d{4}-\d{2})/);
+  return match ? match[1] : '';
+};
+
+const STATUS_LABEL = {
+  completed: '완료',
+  in_progress: '진행 중',
+  not_started: '미시작',
+  waiting: '대기',
+  active: '활성',
+};
+
+const formatStatusLabel = (status) => STATUS_LABEL[status] || status || '대기';
+
+const CIRCLED_NUMBERS = ['①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩'];
+
+const buildReportText = (visibleAssignments, userName, month) => {
+  const today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });
+  const monthLabel = month ? `${month.replace('-', '년 ')}월` : '전체';
+
+  const lines = [
+    `[${userName}] 월간 질문·응답 (${monthLabel})`,
+    `작성일: ${today}`,
+    '='.repeat(50),
+  ];
+
+  visibleAssignments.forEach((assignment, assignIdx) => {
+    const title = assignment.sourceContent?.title || assignment.content?.title || '제목 없음';
+    const status = assignment.progress?.status || assignment.status || 'waiting';
+    const questionItems = normalizeQuestionItems(assignment);
+    const responses = normalizeResponses(assignment);
+
+    lines.push('');
+    lines.push(`${assignIdx + 1}. ${title} [${formatStatusLabel(status)}]`);
+
+    if (questionItems.length === 0) {
+      lines.push('   (질문 데이터 없음)');
+    } else {
+      questionItems.forEach((questionItem, questionIndex) => {
+        const typeLabel = formatQuestionTypeLabel(questionItem.type);
+        lines.push('');
+        lines.push(`   Q${questionIndex + 1}. [${typeLabel}] ${questionItem.question || '질문 없음'}`);
+
+        if (questionItem.type === 'question_objective' && Array.isArray(questionItem.options)) {
+          const optionLine = questionItem.options
+            .map((option, idx) => `${CIRCLED_NUMBERS[idx] || `${idx + 1}.`} ${option}`)
+            .join('  ');
+          lines.push(`       ${optionLine}`);
+        }
+
+        const responseItem = findResponseForQuestion(responses, questionItem, questionIndex);
+        const answerText = getResponseDisplayText(responseItem, questionItem);
+        lines.push(`   A: ${answerText}`);
+      });
+    }
+  });
+
+  return lines.join('\n');
+};
+
 export default function QuestResponsesByUser() {
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
@@ -302,6 +365,8 @@ export default function QuestResponsesByUser() {
   const [errorMessage, setErrorMessage] = useState('');
   const [lastLoadedAt, setLastLoadedAt] = useState(null);
   const [selectedAssignmentKey, setSelectedAssignmentKey] = useState('');
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [showAll, setShowAll] = useState(false);
 
   const copyJsonToClipboard = async (payload) => {
     try {
@@ -323,6 +388,19 @@ export default function QuestResponsesByUser() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+  };
+
+  const copyReportText = async (visibleAssignments) => {
+    const selectedUser = users.find((user) => (user.sub || user.username) === selectedUserId);
+    const userName = selectedUser?.name || selectedUser?.username || selectedUserId;
+    const text = buildReportText(visibleAssignments, userName, selectedMonth);
+    try {
+      await navigator.clipboard.writeText(text);
+      alert('보고서 텍스트를 클립보드에 복사했습니다.');
+    } catch (error) {
+      console.error('Failed to copy report text:', error);
+      alert('복사에 실패했습니다.');
+    }
   };
 
   useEffect(() => {
@@ -386,13 +464,33 @@ export default function QuestResponsesByUser() {
     }
   };
 
+  // 월 목록 추출
+  const availableMonths = [...new Set(
+    assignments
+      .map(getAssignmentMonth)
+      .filter(Boolean)
+  )].sort().reverse();
+
+  // 월 필터 적용
+  const monthFilteredAssignments = selectedMonth
+    ? assignments.filter((a) => getAssignmentMonth(a) === selectedMonth)
+    : assignments;
+
+  // 표시할 할당 목록
+  const visibleAssignments = showAll
+    ? monthFilteredAssignments
+    : monthFilteredAssignments.filter((a) =>
+        !selectedAssignmentKey || getAssignmentKey(a) === selectedAssignmentKey
+      );
+
   return (
     <div className="p-8">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">사용자별 질문 · 응답 조회</h1>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-3 items-end">
+      {/* 사용자 선택 */}
+      <div className="mb-4 flex flex-wrap gap-3 items-end">
         <div>
           <label className="block text-sm font-medium mb-2">사용자 선택</label>
           <select
@@ -408,6 +506,7 @@ export default function QuestResponsesByUser() {
               setSelectedUserId(nextUserId);
               setSelectedAltUserId(nextAltUserId);
               setSelectedExtraUserIds(nextExtraUserIds);
+              setSelectedMonth('');
               loadUserResponses(nextUserId, nextAltUserId, nextExtraUserIds);
             }}
             className="w-full min-w-[320px] border rounded px-3 py-2"
@@ -432,6 +531,55 @@ export default function QuestResponsesByUser() {
         </button>
       </div>
 
+      {/* 월 필터 + 전체 보기 토글 */}
+      {assignments.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-3 items-end">
+          <div>
+            <label className="block text-sm font-medium mb-2">월 필터</label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => {
+                setSelectedMonth(e.target.value);
+                setSelectedAssignmentKey('');
+              }}
+              className="border rounded px-3 py-2 min-w-[160px]"
+            >
+              <option value="">전체 ({assignments.length}건)</option>
+              {availableMonths.map((month) => {
+                const count = assignments.filter((a) => getAssignmentMonth(a) === month).length;
+                return (
+                  <option key={month} value={month}>
+                    {month} ({count}건)
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowAll((prev) => !prev)}
+            className={`px-4 py-2 rounded border text-sm font-medium ${
+              showAll
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+            }`}
+          >
+            {showAll ? '한 건씩 보기' : '전체 보기'}
+          </button>
+
+          {showAll && monthFilteredAssignments.length > 0 && (
+            <button
+              type="button"
+              onClick={() => copyReportText(monthFilteredAssignments)}
+              className="px-4 py-2 rounded border text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700"
+            >
+              보고서 텍스트 복사
+            </button>
+          )}
+        </div>
+      )}
+
       {lastLoadedAt && (
         <p className="text-xs text-gray-500 mb-4">
           마지막 조회: {lastLoadedAt.toLocaleString('ko-KR')}
@@ -448,7 +596,8 @@ export default function QuestResponsesByUser() {
         <div className="text-gray-600">조회 중...</div>
       ) : (
         <div className="space-y-4">
-          {assignments.length > 0 && (
+          {/* 단건 보기 드롭다운 — showAll=false 일 때만 표시 */}
+          {!showAll && monthFilteredAssignments.length > 0 && (
             <div className="border rounded-lg p-3 bg-gray-50">
               <label className="block text-sm font-medium mb-2">질문(할당) 선택</label>
               <select
@@ -456,7 +605,7 @@ export default function QuestResponsesByUser() {
                 onChange={(event) => setSelectedAssignmentKey(event.target.value)}
                 className="w-full border rounded px-3 py-2"
               >
-                {assignments.map((assignment, index) => (
+                {monthFilteredAssignments.map((assignment, index) => (
                   <option key={assignment.assignmentId || assignment.contentId || index} value={getAssignmentKey(assignment)}>
                     {(assignment.sourceContent?.title || assignment.content?.title || `질문 ${index + 1}`)}
                   </option>
@@ -465,12 +614,9 @@ export default function QuestResponsesByUser() {
             </div>
           )}
 
-          {assignments.map((assignment, index) => {
+          {/* 할당 카드 목록 */}
+          {visibleAssignments.map((assignment, index) => {
             const assignmentKey = getAssignmentKey(assignment);
-            if (selectedAssignmentKey && assignmentKey !== selectedAssignmentKey) {
-              return null;
-            }
-
             const questionItems = normalizeQuestionItems(assignment);
             const questionMap = new Map(questionItems.map((item) => [toItemIndex(item.itemIndex, -1), item]));
             const responses = normalizeResponses(assignment);
@@ -479,8 +625,13 @@ export default function QuestResponsesByUser() {
               <div key={assignment.assignmentId || `${assignment.contentId}-${index}`} className="border rounded-lg p-4 bg-white">
                 <div className="mb-3 flex items-center justify-between gap-2">
                   <div>
-                  <h2 className="font-semibold text-lg">{assignment.sourceContent?.title || assignment.content?.title || '제목 없음'}</h2>
-                  <p className="text-sm text-gray-600">상태: {assignment.progress?.status || assignment.status || 'waiting'}</p>
+                    <h2 className="font-semibold text-lg">{assignment.sourceContent?.title || assignment.content?.title || '제목 없음'}</h2>
+                    <p className="text-sm text-gray-600">
+                      상태: {formatStatusLabel(assignment.progress?.status || assignment.status || 'waiting')}
+                      {getAssignmentMonth(assignment) && (
+                        <span className="ml-2 text-gray-400">({getAssignmentMonth(assignment)})</span>
+                      )}
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -583,15 +734,29 @@ export default function QuestResponsesByUser() {
             );
           })}
 
-          {selectedUserId && assignments.length === 0 && (
-            <div className="text-gray-500">선택한 사용자에게 할당된 질문이 없습니다.</div>
+          {selectedUserId && monthFilteredAssignments.length === 0 && (
+            <div className="text-gray-500">
+              {selectedMonth
+                ? `${selectedMonth}에 할당된 질문이 없습니다.`
+                : '선택한 사용자에게 할당된 질문이 없습니다.'}
+            </div>
           )}
 
-          {assignments.length > 0 && (
-            <div className="pt-2">
+          {/* 하단 액션 버튼 */}
+          {monthFilteredAssignments.length > 0 && (
+            <div className="pt-2 flex flex-wrap gap-2">
+              {showAll && (
+                <button
+                  type="button"
+                  onClick={() => copyReportText(monthFilteredAssignments)}
+                  className="text-xs px-3 py-1 rounded border bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                >
+                  보고서 텍스트 복사
+                </button>
+              )}
               <button
                 type="button"
-                onClick={() => downloadJson(assignments, `quest-responses-${selectedUserId}.json`)}
+                onClick={() => downloadJson(monthFilteredAssignments, `quest-responses-${selectedUserId}${selectedMonth ? `-${selectedMonth}` : ''}.json`)}
                 className="text-xs px-3 py-1 rounded border bg-gray-50 hover:bg-gray-100"
               >
                 전체 JSON 다운로드
