@@ -89,9 +89,10 @@ export const questAdminApi = {
 
 // User API 함수들
 export const questUserApi = {
-  getMyContents: async (token) => {
+  getMyContents: async (token, options = {}) => {
     const response = await fetch(`${API_BASE_URL}/quest/user/my-contents`, {
       headers: { 'Authorization': token },
+      ...(options?.noStore ? { cache: 'no-store' } : {}),
     });
     return response.json();
   },

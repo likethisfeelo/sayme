@@ -20,6 +20,21 @@ const queryAssignmentsByUserId = async (userId) => {
   return assignmentResult.Items || [];
 };
 
+const queryResponsesByUserId = async (userId) => {
+  if (!userId) return [];
+
+  const command = new QueryCommand({
+    TableName: 'Quest_UserResponse',
+    KeyConditionExpression: 'userId = :userId',
+    ExpressionAttributeValues: {
+      ':userId': userId
+    }
+  });
+
+  const result = await docClient.send(command);
+  return result.Items || [];
+};
+
 exports.handler = async (event) => {
   console.log('Received event:', JSON.stringify(event, null, 2));
 
@@ -27,6 +42,10 @@ exports.handler = async (event) => {
     const requestedUserId = event.pathParameters?.userId;
     const includeResponses = event.queryStringParameters?.includeResponses === 'true';
     const alternateUserId = event.queryStringParameters?.altUserId;
+    const extraUserIds = (event.queryStringParameters?.extraUserIds || '')
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
 
     if (!requestedUserId) {
       return {
@@ -63,27 +82,9 @@ exports.handler = async (event) => {
       }
 
       // includeResponses=true 인 경우 사용자 응답도 함께 조회
+      // 응답은 키 추정(BatchGet)보다 사용자 파티션 Query가 누락 가능성이 낮아 우선 사용
       if (includeResponses) {
-        const assignmentContentIds = [...new Set(assignments.map((assignment) => assignment.contentId).filter(Boolean))];
-
-        if (assignmentContentIds.length > 0) {
-          const candidateUserIds = [...new Set([
-            resolvedAssignmentUserId,
-            requestedUserId,
-            alternateUserId
-          ].filter(Boolean))];
-
-          const responseKeys = [];
-          candidateUserIds.forEach((candidateUserId) => {
-            assignmentContentIds.forEach((contentId) => {
-              responseKeys.push({ userId: candidateUserId, contentId });
-            });
-          });
-
-          requestItems.Quest_UserResponse = {
-            Keys: responseKeys
-          };
-        }
+        // no-op: responses are fetched below via Query by userId
       }
 
       let contents = [];
@@ -93,7 +94,21 @@ exports.handler = async (event) => {
         const batchGetCommand = new BatchGetCommand({ RequestItems: requestItems });
         const batchResult = await docClient.send(batchGetCommand);
         contents = batchResult.Responses?.Quest_ContentLibrary || [];
-        responses = batchResult.Responses?.Quest_UserResponse || [];
+      }
+
+      if (includeResponses) {
+        const candidateUserIds = [...new Set([
+          resolvedAssignmentUserId,
+          requestedUserId,
+          alternateUserId,
+          ...extraUserIds
+        ].filter(Boolean))];
+
+        const queriedResponses = await Promise.all(
+          candidateUserIds.map((candidateUserId) => queryResponsesByUserId(candidateUserId))
+        );
+
+        responses = queriedResponses.flat();
       }
 
       // 콘텐츠 정보를 매핑
@@ -105,17 +120,38 @@ exports.handler = async (event) => {
       // 응답 정보를 contentId + userId 단위로 매핑
       const responseMap = {};
       responses.forEach((response) => {
-        if (!response.contentId || !response.userId) return;
-        responseMap[`${response.contentId}::${response.userId}`] = response;
+        if (!response.userId) return;
+
+        const responseContentIdCandidates = [
+          response.contentId,
+          response.assignmentId,
+          response.sourceContentId
+        ].filter(Boolean);
+
+        responseContentIdCandidates.forEach((candidateContentId) => {
+          responseMap[`${candidateContentId}::${response.userId}`] = response;
+        });
       });
 
-      const responseUserPriority = [resolvedAssignmentUserId, requestedUserId, alternateUserId].filter(Boolean);
+      const responseUserPriority = [
+        resolvedAssignmentUserId,
+        requestedUserId,
+        alternateUserId,
+        ...extraUserIds
+      ].filter(Boolean);
 
       // 할당에 원본 콘텐츠 정보 추가
       const enrichedAssignments = assignments.map((assignment) => {
-        const matchedResponse = responseUserPriority
-          .map((candidateUserId) => responseMap[`${assignment.contentId}::${candidateUserId}`])
-          .find(Boolean);
+        const candidateContentIds = [assignment.contentId, assignment.sourceContentId].filter(Boolean);
+        let matchedResponse = null;
+
+        for (const candidateUserId of responseUserPriority) {
+          matchedResponse = candidateContentIds
+            .map((candidateContentId) => responseMap[`${candidateContentId}::${candidateUserId}`])
+            .find(Boolean);
+
+          if (matchedResponse) break;
+        }
 
         return {
           ...assignment,
@@ -137,6 +173,7 @@ exports.handler = async (event) => {
         body: JSON.stringify({
           requestedUserId,
           resolvedAssignmentUserId,
+          candidateUserIds: includeResponses ? [...new Set(responseUserPriority)] : [],
           assignments: enrichedAssignments,
           count: enrichedAssignments.length
         })
@@ -153,6 +190,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         requestedUserId,
         resolvedAssignmentUserId,
+        candidateUserIds: [],
         assignments: [],
         count: 0
       })

@@ -19,7 +19,10 @@ const normalizeResponses = (assignment) => {
     assignment?.progress?.responses,
     assignment?.progress?.answers,
     assignment?.userResponse?.responses,
+    assignment?.userResponse?.response,
+    assignment?.userResponse?.answers,
     assignment?.response?.responses,
+    assignment?.response,
     assignment?.responses,
     assignment?.answers,
   ];
@@ -28,14 +31,55 @@ const normalizeResponses = (assignment) => {
     if (!candidate) continue;
 
     if (Array.isArray(candidate)) {
-      return candidate;
+      return candidate.map((item, index) => {
+        if (item && typeof item === 'object') {
+          return {
+            itemIndex: item.itemIndex ?? item.index ?? index,
+            answer: item.answer ?? item.value ?? item.text ?? item.response ?? item.selectedOption ?? '',
+            read: item.read,
+            watched: item.watched,
+          };
+        }
+
+        return {
+          itemIndex: index,
+          answer: typeof item === 'string' ? item : JSON.stringify(item),
+        };
+      });
+    }
+
+    if (typeof candidate === 'string') {
+      try {
+        const parsed = JSON.parse(candidate);
+        if (Array.isArray(parsed)) return parsed;
+        if (parsed && typeof parsed === 'object') {
+          return Object.entries(parsed).map(([itemIndex, answer]) => ({
+            itemIndex: Number(itemIndex),
+            answer: typeof answer === 'string' ? answer : JSON.stringify(answer),
+          }));
+        }
+      } catch {
+        // 문자열이 JSON이 아니면 응답 본문 텍스트로 취급
+        return [{ itemIndex: 0, answer: candidate }];
+      }
     }
 
     if (typeof candidate === 'object') {
-      return Object.entries(candidate).map(([itemIndex, answer]) => ({
-        itemIndex: Number(itemIndex),
-        answer: typeof answer === 'string' ? answer : JSON.stringify(answer),
-      }));
+      return Object.entries(candidate).map(([itemIndex, answer]) => {
+        if (answer && typeof answer === 'object' && !Array.isArray(answer)) {
+          return {
+            itemIndex: Number(itemIndex),
+            answer: answer.answer ?? answer.value ?? answer.text ?? answer.response ?? JSON.stringify(answer),
+            read: answer.read,
+            watched: answer.watched,
+          };
+        }
+
+        return {
+          itemIndex: Number(itemIndex),
+          answer: typeof answer === 'string' ? answer : JSON.stringify(answer),
+        };
+      });
     }
   }
 
@@ -58,10 +102,12 @@ export default function QuestResponsesByUser() {
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [selectedAltUserId, setSelectedAltUserId] = useState('');
+  const [selectedExtraUserIds, setSelectedExtraUserIds] = useState('');
   const [assignments, setAssignments] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingResponses, setLoadingResponses] = useState(false);
   const [lastLoadedAt, setLastLoadedAt] = useState(null);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -83,7 +129,7 @@ export default function QuestResponsesByUser() {
     loadUsers();
   }, []);
 
-  const loadUserResponses = async (userId, altUserId = '') => {
+  const loadUserResponses = async (userId, altUserId = '', extraUserIds = '') => {
     if (!userId) {
       setAssignments([]);
       setLastLoadedAt(null);
@@ -94,9 +140,11 @@ export default function QuestResponsesByUser() {
     try {
       const query = new URLSearchParams({ includeResponses: 'true' });
       if (altUserId) query.set('altUserId', altUserId);
+      if (extraUserIds) query.set('extraUserIds', extraUserIds);
 
       const response = await fetch(`${API_BASE_URL}/quest/admin/assignments/user/${userId}?${query.toString()}`, {
         headers: getAuthHeaders(),
+        cache: 'no-store',
       });
 
       if (!response.ok) {
@@ -104,7 +152,13 @@ export default function QuestResponsesByUser() {
       }
 
       const data = await response.json();
-      setAssignments(data.assignments || []);
+      const nextAssignments = data.assignments || [];
+      setAssignments(nextAssignments);
+      setSelectedAssignmentId((prev) => {
+        if (!nextAssignments.length) return '';
+        if (prev && nextAssignments.some((assignment) => assignment.contentId === prev)) return prev;
+        return nextAssignments[0].contentId;
+      });
       setLastLoadedAt(new Date());
     } catch (error) {
       console.error('Failed to load user assignments:', error);
@@ -129,10 +183,14 @@ export default function QuestResponsesByUser() {
               const selected = users.find((user) => (user.sub || user.username) === event.target.value);
               const nextUserId = selected?.sub || selected?.username || '';
               const nextAltUserId = selected?.sub ? selected.username : '';
+              const nextExtraUserIds = [selected?.email, selected?.username, selected?.sub]
+                .filter(Boolean)
+                .join(',');
 
               setSelectedUserId(nextUserId);
               setSelectedAltUserId(nextAltUserId);
-              loadUserResponses(nextUserId, nextAltUserId);
+              setSelectedExtraUserIds(nextExtraUserIds);
+              loadUserResponses(nextUserId, nextAltUserId, nextExtraUserIds);
             }}
             className="w-full min-w-[320px] border rounded px-3 py-2"
             disabled={loadingUsers}
@@ -148,7 +206,7 @@ export default function QuestResponsesByUser() {
 
         <button
           type="button"
-          onClick={() => loadUserResponses(selectedUserId, selectedAltUserId)}
+          onClick={() => loadUserResponses(selectedUserId, selectedAltUserId, selectedExtraUserIds)}
           disabled={!selectedUserId || loadingResponses}
           className="px-4 py-2 rounded bg-gray-800 text-white disabled:opacity-50"
         >
@@ -166,15 +224,45 @@ export default function QuestResponsesByUser() {
         <div className="text-gray-600">조회 중...</div>
       ) : (
         <div className="space-y-4">
+          {assignments.length > 0 && (
+            <div className="border rounded-lg p-3 bg-gray-50">
+              <label className="block text-sm font-medium mb-2">질문(할당) 선택</label>
+              <select
+                value={selectedAssignmentId}
+                onChange={(event) => setSelectedAssignmentId(event.target.value)}
+                className="w-full border rounded px-3 py-2"
+              >
+                {assignments.map((assignment, index) => (
+                  <option key={assignment.assignmentId || assignment.contentId || index} value={assignment.contentId}>
+                    {(assignment.sourceContent?.title || assignment.content?.title || `질문 ${index + 1}`)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {assignments.map((assignment, index) => {
+            if (selectedAssignmentId && assignment.contentId !== selectedAssignmentId) {
+              return null;
+            }
+
             const questionItems = normalizeQuestionItems(assignment);
             const responses = normalizeResponses(assignment);
 
             return (
               <div key={assignment.assignmentId || `${assignment.contentId}-${index}`} className="border rounded-lg p-4 bg-white">
-                <div className="mb-3">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div>
                   <h2 className="font-semibold text-lg">{assignment.sourceContent?.title || assignment.content?.title || '제목 없음'}</h2>
                   <p className="text-sm text-gray-600">상태: {assignment.progress?.status || assignment.status || 'waiting'}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => loadUserResponses(selectedUserId, selectedAltUserId, selectedExtraUserIds)}
+                    className="text-xs px-3 py-1 rounded border bg-gray-50 hover:bg-gray-100"
+                  >
+                    이 질문 응답 새로고침
+                  </button>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
