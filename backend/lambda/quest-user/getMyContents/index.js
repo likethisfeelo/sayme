@@ -74,31 +74,29 @@ exports.handler = async (event) => {
       contentMap[content.contentId] = content;
     });
 
-    // 사용자 응답 조회
-    const responsePromises = assignments.map(assignment =>
-      docClient.send(new QueryCommand({
-        TableName: 'Quest_UserResponse',
-        KeyConditionExpression: 'userId = :userId AND contentId = :contentId',
-        ExpressionAttributeValues: {
-          ':userId': userId,
-          ':contentId': assignment.contentId
-        }
-      }))
-    );
-
-    const responseResults = await Promise.all(responsePromises);
-    const responses = {};
-    
-    responseResults.forEach((result, index) => {
-      if (result.Items && result.Items.length > 0) {
-        responses[assignments[index].contentId] = result.Items[0];
+    // 사용자 응답 조회 (파티션 단위 1회 조회 후 assignment/sourceContentId 기준 매핑)
+    const responseQueryResult = await docClient.send(new QueryCommand({
+      TableName: 'Quest_UserResponse',
+      ConsistentRead: true,
+      KeyConditionExpression: 'userId = :userId',
+      ExpressionAttributeValues: {
+        ':userId': userId
       }
+    }));
+
+    const responseItems = responseQueryResult.Items || [];
+    const responseMap = {};
+    responseItems.forEach((response) => {
+      const keys = [response.contentId, response.assignmentId, response.sourceContentId].filter(Boolean);
+      keys.forEach((key) => {
+        responseMap[key] = response;
+      });
     });
 
     // 콘텐츠 병합 (원본 + 커스터마이징 + 진행상태)
     const enrichedContents = assignments.map(assignment => {
       const sourceContent = contentMap[assignment.sourceContentId];
-      const userResponse = responses[assignment.contentId];
+      const userResponse = responseMap[assignment.contentId] || responseMap[assignment.sourceContentId];
 
       // 커스터마이징 적용
       let finalContent = { ...sourceContent };

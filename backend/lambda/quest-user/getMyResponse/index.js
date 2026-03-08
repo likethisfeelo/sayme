@@ -1,6 +1,6 @@
 // C:\sayme\dev\backend\lambda\quest-user\getMyResponse\index.js
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb');
-const { DynamoDBDocumentClient, GetCommand } = require('@aws-sdk/lib-dynamodb');
+const { DynamoDBDocumentClient, GetCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb');
 
 const client = new DynamoDBClient({ region: 'ap-northeast-2' });
 const docClient = DynamoDBDocumentClient.from(client);
@@ -45,6 +45,40 @@ exports.handler = async (event) => {
     const result = await docClient.send(command);
 
     if (!result.Item) {
+      // 과거/예외 데이터 호환: userId 파티션 전체에서 assignment/source 키로 fallback 매칭
+      const [assignmentResult, userResponsesResult] = await Promise.all([
+        docClient.send(new GetCommand({
+          TableName: 'Quest_UserAssignment',
+          Key: { userId, contentId: assignmentId }
+        })),
+        docClient.send(new QueryCommand({
+          TableName: 'Quest_UserResponse',
+          ConsistentRead: true,
+          KeyConditionExpression: 'userId = :userId',
+          ExpressionAttributeValues: { ':userId': userId }
+        }))
+      ]);
+
+      const sourceContentId = assignmentResult.Item?.sourceContentId;
+      const fallback = (userResponsesResult.Items || []).find((item) => {
+        const keys = [item.contentId, item.assignmentId, item.sourceContentId].filter(Boolean);
+        return keys.includes(assignmentId) || (sourceContentId && keys.includes(sourceContentId));
+      });
+
+      if (fallback) {
+        return {
+          statusCode: 200,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+            'Access-Control-Allow-Methods': 'GET, OPTIONS'
+          },
+          body: JSON.stringify({
+            response: fallback
+          })
+        };
+      }
+
       return {
         statusCode: 404,
         headers: {
