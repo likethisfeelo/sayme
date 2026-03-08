@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AssignmentManager from './AssignmentManager';
 
 const API_BASE_URL = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
@@ -14,6 +15,7 @@ const getAuthHeaders = () => {
 };
 
 export default function UserAssignmentList() {
+  const router = useRouter();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,12 +95,28 @@ export default function UserAssignmentList() {
                 <h3 className="font-semibold">{user.name}</h3>
                 <p className="text-gray-600 text-sm">{user.email}</p>
               </div>
-              <button
-                onClick={() => setSelectedUser(user)}
-                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-              >
-                콘텐츠 관리
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const userId = user.sub || user.username;
+                    const altUserId = user.sub ? user.username : '';
+                    const extraUserIds = [user.email, user.username, user.sub].filter(Boolean).join(',');
+                    const params = new URLSearchParams({ userId });
+                    if (altUserId) params.set('altUserId', altUserId);
+                    if (extraUserIds) params.set('extraUserIds', extraUserIds);
+                    router.push(`/admin/quest/responses?${params.toString()}`);
+                  }}
+                  className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600"
+                >
+                  응답 보기
+                </button>
+                <button
+                  onClick={() => setSelectedUser(user)}
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  콘텐츠 관리
+                </button>
+              </div>
             </div>
           </div>
         ))}
