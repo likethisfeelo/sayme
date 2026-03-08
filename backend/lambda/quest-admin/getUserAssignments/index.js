@@ -5,6 +5,14 @@ const { DynamoDBDocumentClient, QueryCommand, BatchGetCommand } = require('@aws-
 const client = new DynamoDBClient({ region: 'ap-northeast-2' });
 const docClient = DynamoDBDocumentClient.from(client);
 
+const toLowerSafe = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+
+const collectIdentityKeys = (value) => {
+  const normalized = toLowerSafe(value);
+  if (!normalized) return [];
+  return [normalized, normalized.replace(/^bearer\s+/, '')];
+};
+
 const queryAssignmentsByUserId = async (userId) => {
   if (!userId) return [];
 
@@ -126,6 +134,7 @@ exports.handler = async (event) => {
 
       // 응답 정보를 contentId + userId 단위로 매핑
       const responseMap = {};
+      const responseByContentId = {};
       responses.forEach((response) => {
         if (!response.userId) return;
 
@@ -137,6 +146,12 @@ exports.handler = async (event) => {
 
         responseContentIdCandidates.forEach((candidateContentId) => {
           responseMap[`${candidateContentId}::${response.userId}`] = response;
+
+          if (!responseByContentId[candidateContentId]) {
+            responseByContentId[candidateContentId] = [];
+          }
+
+          responseByContentId[candidateContentId].push(response);
         });
       });
 
@@ -146,6 +161,15 @@ exports.handler = async (event) => {
         alternateUserId,
         ...extraUserIds
       ].filter(Boolean);
+
+      const responseIdentityKeySet = new Set(
+        responseUserPriority.flatMap((value) => collectIdentityKeys(value))
+      );
+
+      const diagnostics = {
+        responseCount: responses.length,
+        unmatchedAssignmentCount: 0,
+      };
 
       // 할당에 원본 콘텐츠 정보 추가
       const enrichedAssignments = assignments.map((assignment) => {
@@ -158,6 +182,31 @@ exports.handler = async (event) => {
             .find(Boolean);
 
           if (matchedResponse) break;
+        }
+
+        if (!matchedResponse) {
+          // userId 축이 완전히 다르더라도 contentId 축으로 fallback 매칭
+          for (const candidateContentId of candidateContentIds) {
+            const contentResponses = responseByContentId[candidateContentId] || [];
+            if (!contentResponses.length) continue;
+
+            matchedResponse = contentResponses.find((response) => {
+              const candidateKeys = [
+                response?.userId,
+                response?.username,
+                response?.email,
+              ].flatMap((value) => collectIdentityKeys(value));
+
+              if (!candidateKeys.length) return true;
+              return candidateKeys.some((key) => responseIdentityKeySet.has(key));
+            }) || contentResponses[0];
+
+            if (matchedResponse) break;
+          }
+        }
+
+        if (!matchedResponse) {
+          diagnostics.unmatchedAssignmentCount += 1;
         }
 
         return {
@@ -182,6 +231,7 @@ exports.handler = async (event) => {
           resolvedAssignmentUserId,
           requestedAssignmentId: requestedAssignmentId || null,
           candidateUserIds: includeResponses ? [...new Set(responseUserPriority)] : [],
+          diagnostics,
           assignments: enrichedAssignments,
           count: enrichedAssignments.length
         })
