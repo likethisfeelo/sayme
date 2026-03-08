@@ -10,6 +10,7 @@ exports.handler = async (event) => {
   
   try {
     const userId = event.pathParameters?.userId;
+    const includeResponses = event.queryStringParameters?.includeResponses === 'true';
 
     if (!userId) {
       return {
@@ -36,29 +37,52 @@ exports.handler = async (event) => {
 
     // 원본 콘텐츠 정보 가져오기
     if (assignments.length > 0) {
-      const sourceContentIds = [...new Set(assignments.map(a => a.sourceContentId))];
+      const sourceContentIds = [...new Set(assignments.map((assignment) => assignment.sourceContentId).filter(Boolean))];
       
-      const batchGetCommand = new BatchGetCommand({
-        RequestItems: {
-          'Quest_ContentLibrary': {
-            Keys: sourceContentIds.map(id => ({ contentId: id }))
-          }
-        }
-      });
+      const requestItems = {};
+      if (sourceContentIds.length > 0) {
+        requestItems.Quest_ContentLibrary = {
+          Keys: sourceContentIds.map((contentId) => ({ contentId }))
+        };
+      }
 
-      const contentResult = await docClient.send(batchGetCommand);
-      const contents = contentResult.Responses?.Quest_ContentLibrary || [];
+      // includeResponses=true 인 경우 사용자 응답도 함께 조회
+      if (includeResponses) {
+        const assignmentContentIds = [...new Set(assignments.map((assignment) => assignment.contentId).filter(Boolean))];
+
+        if (assignmentContentIds.length > 0) {
+          requestItems.Quest_UserResponse = {
+            Keys: assignmentContentIds.map((contentId) => ({ userId, contentId }))
+          };
+        }
+      }
+
+      let contents = [];
+      let responses = [];
+
+      if (Object.keys(requestItems).length > 0) {
+        const batchGetCommand = new BatchGetCommand({ RequestItems: requestItems });
+        const batchResult = await docClient.send(batchGetCommand);
+        contents = batchResult.Responses?.Quest_ContentLibrary || [];
+        responses = batchResult.Responses?.Quest_UserResponse || [];
+      }
 
       // 콘텐츠 정보를 매핑
       const contentMap = {};
-      contents.forEach(content => {
+      contents.forEach((content) => {
         contentMap[content.contentId] = content;
       });
 
+      const responseMap = {};
+      responses.forEach((response) => {
+        responseMap[response.contentId] = response;
+      });
+
       // 할당에 원본 콘텐츠 정보 추가
-      const enrichedAssignments = assignments.map(assignment => ({
+      const enrichedAssignments = assignments.map((assignment) => ({
         ...assignment,
-        sourceContent: contentMap[assignment.sourceContentId]
+        sourceContent: contentMap[assignment.sourceContentId],
+        userResponse: responseMap[assignment.contentId]
       }));
 
       // orderIndex로 정렬
