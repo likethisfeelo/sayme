@@ -14,6 +14,9 @@ const getAuthHeaders = () => {
 
 const QUESTION_TYPES = new Set(['question_subjective', 'question_objective']);
 
+const getAssignmentKey = (assignment) =>
+  assignment?.contentId || assignment?.sourceContentId || assignment?.assignmentId || '';
+
 const normalizeResponses = (assignment) => {
   const candidates = [
     assignment?.progress?.responses,
@@ -106,8 +109,31 @@ export default function QuestResponsesByUser() {
   const [assignments, setAssignments] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingResponses, setLoadingResponses] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [lastLoadedAt, setLastLoadedAt] = useState(null);
-  const [selectedAssignmentId, setSelectedAssignmentId] = useState('');
+  const [selectedAssignmentKey, setSelectedAssignmentKey] = useState('');
+
+  const copyJsonToClipboard = async (payload) => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
+      alert('JSON을 클립보드에 복사했습니다.');
+    } catch (error) {
+      console.error('Failed to copy JSON:', error);
+      alert('JSON 복사에 실패했습니다.');
+    }
+  };
+
+  const downloadJson = (payload, fileName) => {
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -137,6 +163,7 @@ export default function QuestResponsesByUser() {
     }
 
     setLoadingResponses(true);
+    setErrorMessage('');
     try {
       const query = new URLSearchParams({ includeResponses: 'true' });
       if (altUserId) query.set('altUserId', altUserId);
@@ -155,15 +182,15 @@ export default function QuestResponsesByUser() {
       const data = await response.json();
       const nextAssignments = data.assignments || [];
       setAssignments(nextAssignments);
-      setSelectedAssignmentId((prev) => {
+      setSelectedAssignmentKey((prev) => {
         if (!nextAssignments.length) return '';
-        if (prev && nextAssignments.some((assignment) => assignment.contentId === prev)) return prev;
-        return nextAssignments[0].contentId;
+        if (prev && nextAssignments.some((assignment) => getAssignmentKey(assignment) === prev)) return prev;
+        return getAssignmentKey(nextAssignments[0]);
       });
       setLastLoadedAt(new Date());
     } catch (error) {
       console.error('Failed to load user assignments:', error);
-      alert('사용자별 질문/응답 조회에 실패했습니다.');
+      setErrorMessage('사용자별 질문/응답 조회에 실패했습니다. 사용자 ID 매핑과 할당 데이터 상태를 확인해주세요.');
     } finally {
       setLoadingResponses(false);
     }
@@ -221,6 +248,12 @@ export default function QuestResponsesByUser() {
         </p>
       )}
 
+      {errorMessage && (
+        <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {errorMessage}
+        </div>
+      )}
+
       {loadingResponses ? (
         <div className="text-gray-600">조회 중...</div>
       ) : (
@@ -229,12 +262,12 @@ export default function QuestResponsesByUser() {
             <div className="border rounded-lg p-3 bg-gray-50">
               <label className="block text-sm font-medium mb-2">질문(할당) 선택</label>
               <select
-                value={selectedAssignmentId}
-                onChange={(event) => setSelectedAssignmentId(event.target.value)}
+                value={selectedAssignmentKey}
+                onChange={(event) => setSelectedAssignmentKey(event.target.value)}
                 className="w-full border rounded px-3 py-2"
               >
                 {assignments.map((assignment, index) => (
-                  <option key={assignment.assignmentId || assignment.contentId || index} value={assignment.contentId}>
+                  <option key={assignment.assignmentId || assignment.contentId || index} value={getAssignmentKey(assignment)}>
                     {(assignment.sourceContent?.title || assignment.content?.title || `질문 ${index + 1}`)}
                   </option>
                 ))}
@@ -243,7 +276,8 @@ export default function QuestResponsesByUser() {
           )}
 
           {assignments.map((assignment, index) => {
-            if (selectedAssignmentId && assignment.contentId !== selectedAssignmentId) {
+            const assignmentKey = getAssignmentKey(assignment);
+            if (selectedAssignmentKey && assignmentKey !== selectedAssignmentKey) {
               return null;
             }
 
@@ -259,10 +293,24 @@ export default function QuestResponsesByUser() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => loadUserResponses(selectedUserId, selectedAltUserId, selectedExtraUserIds, assignment.contentId)}
+                    onClick={() => loadUserResponses(selectedUserId, selectedAltUserId, selectedExtraUserIds, assignment.contentId || assignment.sourceContentId)}
                     className="text-xs px-3 py-1 rounded border bg-gray-50 hover:bg-gray-100"
                   >
                     이 질문 응답 새로고침
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => copyJsonToClipboard(assignment)}
+                    className="text-xs px-3 py-1 rounded border bg-gray-50 hover:bg-gray-100"
+                  >
+                    JSON 복사
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => downloadJson(assignment, `quest-response-${assignmentKey || index}.json`)}
+                    className="text-xs px-3 py-1 rounded border bg-gray-50 hover:bg-gray-100"
+                  >
+                    JSON 다운로드
                   </button>
                 </div>
 
@@ -307,6 +355,18 @@ export default function QuestResponsesByUser() {
 
           {selectedUserId && assignments.length === 0 && (
             <div className="text-gray-500">선택한 사용자에게 할당된 질문이 없습니다.</div>
+          )}
+
+          {assignments.length > 0 && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => downloadJson(assignments, `quest-responses-${selectedUserId}.json`)}
+                className="text-xs px-3 py-1 rounded border bg-gray-50 hover:bg-gray-100"
+              >
+                전체 JSON 다운로드
+              </button>
+            </div>
           )}
         </div>
       )}
