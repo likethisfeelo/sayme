@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { questUserApi } from '@/lib/api/quest';
 import Header from '../components/Header';
+import { resolveAssignmentProgressStatus } from '@/lib/questStatus';
 
 // 나눔명조 폰트 로드 (Google Fonts)
 const NANUM_MYEONGJO_URL = 'https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap';
@@ -31,7 +32,8 @@ const getStatusConfig = (status) => {
   return configs[status] || configs.waiting;
 };
 
-const mapQuestStatus = (status) => {
+const mapQuestStatus = (assignment) => {
+  const status = resolveAssignmentProgressStatus(assignment);
   if (status === 'completed') return 'completed';
   if (status === 'in_progress') return 'progress';
   return 'waiting';
@@ -114,7 +116,7 @@ export default function PremiumHomePage() {
             assignmentId: quest.assignmentId,
             number: `Q${index + 1}`,
             title: content.title || content.question || content.description || '제목 없음',
-            status: mapQuestStatus(quest?.progress?.status),
+            status: mapQuestStatus(quest),
             hasFeedback: Boolean(quest?.feedbackCount),
           };
         });

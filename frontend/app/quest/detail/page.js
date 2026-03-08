@@ -8,6 +8,7 @@ function QuestDetailPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const assignmentId = searchParams.get('id');
+  const isReadonly = searchParams.get('mode') === 'readonly';
 
   if (!assignmentId) {
     return (
@@ -25,7 +26,7 @@ function QuestDetailPageContent() {
     );
   }
 
-  return <QuestDetail assignmentId={assignmentId} />;
+  return <QuestDetail assignmentId={assignmentId} readonlyMode={isReadonly} />;
 }
 
 export default function QuestDetailPage() {
