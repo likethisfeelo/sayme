@@ -17,7 +17,7 @@ export default function UserAssignmentList() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUserId, setSelectedUserId] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
     loadUsers();
@@ -56,16 +56,19 @@ export default function UserAssignmentList() {
   }
 
   // 사용자가 선택되면 AssignmentManager 표시
-  if (selectedUserId) {
+  if (selectedUser) {
     return (
       <div className="p-8">
         <button
-          onClick={() => setSelectedUserId(null)}
+          onClick={() => setSelectedUser(null)}
           className="mb-4 text-blue-500 hover:underline"
         >
           ← 사용자 목록으로 돌아가기
         </button>
-        <AssignmentManager userId={selectedUserId} />
+        <AssignmentManager
+          userId={selectedUser.sub || selectedUser.username}
+          altUserId={selectedUser.sub ? selectedUser.username : ''}
+        />
       </div>
     );
   }
@@ -91,7 +94,7 @@ export default function UserAssignmentList() {
                 <p className="text-gray-600 text-sm">{user.email}</p>
               </div>
               <button
-                onClick={() => setSelectedUserId(user.username)}
+                onClick={() => setSelectedUser(user)}
                 className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
               >
                 콘텐츠 관리

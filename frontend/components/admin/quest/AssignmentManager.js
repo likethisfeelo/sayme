@@ -13,8 +13,12 @@ const getAuthHeaders = () => {
 };
 
 const questAdminApi = {
-  getUserAssignments: async (userId) => {
-    const response = await fetch(`${API_BASE_URL}/quest/admin/assignments/user/${userId}`, {
+  getUserAssignments: async (userId, altUserId = '') => {
+    const query = new URLSearchParams();
+    if (altUserId) query.set('altUserId', altUserId);
+    const queryString = query.toString();
+
+    const response = await fetch(`${API_BASE_URL}/quest/admin/assignments/user/${userId}${queryString ? `?${queryString}` : ''}`, {
       headers: getAuthHeaders()
     });
     return response.json();
@@ -46,7 +50,7 @@ const questAdminApi = {
   }
 };
 
-export default function AssignmentManager({ userId }) {
+export default function AssignmentManager({ userId, altUserId = '' }) {
   const [assignments, setAssignments] = useState([]);
   const [allContents, setAllContents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,14 +60,14 @@ export default function AssignmentManager({ userId }) {
   useEffect(() => {
     console.log('[AssignmentManager] Mounted with userId:', userId);
     loadData();
-  }, [userId]);
+  }, [userId, altUserId]);
 
   const loadData = async () => {
     console.log('[AssignmentManager] Loading data for userId:', userId);
     setLoading(true);
     try {
       const [assignmentsData, contentsData] = await Promise.all([
-        questAdminApi.getUserAssignments(userId),
+        questAdminApi.getUserAssignments(userId, altUserId),
         questAdminApi.listContents(),
       ]);
       console.log('[AssignmentManager] Loaded assignments:', assignmentsData);

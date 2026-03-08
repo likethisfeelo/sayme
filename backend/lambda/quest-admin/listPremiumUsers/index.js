@@ -22,6 +22,7 @@ exports.handler = async (event) => {
 
       return {
         username: user.Username,
+        sub: attributes.sub || '',
         email: attributes.email,
         name: attributes.name || attributes.nickname || '',
         emailVerified: attributes.email_verified === 'true',
