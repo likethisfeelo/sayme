@@ -39,11 +39,6 @@ const mapQuestStatus = (assignment) => {
   return 'waiting';
 };
 
-const getQuestionTypeLabel = (itemType) => {
-  if (itemType === 'question_subjective') return '주관식';
-  if (itemType === 'question_objective') return '객관식';
-  return '질문';
-};
 
 // 월간 정렬 문장 3개 (랜덤 2개 선택용)
 const MONTHLY_ALIGNMENTS = [
@@ -317,35 +312,38 @@ export default function PremiumHomePage() {
                           goToQuestDetail(q.assignmentId);
                         }}
                       >
-                        {q.status === 'completed' ? '답변 보기' : q.status === 'progress' ? '계속 생각하기 →' : '열기'}
+                        {q.status === 'completed' ? '답변 보기' : q.status === 'progress' ? '계속 생각하기 →' : '질문 보기'}
                       </button>
-
-                      <div className="mt-2 pt-2 border-t border-[rgba(230,224,218,0.9)]">
-                        <p className="text-xs font-semibold text-[#6B6662] mb-2">메모 섹션</p>
-                        <button
-                          className="w-full text-left text-xs border border-[#E6E0DA] bg-white/85 text-[#2A2725] px-3 py-2 rounded-xl cursor-pointer"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            router.push('/premium_memo');
-                          }}
-                        >
-                          질문과 관계없이 메모 작성하기 →
-                        </button>
-                        {q.questionItems.length > 0 && (
-                          <div className="mt-2 text-[11px] text-[#6B6662] space-y-1">
-                            {q.questionItems.map((item, questionIndex) => (
-                              <div key={`${q.id}-${questionIndex}`} className="truncate">
-                                • {getQuestionTypeLabel(item.type)} {questionIndex + 1}: {item.question || '질문'}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
                     </div>
                   </div>
                 );
               })
             )}
+          </div>
+        </section>
+
+        {/* MEMO SECTION */}
+        <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+          <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
+            <div>
+              <div className="text-sm font-[750] tracking-tight text-[#2A2725]">메모</div>
+              <div className="text-xs text-[#6B6662]">질문과 상관없이 자유롭게 기록하기</div>
+            </div>
+          </div>
+
+          <div className="p-4">
+            <button
+              onClick={() => router.push('/premium_memo')}
+              className="w-full p-4 rounded-[14px] border border-[#E6E0DA] bg-white/85 hover:bg-white flex items-center justify-between cursor-pointer"
+            >
+              <div className="text-left">
+                <p className="text-sm font-semibold text-[#2A2725] m-0">메모 작성하기</p>
+                <p className="text-xs text-[#6B6662] m-0 mt-1">떠오르는 생각을 바로 저장해보세요</p>
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-[rgba(191,167,255,0.15)] border border-[rgba(191,167,255,0.25)] grid place-items-center text-2xl">
+                📝
+              </div>
+            </button>
           </div>
         </section>
 

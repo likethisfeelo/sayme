@@ -12,12 +12,55 @@ const getAuthHeaders = () => {
   };
 };
 
+const QUESTION_TYPES = new Set(['question_subjective', 'question_objective']);
+
+const normalizeResponses = (assignment) => {
+  const candidates = [
+    assignment?.progress?.responses,
+    assignment?.progress?.answers,
+    assignment?.userResponse?.responses,
+    assignment?.response?.responses,
+    assignment?.responses,
+    assignment?.answers,
+  ];
+
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+
+    if (Array.isArray(candidate)) {
+      return candidate;
+    }
+
+    if (typeof candidate === 'object') {
+      return Object.entries(candidate).map(([itemIndex, answer]) => ({
+        itemIndex: Number(itemIndex),
+        answer: typeof answer === 'string' ? answer : JSON.stringify(answer),
+      }));
+    }
+  }
+
+  return [];
+};
+
+const normalizeQuestionItems = (assignment) => {
+  const candidates = [
+    assignment?.sourceContent?.contentItems,
+    assignment?.content?.contentItems,
+    assignment?.contentItems,
+    assignment?.questions,
+  ];
+
+  const items = candidates.find((candidate) => Array.isArray(candidate)) || [];
+  return items.filter((item) => QUESTION_TYPES.has(item?.type));
+};
+
 export default function QuestResponsesByUser() {
   const [users, setUsers] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [assignments, setAssignments] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingResponses, setLoadingResponses] = useState(false);
+  const [lastLoadedAt, setLastLoadedAt] = useState(null);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -42,16 +85,23 @@ export default function QuestResponsesByUser() {
   const loadUserResponses = async (userId) => {
     if (!userId) {
       setAssignments([]);
+      setLastLoadedAt(null);
       return;
     }
 
     setLoadingResponses(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/quest/admin/assignments/user/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/quest/admin/assignments/user/${userId}?includeResponses=true`, {
         headers: getAuthHeaders(),
       });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
       const data = await response.json();
       setAssignments(data.assignments || []);
+      setLastLoadedAt(new Date());
     } catch (error) {
       console.error('Failed to load user assignments:', error);
       alert('사용자별 질문/응답 조회에 실패했습니다.');
@@ -66,42 +116,57 @@ export default function QuestResponsesByUser() {
         <h1 className="text-2xl font-bold">사용자별 질문 · 응답 조회</h1>
       </div>
 
-      <div className="mb-6">
-        <label className="block text-sm font-medium mb-2">사용자 선택</label>
-        <select
-          value={selectedUserId}
-          onChange={(event) => {
-            const nextUserId = event.target.value;
-            setSelectedUserId(nextUserId);
-            loadUserResponses(nextUserId);
-          }}
-          className="w-full max-w-md border rounded px-3 py-2"
-          disabled={loadingUsers}
+      <div className="mb-6 flex flex-wrap gap-3 items-end">
+        <div>
+          <label className="block text-sm font-medium mb-2">사용자 선택</label>
+          <select
+            value={selectedUserId}
+            onChange={(event) => {
+              const nextUserId = event.target.value;
+              setSelectedUserId(nextUserId);
+              loadUserResponses(nextUserId);
+            }}
+            className="w-full min-w-[320px] border rounded px-3 py-2"
+            disabled={loadingUsers}
+          >
+            <option value="">사용자를 선택하세요</option>
+            {users.map((user) => (
+              <option key={user.username} value={user.username}>
+                {user.name || user.username} ({user.email || '이메일 없음'})
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => loadUserResponses(selectedUserId)}
+          disabled={!selectedUserId || loadingResponses}
+          className="px-4 py-2 rounded bg-gray-800 text-white disabled:opacity-50"
         >
-          <option value="">사용자를 선택하세요</option>
-          {users.map((user) => (
-            <option key={user.username} value={user.username}>
-              {user.name || user.username} ({user.email || '이메일 없음'})
-            </option>
-          ))}
-        </select>
+          {loadingResponses ? '새로고침 중...' : '응답 새로고침'}
+        </button>
       </div>
+
+      {lastLoadedAt && (
+        <p className="text-xs text-gray-500 mb-4">
+          마지막 조회: {lastLoadedAt.toLocaleString('ko-KR')}
+        </p>
+      )}
 
       {loadingResponses ? (
         <div className="text-gray-600">조회 중...</div>
       ) : (
         <div className="space-y-4">
           {assignments.map((assignment, index) => {
-            const questionItems = (assignment.sourceContent?.contentItems || []).filter(
-              (item) => item.type === 'question_subjective' || item.type === 'question_objective'
-            );
-            const responses = assignment.progress?.responses || [];
+            const questionItems = normalizeQuestionItems(assignment);
+            const responses = normalizeResponses(assignment);
 
             return (
               <div key={assignment.assignmentId || `${assignment.contentId}-${index}`} className="border rounded-lg p-4 bg-white">
                 <div className="mb-3">
-                  <h2 className="font-semibold text-lg">{assignment.sourceContent?.title || '제목 없음'}</h2>
-                  <p className="text-sm text-gray-600">상태: {assignment.progress?.status || 'waiting'}</p>
+                  <h2 className="font-semibold text-lg">{assignment.sourceContent?.title || assignment.content?.title || '제목 없음'}</h2>
+                  <p className="text-sm text-gray-600">상태: {assignment.progress?.status || assignment.status || 'waiting'}</p>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-4">
