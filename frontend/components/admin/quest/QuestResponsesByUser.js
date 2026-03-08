@@ -94,6 +94,26 @@ const normalizeResponseEntry = (item, index, objectKey) => {
   };
 };
 
+
+const hasMeaningfulResponseCandidate = (candidate) => {
+  if (candidate === null || candidate === undefined) return false;
+
+  if (Array.isArray(candidate)) return candidate.length > 0;
+
+  if (typeof candidate === 'string') {
+    const trimmed = candidate.trim();
+    if (!trimmed) return false;
+    if (trimmed === '[]' || trimmed === '{}') return false;
+    return true;
+  }
+
+  if (typeof candidate === 'object') {
+    return Object.keys(candidate).length > 0;
+  }
+
+  return true;
+};
+
 const normalizeResponses = (assignment) => {
   const candidates = [
     assignment?.progress?.responses,
@@ -108,7 +128,7 @@ const normalizeResponses = (assignment) => {
   ];
 
   for (const candidate of candidates) {
-    if (!candidate) continue;
+    if (!hasMeaningfulResponseCandidate(candidate)) continue;
 
     if (Array.isArray(candidate)) {
       return candidate.map((item, index) => normalizeResponseEntry(item, index));
