@@ -370,6 +370,7 @@ export default function QuestResponsesByUser() {
   const [selectedMonth, setSelectedMonth] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [autoSelectedFromUrl, setAutoSelectedFromUrl] = useState(false);
+  const [userScope, setUserScope] = useState('all');
 
   const copyJsonToClipboard = async (payload) => {
     try {
@@ -410,7 +411,19 @@ export default function QuestResponsesByUser() {
     const loadUsers = async () => {
       setLoadingUsers(true);
       try {
-        const response = await fetchWithAuthRetry(`${API_BASE_URL}/quest/admin/users/premium`);
+        const preferredPath = userScope === 'premium' ? '/quest/admin/users/premium' : '/quest/admin/users';
+        const fallbackPath = userScope === 'premium' ? '/quest/admin/users' : '/quest/admin/users/premium';
+
+        let response = await fetchWithAuthRetry(`${API_BASE_URL}${preferredPath}`);
+
+        if (!response.ok) {
+          response = await fetchWithAuthRetry(`${API_BASE_URL}${fallbackPath}`);
+        }
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
         const data = await response.json();
         setUsers(data.users || []);
       } catch (error) {
@@ -422,7 +435,7 @@ export default function QuestResponsesByUser() {
     };
 
     loadUsers();
-  }, []);
+  }, [userScope]);
 
   // URL 파라미터로 사용자 자동 선택 (UserAssignmentList에서 "응답 보기" 버튼으로 진입 시)
   useEffect(() => {
@@ -514,6 +527,24 @@ export default function QuestResponsesByUser() {
 
       {/* 사용자 선택 */}
       <div className="mb-4 flex flex-wrap gap-3 items-end">
+        <div>
+          <label className="block text-sm font-medium mb-2">조회 범위</label>
+          <select
+            value={userScope}
+            onChange={(event) => {
+              setUserScope(event.target.value);
+              setSelectedUserId('');
+              setSelectedAltUserId('');
+              setSelectedExtraUserIds('');
+              setAssignments([]);
+            }}
+            className="border rounded px-3 py-2 min-w-[180px]"
+          >
+            <option value="all">전체 사용자</option>
+            <option value="premium">프리미엄 사용자</option>
+          </select>
+        </div>
+
         <div>
           <label className="block text-sm font-medium mb-2">사용자 선택</label>
           <select

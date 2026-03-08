@@ -14,24 +14,54 @@ const getAuthHeaders = () => {
   };
 };
 
+const fetchWithAuthRetry = async (url, options = {}) => {
+  const baseOptions = {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...getAuthHeaders(),
+    },
+  };
+
+  let response = await fetch(url, baseOptions);
+
+  if (response.status === 401) {
+    const idToken = localStorage.getItem('idToken');
+    response = await fetch(url, {
+      ...baseOptions,
+      headers: {
+        ...(baseOptions.headers || {}),
+        ...(idToken && { Authorization: `Bearer ${idToken}` }),
+      },
+    });
+  }
+
+  return response;
+};
+
 export default function UserAssignmentList() {
   const router = useRouter();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
+  const [userScope, setUserScope] = useState('all');
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [userScope]);
 
   const loadUsers = async () => {
-    console.log('[UserAssignmentList] Loading premium users...');
+    console.log(`[UserAssignmentList] Loading users. scope=${userScope}`);
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/quest/admin/users/premium`, {
-        headers: getAuthHeaders()
-      });
+      const preferredPath = userScope === 'premium' ? '/quest/admin/users/premium' : '/quest/admin/users';
+      const fallbackPath = userScope === 'premium' ? '/quest/admin/users' : '/quest/admin/users/premium';
+      let response = await fetchWithAuthRetry(`${API_BASE_URL}${preferredPath}`);
+
+      if (!response.ok) {
+        response = await fetchWithAuthRetry(`${API_BASE_URL}${fallbackPath}`);
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
@@ -77,7 +107,21 @@ export default function UserAssignmentList() {
 
   return (
     <div className="p-8">
-      <h2 className="text-2xl font-bold mb-6">Premium 사용자 목록</h2>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-2xl font-bold">
+          {userScope === 'premium' ? 'Premium 사용자 목록' : '전체 사용자 목록'}
+        </h2>
+        <div>
+          <select
+            value={userScope}
+            onChange={(event) => setUserScope(event.target.value)}
+            className="border rounded px-3 py-2"
+          >
+            <option value="all">전체 사용자</option>
+            <option value="premium">Premium 사용자</option>
+          </select>
+        </div>
+      </div>
 
       <input
         type="text"
@@ -124,7 +168,7 @@ export default function UserAssignmentList() {
 
       {filteredUsers.length === 0 && (
         <div className="text-center py-12 text-gray-500">
-          {users.length === 0 ? 'Premium 사용자가 없습니다.' : '사용자를 찾을 수 없습니다.'}
+          {users.length === 0 ? '사용자가 없습니다.' : '사용자를 찾을 수 없습니다.'}
         </div>
       )}
     </div>
