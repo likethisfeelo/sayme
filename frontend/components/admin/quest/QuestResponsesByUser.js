@@ -90,10 +90,15 @@ const toItemIndex = (value, fallbackIndex = 0) => {
 };
 
 const normalizeResponseEntry = (item, index, objectKey) => {
+  const objectKeyHasIndex = objectKey !== undefined && objectKey !== null && /^\d+$/.test(String(objectKey));
+
   if (item && typeof item === 'object' && !Array.isArray(item)) {
+    const hasExplicitIndex = item.itemIndex !== undefined || item.index !== undefined || objectKeyHasIndex;
     const derivedIndex = item.itemIndex ?? item.index ?? objectKey ?? index;
+
     return {
       itemIndex: toItemIndex(derivedIndex, index),
+      hasExplicitIndex,
       answer: item.answer ?? item.value ?? item.text ?? item.response ?? item.selectedOption ?? '',
       selectedOptionIndex: item.selectedOptionIndex ?? item.optionIndex,
       selectedOptionId: item.selectedOptionId,
@@ -104,6 +109,7 @@ const normalizeResponseEntry = (item, index, objectKey) => {
 
   return {
     itemIndex: toItemIndex(objectKey, index),
+    hasExplicitIndex: objectKeyHasIndex,
     answer: typeof item === 'string' ? item : JSON.stringify(item),
   };
 };
@@ -177,6 +183,21 @@ const hasMeaningfulResponseCandidate = (candidate) => {
   }
 
   return true;
+};
+
+
+const findResponseForQuestion = (responses, questionItem, questionOrderIndex) => {
+  const questionItemIndex = toItemIndex(questionItem.itemIndex, -1);
+
+  const matchedByExplicitIndex = responses.find(
+    (candidate) => candidate?.hasExplicitIndex && toItemIndex(candidate.itemIndex, -2) === questionItemIndex
+  );
+  if (matchedByExplicitIndex) return matchedByExplicitIndex;
+
+  const responseByOrder = responses[questionOrderIndex];
+  if (responseByOrder && !responseByOrder.hasExplicitIndex) return responseByOrder;
+
+  return responses.find((candidate) => toItemIndex(candidate.itemIndex, -2) === questionItemIndex) || null;
 };
 
 const normalizeResponses = (assignment) => {
@@ -498,9 +519,7 @@ export default function QuestResponsesByUser() {
                     ) : (
                       <ul className="space-y-2 text-sm">
                         {questionItems.map((questionItem, questionIndex) => {
-                          const responseItem = responses.find(
-                            (candidate) => toItemIndex(candidate.itemIndex, -1) === toItemIndex(questionItem.itemIndex, -2)
-                          );
+                          const responseItem = findResponseForQuestion(responses, questionItem, questionIndex);
                           const answerText = getResponseDisplayText(responseItem, questionItem);
                           const isNoResponse = answerText === '응답 없음';
 
