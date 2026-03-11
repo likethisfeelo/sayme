@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessToken } from '../utils/auth';
+import { getAccessToken, getIdTokenPayload } from '../utils/auth';
 import { premiumRegistrationApi } from '@/lib/api/premium-registration';
 
 const API_BASE_URL = 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
@@ -56,15 +56,22 @@ export default function HiNewMemberPage() {
       const data = await res.json();
       const u = data.user;
 
-      // premium 유저 처리
+      // premium / premium_inactive 유저 처리
       const status = (u.paymentStatus || '').toLowerCase();
+      const tokenPayload = getIdTokenPayload();
+      const cognitoGroups = tokenPayload?.['cognito:groups'] || [];
       const premiumUser = status === 'completed' || status === 'premium' || u.preSurveyCompleted;
+      const premiumInactiveUser = cognitoGroups.includes('premium_inactive');
+
       if (premiumUser) {
         if (!SHOW_PREMIUM_NOTICE) {
           router.push('/premium-home');
           return;
         }
         setIsPremiumUser(true);
+      } else if (premiumInactiveUser) {
+        router.push('/premium-inactive-home');
+        return;
       }
 
       // 이미 신청 완료 상태
