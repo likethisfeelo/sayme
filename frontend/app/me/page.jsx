@@ -45,8 +45,9 @@ export default function MyProfilePage() {
           paymentStatus === 'completed' ||
           paymentStatus === 'premium' ||
           cognitoGroups.includes('premium');
+        const isPremiumInactive = cognitoGroups.includes('premium_inactive');
 
-        setHomePath(isPremium ? '/premium-home' : '/trial-home');
+        setHomePath(isPremium ? '/premium-home' : isPremiumInactive ? '/premium-inactive-home' : '/trial-home');
         setAdminUser(isAdmin());
       } else {
         setError('사용자 정보를 불러올 수 없습니다.');

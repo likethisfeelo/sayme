@@ -39,9 +39,12 @@ export default function LandingPage() {
           paymentStatus === 'completed' ||
           paymentStatus === 'premium' ||
           cognitoGroups.includes('premium');
+        const isPremiumInactive = cognitoGroups.includes('premium_inactive');
 
         if (isPremium) {
           router.push('/premium-home');
+        } else if (isPremiumInactive) {
+          router.push('/premium-inactive-home');
         } else {
           router.push('/trial-home');
         }

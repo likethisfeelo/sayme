@@ -103,6 +103,7 @@ export default function AdminPremiumRequestsPage() {
     () => ({
       hinewmember: '기존 /hinewmember',
       hinewmember02: '신규 /hinewmember02',
+      premium_inactive_home: '재참여 홈 /premium-inactive-home',
       unknown: '출처 미기록',
     }),
     []
