@@ -212,7 +212,7 @@ export default function PremiumInactiveHomePage() {
               </h2>
             </section>
 
-            <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+            <section id="questions" className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
               <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
                 <div>
                   <div className="text-sm font-[750] tracking-tight text-[#2A2725]">
@@ -269,7 +269,7 @@ export default function PremiumInactiveHomePage() {
             </div>
           </section>
 
-          <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4">
+          <section id="conversion" className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-4">
             <h3 className="text-sm font-bold text-[#2A2725] mb-1">정회원 전환 신청</h3>
             <p className="text-xs text-[#6B6662] mb-3">연락처만 남겨주시면 관리자 확인 후 안내드립니다.</p>
 

@@ -15,6 +15,13 @@ const getUserTier = () => {
   return 'trial';
 };
 
+const premiumInactiveMenuItems = [
+  { label: '스피릿랩', path: '/hinewmember' },
+  { label: '이번 달 질문', path: '/premium-inactive-home#questions' },
+  { label: '정회원 전환 신청', path: '/premium-inactive-home#conversion' },
+  { label: '나의 정보', path: '/me' },
+];
+
 export default function Header({
   title = 'Sayme · Spirit Lab',
   subtitle = '',
@@ -245,9 +252,3 @@ export default function Header({
     </header>
   );
 }
-  const premiumInactiveMenuItems = [
-    { label: '스피릿랩', path: '/premium-inactive-home' },
-    { label: '이번 달 질문', path: '/quest' },
-    { label: '정회원 전환 신청', path: '/hinewmember02' },
-    { label: '나의 정보', path: '/me' },
-  ];
