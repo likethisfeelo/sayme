@@ -27,12 +27,35 @@ export const getIdTokenPayload = () => {
   const idToken = localStorage.getItem('idToken');
   if (!idToken) return null;
 
+  return decodeJwtPayload(idToken);
+};
+
+export const decodeJwtPayload = (token) => {
+  if (!token) return null;
+
   try {
-    return JSON.parse(atob(idToken.split('.')[1] || ''));
+    const base64UrlPayload = token.split('.')[1] || '';
+    const base64 = base64UrlPayload.replace(/-/g, '+').replace(/_/g, '/');
+    const paddedBase64 = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+    return JSON.parse(atob(paddedBase64));
   } catch (error) {
-    console.error('Failed to parse idToken payload:', error);
+    console.error('Failed to parse JWT payload:', error);
     return null;
   }
+};
+
+export const getCognitoGroups = () => {
+  if (typeof window === 'undefined') return [];
+
+  const idTokenPayload = decodeJwtPayload(localStorage.getItem('idToken'));
+  const accessTokenPayload = decodeJwtPayload(localStorage.getItem('accessToken'));
+
+  const groups =
+    idTokenPayload?.['cognito:groups'] ||
+    accessTokenPayload?.['cognito:groups'] ||
+    [];
+
+  return Array.isArray(groups) ? groups : [];
 };
 
 export const saveTokens = (tokens) => {

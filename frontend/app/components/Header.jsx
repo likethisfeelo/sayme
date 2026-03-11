@@ -2,15 +2,15 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearTokens, fetchWithAuth, getAccessToken, getIdTokenPayload } from '../utils/auth';
+import { clearTokens, fetchWithAuth, getAccessToken, getCognitoGroups } from '../utils/auth';
 
 const buildMonthLabel = () => `${new Date().getMonth() + 1}월`;
 
-const checkIsPremium = () => {
-  const tokenPayload = getIdTokenPayload();
-  if (!tokenPayload) return false;
-  const cognitoGroups = tokenPayload['cognito:groups'] || [];
-  return cognitoGroups.includes('premium');
+const getUserTier = () => {
+  const cognitoGroups = getCognitoGroups();
+  if (cognitoGroups.includes('premium')) return 'premium';
+  if (cognitoGroups.includes('premium_inactive')) return 'premium_inactive';
+  return 'trial';
 };
 
 export default function Header({
@@ -34,7 +34,7 @@ export default function Header({
   const [userName, setUserName] = useState('');
   const [loading, setLoading] = useState(showAuthButtons);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isPremium, setIsPremium] = useState(false);
+  const [userTier, setUserTier] = useState('trial');
   const menuRef = useRef(null);
 
   useEffect(() => {
@@ -42,7 +42,7 @@ export default function Header({
       checkLoginStatus();
     }
     if (showMenuButton) {
-      setIsPremium(checkIsPremium());
+      setUserTier(getUserTier());
     }
   }, [showAuthButtons, showMenuButton]);
 
@@ -125,7 +125,11 @@ export default function Header({
     { label: '나의 정보', path: '/me' },
   ];
 
-  const menuItems = isPremium ? premiumMenuItems : trialMenuItems;
+  const menuItems = userTier === 'premium'
+    ? premiumMenuItems
+    : userTier === 'premium_inactive'
+      ? premiumInactiveMenuItems
+      : trialMenuItems;
 
   return (
     <header
@@ -239,3 +243,9 @@ export default function Header({
     </header>
   );
 }
+  const premiumInactiveMenuItems = [
+    { label: '스피릿랩', path: '/premium-inactive-home' },
+    { label: '이번 달 질문', path: '/quest' },
+    { label: '정회원 전환 신청', path: '/hinewmember02' },
+    { label: '나의 정보', path: '/me' },
+  ];

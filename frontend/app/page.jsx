@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAccessToken, getIdTokenPayload } from './utils/auth';
+import { getAccessToken, getCognitoGroups } from './utils/auth';
 import Header from './components/Header';
 
 export default function LandingPage() {
@@ -32,16 +32,18 @@ export default function LandingPage() {
       if (response.ok && data.success) {
         const user = data.user;
         const paymentStatus = (user.paymentStatus || '').toLowerCase();
-        const tokenPayload = getIdTokenPayload();
-        const cognitoGroups = tokenPayload?.['cognito:groups'] || [];
+        const cognitoGroups = getCognitoGroups();
         const isPremium =
           user.preSurveyCompleted ||
           paymentStatus === 'completed' ||
           paymentStatus === 'premium' ||
           cognitoGroups.includes('premium');
+        const isPremiumInactive = cognitoGroups.includes('premium_inactive');
 
         if (isPremium) {
           router.push('/premium-home');
+        } else if (isPremiumInactive) {
+          router.push('/premium-inactive-home');
         } else {
           router.push('/trial-home');
         }
