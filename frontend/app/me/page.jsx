@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearTokens, fetchWithAuth, getAccessToken, getIdTokenPayload } from '../utils/auth';
+import { clearTokens, fetchWithAuth, getAccessToken, getCognitoGroups } from '../utils/auth';
 import { isAdmin } from '../../lib/auth/checkAdmin';
 import Header from '../components/Header';
 
@@ -38,8 +38,7 @@ export default function MyProfilePage() {
         setUser(loadedUser);
 
         const paymentStatus = (loadedUser.paymentStatus || '').toLowerCase();
-        const tokenPayload = getIdTokenPayload();
-        const cognitoGroups = tokenPayload?.['cognito:groups'] || [];
+        const cognitoGroups = getCognitoGroups();
         const isPremium =
           loadedUser.preSurveyCompleted ||
           paymentStatus === 'completed' ||

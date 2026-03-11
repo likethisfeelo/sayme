@@ -2,14 +2,12 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearTokens, fetchWithAuth, getAccessToken, getIdTokenPayload } from '../utils/auth';
+import { clearTokens, fetchWithAuth, getAccessToken, getCognitoGroups } from '../utils/auth';
 
 const buildMonthLabel = () => `${new Date().getMonth() + 1}월`;
 
 const getUserTier = () => {
-  const tokenPayload = getIdTokenPayload();
-  if (!tokenPayload) return 'trial';
-  const cognitoGroups = tokenPayload['cognito:groups'] || [];
+  const cognitoGroups = getCognitoGroups();
   if (cognitoGroups.includes('premium')) return 'premium';
   if (cognitoGroups.includes('premium_inactive')) return 'premium_inactive';
   return 'trial';
