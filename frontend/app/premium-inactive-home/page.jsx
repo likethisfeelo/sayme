@@ -8,6 +8,8 @@ import { questUserApi } from '@/lib/api/quest';
 import { resolveAssignmentProgressStatus } from '@/lib/questStatus';
 import { premiumRegistrationApi } from '@/lib/api/premium-registration';
 
+const NANUM_MYEONGJO_URL = 'https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&display=swap';
+
 const getStatusConfig = (status) => {
   const configs = {
     completed: {
@@ -190,36 +192,43 @@ export default function PremiumInactiveHomePage() {
   }
 
   return (
-    <div className="min-h-screen" style={backgroundStyle}>
-      <div className="max-w-[430px] mx-auto min-h-screen flex flex-col">
-        <Header subtitle="스피릿랩 · 재참여 홈" showMenuButton showMonthChip menuAriaLabel="상담/신청 메뉴" />
+    <>
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link href={NANUM_MYEONGJO_URL} rel="stylesheet" />
 
-        <main className="px-4 py-3.5 pb-[96px] flex flex-col gap-3.5">
-          <section className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(123,203,255,0.18)] to-[rgba(255,193,217,0.16)] bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] p-5">
-            <div className="text-xs tracking-[0.12em] text-[#6B6662] uppercase mb-2">Spirit Lab</div>
-            <h2 className="text-[24px] leading-tight font-bold tracking-tight mb-3">지금 어디로 향하고 있나요?</h2>
-            <p className="text-sm text-[#6B6662] leading-relaxed">
-              질문을 다시 시작하고, 필요한 순간에 다시 연결될 수 있도록 홈 구성을 간결하게 정리했습니다.
-            </p>
-          </section>
+      <div className="min-h-screen" style={backgroundStyle}>
+        <div className="max-w-[430px] mx-auto min-h-screen flex flex-col">
+          <Header subtitle="스피릿랩 · 재참여 홈" showMenuButton showMonthChip menuAriaLabel="상담/신청 메뉴" />
 
-          <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
-            <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
-              <div>
-                <div className="text-sm font-[750] tracking-tight text-[#2A2725]">
-                  {new Date().getFullYear()}년 {new Date().getMonth() + 1}월
-                </div>
-                <div className="text-xs text-[#6B6662]">할당된 질문과 결과</div>
-              </div>
-              <button
-                type="button"
-                onClick={refreshQuestions}
-                disabled={questionRefreshing}
-                className="text-[11px] px-2.5 py-1.5 rounded-lg border border-[#D8D1CB] bg-white/80 text-[#6B6662] disabled:opacity-50"
+          <main className="px-4 py-3.5 pb-[96px] flex flex-col gap-3.5">
+            <section className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(123,203,255,0.18)] to-[rgba(255,193,217,0.16)] bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] px-5 py-7 min-h-[180px] flex flex-col justify-center">
+              <div className="text-xs tracking-[0.12em] text-[#6B6662] uppercase mb-2">Spirit Lab</div>
+              <h2
+                className="text-[30px] leading-[1.25] font-bold tracking-tight"
+                style={{ fontFamily: '"Nanum Myeongjo", "AppleMyungjo", serif' }}
               >
-                {questionRefreshing ? '조회 중...' : '질문 새로고침'}
-              </button>
-            </div>
+                지금 어디로 향하고 있나요?
+              </h2>
+            </section>
+
+            <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
+              <div className="flex items-end justify-between px-4 py-3.5 border-b border-[#E6E0DA] bg-white/55">
+                <div>
+                  <div className="text-sm font-[750] tracking-tight text-[#2A2725]">
+                    2026년 스피릿랩 질문들
+                  </div>
+                  <div className="text-xs text-[#6B6662]">그동안 할당된 전체 질문 조회</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={refreshQuestions}
+                  disabled={questionRefreshing}
+                  className="text-[11px] px-2.5 py-1.5 rounded-lg border border-[#D8D1CB] bg-white/80 text-[#6B6662] disabled:opacity-50"
+                >
+                  {questionRefreshing ? '조회 중...' : '질문 새로고침'}
+                </button>
+              </div>
 
             <div className="flex flex-col p-2.5 pb-3 gap-2">
               {questions.length === 0 ? (
@@ -306,8 +315,9 @@ export default function PremiumInactiveHomePage() {
               카카오 채널로 문의하기 💬
             </button>
           </section>
-        </main>
+          </main>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
