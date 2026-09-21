@@ -146,16 +146,16 @@ export default function TrialHomePage() {
           </button>
         </section>
 
-        {/* 2026년 2월의 나다움 섹션 */}
+        {/* 2026년 가을의 나다움 섹션 */}
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
           <div className="mb-4">
-            <h3 className="text-lg font-bold text-[#2A2725]">2026년 2월의 나다움</h3>
+            <h3 className="text-lg font-bold text-[#2A2725]">2026년 가을의 나다움</h3>
           </div>
 
           {!showIntentResult ? (
             <>
               <p className="text-center text-base text-[#2A2725] leading-relaxed mb-4">
-                2026년 2월,
+                2026년 가을,
                 <br />
                 당신은 어떤 변화를 꿈꾸고 있나요?
               </p>
@@ -240,15 +240,15 @@ export default function TrialHomePage() {
               </div>
 
               <div className="text-center text-base font-semibold text-[#2A2725] leading-relaxed p-6 bg-gradient-to-r from-[rgba(245,243,255,1)] to-[rgba(252,231,243,1)] rounded-xl">
-                2026년 2월, 당신은 이렇게 변화합니다.
+                2026년 가을, 당신은 이렇게 변화합니다.
               </div>
             </div>
           )}
         </section>
 
-        {/* 2025 돌아보기 + 전문 분석 서비스 */}
+        {/* 2026년 상반기 돌아보기 + 전문 분석 서비스 */}
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
-          <h3 className="text-lg font-bold text-[#2A2725] mb-3">2025 돌아보기</h3>
+          <h3 className="text-lg font-bold text-[#2A2725] mb-3">2026년 상반기 돌아보기</h3>
           <p className="text-sm text-[#6B6662] mb-4 leading-relaxed">
             일 년을 돌아보며 콘텐츠로 담은 회고 페이지를 보실 수 있습니다.
           </p>

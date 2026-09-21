@@ -7,7 +7,7 @@ import useDraft from '@/app/components/mandalart/useDraft';
 import { getAccessToken, getIdTokenPayload } from '@/app/utils/auth';
 import { analysisUserApi } from '@/lib/api/analysis';
 import {
-  SERVICE_NAME, WORKSHEETS, CELL_COUNT, SUB_COUNT, allChaptersComplete, subFilledCount, buildSubmitPayload, validateContact, clearDraft,
+  SERVICE_NAME, WORKSHEETS, CELL_COUNT, SUB_COUNT, allChaptersComplete, subFilledCount, buildSubmitPayload, validateContact,
 } from '@/lib/mandalart';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
@@ -70,7 +70,6 @@ export default function MandalartSubmitPage() {
       setSubmitting(true);
       setMessage('');
       const data = await analysisUserApi.submit(buildSubmitPayload(draft));
-      clearDraft();
       try {
         const confetti = (await import('canvas-confetti')).default;
         confetti({ particleCount: 140, spread: 75, origin: { y: 0.7 }, colors: ['#1D9E75', '#D85A30', '#BFA7FF', '#7BCBFF'] });

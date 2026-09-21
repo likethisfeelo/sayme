@@ -244,10 +244,10 @@ export const draftProgress = (draft) => {
 // ---------- 처리 상태 ----------
 
 export const STATUS_STEPS = [
-  { key: 'submitted', label: '접수 완료', short: '접수', description: '입력하신 내용이 접수되었어요. 관리자가 곧 확인합니다.', icon: '📝' },
+  { key: 'submitted', label: '정보 접수됨', short: '접수', description: '입력하신 내용이 접수되었어요. 관리자가 곧 확인합니다.', icon: '📝' },
   { key: 'confirmed', label: '관리자 확인', short: '확인', description: '관리자가 입력 내용을 확인했어요.', icon: '👀' },
   { key: 'writing', label: '보고서 작성 중', short: '작성', description: '분석 보고서를 정성껏 작성하고 있어요.', icon: '✍️' },
-  { key: 'sent', label: '보고서 전송 완료', short: '전송', description: '보고서가 전송되었어요. 이메일과 이 화면에서 확인할 수 있어요.', icon: '📬' },
+  { key: 'sent', label: '보고서 조회', short: '조회', description: '보고서가 도착했어요. 이메일과 이 화면에서 확인할 수 있어요.', icon: '📬' },
 ];
 
 export const STATUS_LABEL = Object.fromEntries(STATUS_STEPS.map((s) => [s.key, s.label]));

@@ -311,11 +311,17 @@ function createHandler(deps = {}) {
 
     await db().send(new PutCommand({ TableName: TABLE_NAME, Item: item, ConditionExpression: 'attribute_not_exists(requestId)' }));
 
-    // 제출이 끝난 임시저장은 정리
+    // 임시저장은 제출 후에도 유지 (사용자가 최종 화면을 계속 볼 수 있고, 수정 후 재제출 가능)
     try {
-      await db().send(new DeleteCommand({ TableName: TABLE_NAME, Key: { requestId: draftId(auth.userId) } }));
+      await db().send(new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: { requestId: draftId(auth.userId) },
+        ConditionExpression: 'attribute_exists(requestId)',
+        UpdateExpression: 'SET lastSubmittedRequestId = :r, lastSubmittedAt = :t',
+        ExpressionAttributeValues: { ':r': item.requestId, ':t': createdAt },
+      }));
     } catch (error) {
-      console.warn('draft cleanup failed:', error.message);
+      if (error.name !== 'ConditionalCheckFailedException') console.warn('draft mark failed:', error.message);
     }
 
     const slack = await notify.slack(item);
@@ -334,6 +340,8 @@ function createHandler(deps = {}) {
       contact: item.contact || {},
       progress: item.progress || {},
       updatedAt: item.updatedAt,
+      lastSubmittedRequestId: item.lastSubmittedRequestId || null,
+      lastSubmittedAt: item.lastSubmittedAt || null,
     };
   }
 

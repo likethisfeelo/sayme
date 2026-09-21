@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import PageShell, { Card, Spinner } from '@/app/components/mandalart/PageShell';
-import StatusStepper from '@/app/components/mandalart/StatusStepper';
+import ServiceStatusCard, { ConsultCard } from '@/app/components/mandalart/ServiceStatusCard';
 import useDraft from '@/app/components/mandalart/useDraft';
 import { getAccessToken } from '@/app/utils/auth';
 import { analysisUserApi } from '@/lib/api/analysis';
@@ -162,23 +162,12 @@ export default function MandalartHomePage() {
         })
       )}
 
-      {/* 제출 */}
+      {/* 서비스 상태 + 제출 */}
       {!draftLoading && (
-        <Card className={ready ? '!border-[#BFA7FF]' : ''}>
-          <div className="text-[14px] font-bold mb-1">보고서 요청</div>
-          <p className="text-[12px] text-[#5f5e5a] mb-3">
-            {ready ? '두 챕터가 모두 완료되었어요. 연락처를 확인하고 제출하면 접수됩니다.' : '두 챕터를 모두 완료하면 제출할 수 있어요.'}
-          </p>
-          <button
-            type="button"
-            disabled={!ready}
-            onClick={() => router.push('/mandalart/submit')}
-            className="w-full py-3 rounded-[14px] font-bold text-[14px] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] disabled:opacity-40 active:scale-[0.98] transition-transform"
-          >
-            제출하고 보고서 요청하기 →
-          </button>
-          {(draft?.updatedAt) && (
-            <div className="mt-2 flex items-center justify-between text-[11px] text-[#94928b]">
+        <>
+          <ServiceStatusCard request={latest} ready={ready} loading={loading} />
+          {draft?.updatedAt && (
+            <div className="-mt-1 flex items-center justify-between text-[11px] text-[#94928b] px-1">
               <span>마지막 저장 {formatDateTime(draft.updatedAt)}</span>
               <button
                 type="button"
@@ -189,8 +178,10 @@ export default function MandalartHomePage() {
               </button>
             </div>
           )}
-        </Card>
+        </>
       )}
+
+      <ConsultCard />
 
       {/* 현황 */}
       <Card>
@@ -205,13 +196,7 @@ export default function MandalartHomePage() {
         ) : requests.length === 0 ? (
           <p className="text-[13px] text-[#94928b] text-center py-4">아직 제출한 만다라트가 없어요.</p>
         ) : (
-          <div className="space-y-3">
-            {latest && (
-              <div className="pb-3 border-b border-[#E6E0DA]">
-                <div className="text-[11px] text-[#94928b] mb-2">최근 신청 · {formatDateTime(latest.createdAt)}</div>
-                <StatusStepper status={latest.status} />
-              </div>
-            )}
+          <div className="space-y-2">
             {requests.map((req) => (
               <button
                 key={req.requestId}
