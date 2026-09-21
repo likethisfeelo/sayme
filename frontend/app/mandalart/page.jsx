@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import PageShell, { Card, Spinner } from '@/app/components/mandalart/PageShell';
 import ServiceStatusCard, { ConsultCard } from '@/app/components/mandalart/ServiceStatusCard';
 import useDraft from '@/app/components/mandalart/useDraft';
-import { getAccessToken } from '@/app/utils/auth';
+import useAuthed, { useMounted } from '@/app/utils/useAuthed';
 import { analysisUserApi } from '@/lib/api/analysis';
 import {
   SERVICE_NAME, WORKSHEETS, PASS_COUNT, passesOf, donePassCount, isChapterComplete, nextPassIndex, allChaptersComplete, emptyDraft,
@@ -18,7 +18,8 @@ import {
  */
 export default function MandalartHomePage() {
   const router = useRouter();
-  const [authed] = useState(() => typeof window !== 'undefined' && !!getAccessToken());
+  const authed = useAuthed();
+  const mounted = useMounted();
   const { draft, loading: draftLoading, syncError, reset } = useDraft({ enabled: authed });
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState([]);
@@ -68,7 +69,7 @@ export default function MandalartHomePage() {
   const ready = authed && allChaptersComplete(viewDraft);
   const latest = requests[0] || null;
   const missingTitles = WORKSHEETS.filter((w) => !isChapterComplete(viewDraft.sheets[w.key])).map((w) => w.title);
-  const showCards = authed ? !draftLoading : true;
+  const showCards = authed ? !draftLoading : mounted;
 
   const goChapter = (ws, pass) => {
     if (!authed) {
@@ -93,7 +94,7 @@ export default function MandalartHomePage() {
       </Card>
 
       {/* 챕터 카드 */}
-      {!authed && (
+      {mounted && !authed && (
         <Card className="!border-[#BFA7FF] bg-gradient-to-br from-[rgba(232,223,245,0.6)] to-white">
           <div className="text-[13px] font-bold mb-1">회원가입 후 무료로 시작할 수 있어요</div>
           <p className="text-[12px] text-[#5f5e5a] mb-3">유료 회원이 아니어도 누구나 참여할 수 있어요. 아래 챕터의 &lsquo;시작하기&rsquo;를 누르면 가입 화면으로 이동하고, 가입 후 이 페이지로 돌아옵니다.</p>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearTokens, fetchWithAuth, getAccessToken, getIdTokenPayload } from '../utils/auth';
+import { clearTokens, fetchWithAuth, getAccessToken, getIdTokenPayload, ensureFreshSession } from '../utils/auth';
 
 const buildMonthLabel = () => `${new Date().getMonth() + 1}월`;
 
@@ -70,6 +70,7 @@ export default function Header({
   }, [menuOpen]);
 
   const checkLoginStatus = async () => {
+    await ensureFreshSession();
     const token = getAccessToken();
 
     if (!token) {

@@ -1,4 +1,5 @@
 ﻿import './globals.css'
+import SessionKeeper from './components/SessionKeeper'
 
 export const metadata = {
   title: 'Sayme',
@@ -8,7 +9,10 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body>
+        <SessionKeeper />
+        {children}
+      </body>
     </html>
   )
 }
