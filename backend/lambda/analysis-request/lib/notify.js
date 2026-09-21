@@ -72,6 +72,7 @@ async function notifySlackNewSubmission(item, deps = {}) {
 
   const headline = `📝 새 분석 리포트 신청이 접수되었습니다`;
   const summaryLines = [
+    ...(item.chapterTitle ? [`*챕터*: ${item.chapterTitle}`] : []),
     `*이름*: ${item.name || '-'}`,
     `*이메일*: ${item.email || '-'}`,
     `*연락처*: ${item.phone || '-'}`,

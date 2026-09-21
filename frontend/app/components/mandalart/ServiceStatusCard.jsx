@@ -13,7 +13,7 @@ export const KAKAO_CHAT_URL = 'https://pf.kakao.com/_xjwsxfb/chat';
  *  - 제출 후: 정보 접수됨 → 관리자 확인 → 작성 중 → 보고서 조회 단계 표시
  *  - 보고서 조회 버튼: 관리자가 보고서를 전송하면 활성화
  */
-export default function ServiceStatusCard({ request, ready, showSubmit = true, loading = false }) {
+export default function ServiceStatusCard({ request, ready, showSubmit = true, loading = false, chapterKey = null, title = '서비스 상태', compact = false }) {
   const router = useRouter();
   const current = request ? statusIndex(request.status) : -1;
   const reportReady = request?.status === 'sent';
@@ -26,16 +26,16 @@ export default function ServiceStatusCard({ request, ready, showSubmit = true, l
   ];
 
   return (
-    <Card className={reportReady ? '!border-[#BFA7FF]' : ''}>
+    <Card className={`${reportReady ? '!border-[#BFA7FF]' : ''} ${compact ? '!p-3.5 !shadow-none' : ''}`}>
       <div className="flex items-center justify-between mb-1">
-        <h2 className="text-[14px] font-bold">서비스 상태</h2>
+        <h2 className="text-[14px] font-bold">{title}</h2>
         {request && <span className="text-[11px] text-[#94928b]">접수 {formatDateTime(request.createdAt)}</span>}
       </div>
       <p className="text-[12px] text-[#5f5e5a] mb-3">
         {loading
           ? '상태를 불러오는 중…'
           : !request
-            ? ready ? '두 챕터가 완료되었어요. 제출하면 접수됩니다.' : '두 챕터를 모두 완료하고 제출하면 접수 상태를 여기서 볼 수 있어요.'
+            ? ready ? '이 챕터가 완료되었어요. 제출하면 접수됩니다.' : '챕터를 완료하고 제출하면 접수 상태를 여기서 볼 수 있어요.'
             : STATUS_STEPS[current]?.description}
       </p>
 
@@ -77,7 +77,7 @@ export default function ServiceStatusCard({ request, ready, showSubmit = true, l
           <button
             type="button"
             disabled={!ready}
-            onClick={() => router.push('/mandalart/submit')}
+            onClick={() => router.push(chapterKey ? `/mandalart/submit/?key=${chapterKey}` : '/mandalart/submit')}
             className={`w-full py-2.5 rounded-[14px] text-[13px] font-semibold border disabled:opacity-40 ${request ? 'bg-white border-[#E6E0DA] text-[#5f5e5a]' : 'bg-[#2A2725] border-[#2A2725] text-white'}`}
           >
             {request ? '수정한 내용으로 다시 제출' : '제출하고 보고서 요청하기 →'}

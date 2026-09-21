@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import PageShell, { Card, Spinner } from '@/app/components/mandalart/PageShell';
 import { isAdmin } from '@/lib/auth/checkAdmin';
 import { analysisAdminApi, downloadBlob } from '@/lib/api/analysis';
-import { STATUS_STEPS, STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime, sheetsFromAnswers, WORKSHEETS, filledCount } from '@/lib/mandalart';
+import { STATUS_STEPS, STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime, sheetsFromAnswers, worksheetsInAnswers, filledCount } from '@/lib/mandalart';
 
 /**
  * /admin/mandalart : 신청 목록 조회 · 필터 · CSV 다운로드
@@ -52,7 +52,7 @@ export default function AdminMandalartListPage() {
     return requests.filter((r) => {
       if (statusFilter && r.status !== statusFilter) return false;
       if (!kw) return true;
-      return [r.name, r.email, r.phone, r.requestId].some((v) => (v || '').toLowerCase().includes(kw));
+      return [r.name, r.email, r.phone, r.requestId, r.chapterTitle].some((v) => (v || '').toLowerCase().includes(kw));
     });
   }, [requests, statusFilter, keyword]);
 
@@ -75,8 +75,9 @@ export default function AdminMandalartListPage() {
 
   const summary = (r) => {
     const sheets = sheetsFromAnswers(r.answers);
-    return WORKSHEETS.map((ws) => `${ws.title.slice(0, 6)}… ${filledCount(sheets[ws.key])}/8`).join(' · ');
+    return worksheetsInAnswers(r.answers).map((ws) => `${ws.title.slice(0, 6)}… ${filledCount(sheets[ws.key])}/8`).join(' · ');
   };
+  const chapterLabel = (r) => r.chapterTitle || (r.chapter === 'all' ? '전체' : r.chapter || '-');
 
   return (
     <PageShell subtitle="관리자 · 만다라트 신청" backTo="/admin" maxWidthClass="max-w-[1100px]">
@@ -143,6 +144,7 @@ export default function AdminMandalartListPage() {
               <thead className="bg-[#F9F6F3] text-[#5f5e5a] text-[11px]">
                 <tr>
                   <th className="text-left px-4 py-2.5 font-medium">접수</th>
+                  <th className="text-left px-4 py-2.5 font-medium">챕터</th>
                   <th className="text-left px-4 py-2.5 font-medium">이름</th>
                   <th className="text-left px-4 py-2.5 font-medium">이메일 / 연락처</th>
                   <th className="text-left px-4 py-2.5 font-medium">입력</th>
@@ -155,6 +157,7 @@ export default function AdminMandalartListPage() {
                 {filtered.map((r) => (
                   <tr key={r.requestId} className="border-t border-[#F0ECE7] hover:bg-[#FCFAF8] cursor-pointer" onClick={() => router.push(`/admin/mandalart/detail/?id=${encodeURIComponent(r.requestId)}`)}>
                     <td className="px-4 py-3 whitespace-nowrap text-[#5f5e5a]">{formatDateTime(r.createdAt)}</td>
+                    <td className="px-4 py-3 text-[12px]">{chapterLabel(r)}</td>
                     <td className="px-4 py-3 font-semibold">{r.name || '-'}</td>
                     <td className="px-4 py-3">
                       <div>{r.email || '-'}</div>
@@ -187,7 +190,7 @@ export default function AdminMandalartListPage() {
               >
                 <div className="flex items-start justify-between gap-2 mb-1.5">
                   <div className="min-w-0">
-                    <div className="text-[14px] font-semibold truncate">{r.name || '-'}</div>
+                    <div className="text-[14px] font-semibold truncate">{r.name || '-'} <span className="text-[11px] font-normal text-[#94928b]">· {chapterLabel(r)}</span></div>
                     <div className="text-[11px] text-[#94928b] truncate">{r.email || '-'} · {r.phone || '-'}</div>
                   </div>
                   <span className={`shrink-0 text-[11px] px-2.5 py-1 rounded-full ${STATUS_BADGE_CLASS[r.status] || ''}`}>{STATUS_LABEL[r.status] || r.status}</span>

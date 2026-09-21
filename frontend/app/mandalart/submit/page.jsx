@@ -1,22 +1,24 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import PageShell, { Card, Spinner } from '@/app/components/mandalart/PageShell';
 import useDraft from '@/app/components/mandalart/useDraft';
 import { getAccessToken, getIdTokenPayload } from '@/app/utils/auth';
 import { analysisUserApi } from '@/lib/api/analysis';
 import {
-  SERVICE_NAME, WORKSHEETS, CELL_COUNT, SUB_COUNT, allChaptersComplete, subFilledCount, buildSubmitPayload, validateContact,
+  SERVICE_NAME, WORKSHEETS, CELL_COUNT, SUB_COUNT, worksheetByKey, isChapterComplete, subFilledCount, buildSubmitPayload, validateContact,
 } from '@/lib/mandalart';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 
 /**
- * /mandalart/submit : 두 챕터 확인 + 연락처 + 동의 → 제출
+ * /mandalart/submit?key=complete|torment : 해당 챕터 확인 + 연락처 + 동의 → 제출 (챕터 단위)
  */
-export default function MandalartSubmitPage() {
+function SubmitContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const ws = worksheetByKey(searchParams.get('key')) || WORKSHEETS[0];
   const [authed] = useState(() => typeof window !== 'undefined' && !!getAccessToken());
   const { draft, setDraft, loading, syncError } = useDraft({ enabled: authed });
   const [errors, setErrors] = useState({});
@@ -62,14 +64,14 @@ export default function MandalartSubmitPage() {
       setMessage('입력 내용을 확인해 주세요.');
       return;
     }
-    if (!allChaptersComplete(draft)) {
-      setMessage('두 챕터를 모두 완료한 뒤 제출할 수 있어요.');
+    if (!isChapterComplete(draft.sheets[ws.key])) {
+      setMessage('이 챕터의 단계를 모두 완료한 뒤 제출할 수 있어요.');
       return;
     }
     try {
       setSubmitting(true);
       setMessage('');
-      const data = await analysisUserApi.submit(buildSubmitPayload(draft));
+      const data = await analysisUserApi.submit(buildSubmitPayload(draft, { chapter: ws.key }));
       try {
         const confetti = (await import('canvas-confetti')).default;
         confetti({ particleCount: 140, spread: 75, origin: { y: 0.7 }, colors: ['#1D9E75', '#D85A30', '#BFA7FF', '#7BCBFF'] });
@@ -91,18 +93,19 @@ export default function MandalartSubmitPage() {
     return <PageShell subtitle={SERVICE_NAME} backTo="/mandalart" maxWidthClass="max-w-[640px]"><Spinner /></PageShell>;
   }
 
-  const ready = allChaptersComplete(draft);
+  const ready = isChapterComplete(draft.sheets[ws.key]);
 
   return (
     <PageShell subtitle={`${SERVICE_NAME} · 제출`} backTo="/mandalart" maxWidthClass="max-w-[640px]" bottomPadding="pb-[110px]" showMenuButton={false}>
       <Card>
         <h1 className="text-[20px] font-bold leading-tight mb-1">마지막 확인</h1>
-        <p className="text-[12px] text-[#94928b] mb-3">두 챕터의 내용을 확인하고 연락처를 남겨주세요. 보고서는 이메일로 보내드려요.</p>
+        <p className="text-[12px] text-[#94928b] mb-3">이 챕터의 내용을 확인하고 연락처를 남겨주세요. 보고서는 챕터별로 이메일로 보내드려요.</p>
         {!ready && (
-          <p className="text-[12px] text-[#A32D2D] bg-[#FCEBEB] border border-[#A32D2D] rounded-[10px] px-3 py-2 mb-3">아직 완료되지 않은 챕터가 있어요. 홈에서 남은 단계를 마무리해 주세요.</p>
+          <p className="text-[12px] text-[#A32D2D] bg-[#FCEBEB] border border-[#A32D2D] rounded-[10px] px-3 py-2 mb-3">아직 완료되지 않은 단계가 있어요. 홈에서 남은 단계를 마무리해 주세요.</p>
         )}
         <div className="flex flex-col gap-2">
-          {WORKSHEETS.map((w, i) => {
+          {[ws].map((w) => {
+            const i = WORKSHEETS.indexOf(w);
             const s = draft.sheets[w.key];
             return (
               <button
@@ -199,5 +202,13 @@ export default function MandalartSubmitPage() {
         </div>
       </div>
     </PageShell>
+  );
+}
+
+export default function MandalartSubmitPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">로딩 중...</div>}>
+      <SubmitContent />
+    </Suspense>
   );
 }

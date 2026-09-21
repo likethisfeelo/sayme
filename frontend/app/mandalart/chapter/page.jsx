@@ -10,7 +10,7 @@ import ServiceStatusCard, { ConsultCard } from '@/app/components/mandalart/Servi
 import { analysisUserApi } from '@/lib/api/analysis';
 import { getAccessToken } from '@/app/utils/auth';
 import {
-  SERVICE_NAME, CELL_COUNT, PASS_COUNT, worksheetByKey, passesOf, isChapterComplete, nextPassIndex, allChaptersComplete, sheetsToText, formatDateTime,
+  SERVICE_NAME, CELL_COUNT, PASS_COUNT, worksheetByKey, passesOf, isChapterComplete, nextPassIndex, latestRequestForChapter, sheetsToText, formatDateTime,
 } from '@/lib/mandalart';
 
 /**
@@ -79,11 +79,11 @@ function ChapterContent() {
     if (!isView || !authed) return;
     let cancelled = false;
     analysisUserApi.listMine()
-      .then((data) => { if (!cancelled) setLatestRequest((data.requests || [])[0] || null); })
+      .then((data) => { if (!cancelled) setLatestRequest(latestRequestForChapter(data.requests || [], ws.key)); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setStatusLoading(false); });
     return () => { cancelled = true; };
-  }, [isView, authed]);
+  }, [isView, authed, ws.key]);
 
   useEffect(() => {
     if (!authed) router.push('/signup');
@@ -233,7 +233,7 @@ function ChapterContent() {
               <span>{lastSyncedAt ? `서버 저장 ${formatDateTime(lastSyncedAt)}` : ''}</span>
               <button type="button" onClick={handleCopy} className="underline underline-offset-2">{copied ? '복사됨' : '텍스트로 복사'}</button>
             </div>
-            <ServiceStatusCard request={latestRequest} ready={allChaptersComplete(draft)} loading={statusLoading} />
+            <ServiceStatusCard title="이 챕터의 서비스 상태" chapterKey={ws.key} request={latestRequest} ready={chapterComplete} loading={statusLoading} />
             <ConsultCard />
             <button type="button" onClick={() => router.push('/mandalart')} className="w-full py-3 rounded-[14px] border border-[#E6E0DA] bg-white font-bold text-[14px] text-[#2A2725]">
               홈으로 →

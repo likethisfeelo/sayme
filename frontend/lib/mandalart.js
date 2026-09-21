@@ -112,10 +112,21 @@ export function sheetsFromAnswers(answers = {}, progress = {}) {
 export const progressFromSheets = (sheets) =>
   Object.fromEntries(WORKSHEETS.map((ws) => [ws.key, (sheets?.[ws.key]?.done || Array(PASS_COUNT).fill(false)).map(Boolean)]));
 
-/** 화면용 sheets → 서버 answers */
-export function answersFromSheets(sheets) {
+/** answers 에 포함된 워크시트만 (챕터 단위 제출 대응) */
+export const worksheetsInAnswers = (answers = {}) => {
+  const present = WORKSHEETS.filter((ws) => answers?.[ws.key] && Array.isArray(answers[ws.key].items));
+  return present.length ? present : WORKSHEETS;
+};
+
+/** 신청 목록에서 해당 챕터의 최신 신청 */
+export const latestRequestForChapter = (requests = [], key) =>
+  (requests || []).find((r) => (r.chapter || (r.answers && Object.keys(r.answers).length === 1 ? Object.keys(r.answers)[0] : 'all')) === key || r.chapter === 'all') || null;
+
+/** 화면용 sheets → 서버 answers (keys 를 주면 그 챕터만) */
+export function answersFromSheets(sheets, keys = null) {
   const answers = {};
   for (const ws of WORKSHEETS) {
+    if (keys && !keys.includes(ws.key)) continue;
     const sheet = sheets?.[ws.key] || emptySheet();
     answers[ws.key] = {
       title: ws.title,
@@ -130,12 +141,15 @@ export function answersFromSheets(sheets) {
   return answers;
 }
 
-export function buildSubmitPayload(draft, { source = 'mandalart-web' } = {}) {
+/** 챕터 단위 제출 페이로드 (chapter 생략 시 전체) */
+export function buildSubmitPayload(draft, { source = 'mandalart-web', chapter = null } = {}) {
+  const ws = chapter ? worksheetByKey(chapter) : null;
   return {
     name: (draft.contact?.name || '').trim(),
     phone: (draft.contact?.phone || '').trim(),
     email: (draft.contact?.email || '').trim(),
-    answers: answersFromSheets(draft.sheets),
+    answers: answersFromSheets(draft.sheets, ws ? [ws.key] : null),
+    ...(ws ? { chapter: ws.key, chapterTitle: ws.title } : {}),
     consent: draft.consent === true,
     source,
   };
@@ -155,6 +169,7 @@ export function validateContact(contact, consent) {
 export function sheetsToText(sheets) {
   const out = [];
   for (const ws of WORKSHEETS) {
+    if (!sheets?.[ws.key]) continue;
     out.push(`${ws.title} — ${ws.subtitle}`, '');
     (sheets?.[ws.key]?.items || []).forEach((it, i) => {
       out.push(`${i + 1}. ${(it.text || '').trim()}`);
@@ -278,8 +293,9 @@ const esc = (s = '') =>
 export function buildReportTemplate(request) {
   const sheets = sheetsFromAnswers(request?.answers);
   const name = esc(request?.name || '');
+  const included = worksheetsInAnswers(request?.answers);
 
-  const sheetHtml = WORKSHEETS.map((ws) => {
+  const sheetHtml = included.map((ws) => {
     const items = sheets[ws.key].items;
     const cells = items.map((it, i) => `<div class="cell"><span class="n">${i + 1}</span>${esc(it.text || '-')}</div>`);
     cells.splice(4, 0, `<div class="cell center" style="background:${ws.theme.accbg};border-color:${ws.theme.accln};color:${ws.theme.accd}">${esc(ws.center)}</div>`);
@@ -317,7 +333,7 @@ export function buildReportTemplate(request) {
 .mr .summary{border-left:3px solid #BFA7FF;padding:8px 14px;background:#f7f4ff;border-radius:0 10px 10px 0}
 </style>
 <div class="mr">
-  <h1>${name ? `${name}님의 ` : ''}만다라트 분석 보고서</h1>
+  <h1>${name ? `${name}님의 ` : ''}${included.length === 1 ? esc(included[0].title) : '만다라트'} 분석 보고서</h1>
   <p class="sub">${esc(SERVICE_NAME)} · 작성일 ${new Date().toLocaleDateString('ko-KR')}</p>
   <div class="summary"><b>한눈에 보기</b><br/>여기에 전체 요약을 작성하세요.</div>
   ${sheetHtml}

@@ -152,6 +152,8 @@ function publicView(item, { includeReport = false, includeToken = false } = {}) 
     email: item.email,
     phone: item.phone,
     answers: item.answers || {},
+    chapter: item.chapter || 'all',
+    chapterTitle: item.chapterTitle || null,
     reportTitle: item.reportTitle || null,
     hasReport: !!item.reportHtml,
     createdAt: item.createdAt,
@@ -291,6 +293,10 @@ function createHandler(deps = {}) {
     }
     if (!email) throw new HttpError(400, '이메일 정보를 확인할 수 없습니다. 이메일을 입력해 주세요.');
 
+    // 챕터 단위 제출: answers 에 포함된 워크시트 키 (예: complete / torment). 없으면 전체
+    const chapter = cleanString(body.chapter, 50) || (Object.keys(answers).length === 1 ? Object.keys(answers)[0] : 'all');
+    const chapterTitle = cleanString(body.chapterTitle, 100) || answers?.[chapter]?.title || null;
+
     const createdAt = nowIso();
     const item = {
       requestId: `ar_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
@@ -299,6 +305,8 @@ function createHandler(deps = {}) {
       name,
       email,
       phone,
+      chapter,
+      chapterTitle,
       answers,
       consent: true,
       source: cleanString(body.source, 50) || 'web',

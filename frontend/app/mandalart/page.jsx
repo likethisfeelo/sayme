@@ -9,7 +9,7 @@ import useDraft from '@/app/components/mandalart/useDraft';
 import { getAccessToken } from '@/app/utils/auth';
 import { analysisUserApi } from '@/lib/api/analysis';
 import {
-  SERVICE_NAME, WORKSHEETS, PASS_COUNT, passesOf, donePassCount, isChapterComplete, nextPassIndex, allChaptersComplete,
+  SERVICE_NAME, WORKSHEETS, PASS_COUNT, passesOf, donePassCount, isChapterComplete, nextPassIndex, latestRequestForChapter,
   STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime,
 } from '@/lib/mandalart';
 
@@ -53,8 +53,6 @@ export default function MandalartHomePage() {
     if (syncError === '401') router.push('/login');
   }, [syncError, router]);
 
-  const ready = allChaptersComplete(draft);
-  const latest = requests[0];
 
   const goChapter = (ws, pass) => router.push(`/mandalart/chapter/?key=${ws.key}&pass=${pass}`);
 
@@ -67,7 +65,7 @@ export default function MandalartHomePage() {
           <div className="text-[10px] tracking-[0.12em] uppercase text-[#6B6662] mb-1">Spirit Lab · Self Mandalart</div>
           <h1 className="text-[22px] font-bold leading-tight mb-2">{SERVICE_NAME}</h1>
           <p className="text-[13px] text-[#5f5e5a] leading-relaxed">
-            두 챕터를 각각 완료하면 제출할 수 있어요. 관리자가 내용을 확인하고 나만의 분석 보고서를 이메일로 보내드려요.
+            챕터를 하나씩 완료하고 제출하면, 관리자가 내용을 확인하고 챕터별 분석 보고서를 이메일로 보내드려요.
           </p>
         </div>
       </Card>
@@ -132,19 +130,29 @@ export default function MandalartHomePage() {
                   </ol>
 
                   {complete ? (
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => goChapter(ws, 'view')}
-                        className="flex-1 py-2.5 rounded-[12px] font-bold text-[13px] text-white active:scale-[0.98] transition-transform"
-                        style={{ background: ws.theme.accln }}
-                      >
-                        최종 화면 보기 →
-                      </button>
-                      <button type="button" onClick={() => goChapter(ws, 0)} className="px-3 py-2.5 rounded-[12px] border border-[#E6E0DA] bg-white text-[12px] text-[#5f5e5a]">
-                        수정
-                      </button>
-                    </div>
+                    <>
+                      <div className="flex gap-2 mb-3">
+                        <button
+                          type="button"
+                          onClick={() => goChapter(ws, 'view')}
+                          className="flex-1 py-2.5 rounded-[12px] font-bold text-[13px] text-white active:scale-[0.98] transition-transform"
+                          style={{ background: ws.theme.accln }}
+                        >
+                          최종 화면 보기 →
+                        </button>
+                        <button type="button" onClick={() => goChapter(ws, 0)} className="px-3 py-2.5 rounded-[12px] border border-[#E6E0DA] bg-white text-[12px] text-[#5f5e5a]">
+                          수정
+                        </button>
+                      </div>
+                      <ServiceStatusCard
+                        compact
+                        title="이 챕터의 서비스 상태"
+                        chapterKey={ws.key}
+                        request={latestRequestForChapter(requests, ws.key)}
+                        ready={complete}
+                        loading={loading}
+                      />
+                    </>
                   ) : (
                     <button
                       type="button"
@@ -162,23 +170,17 @@ export default function MandalartHomePage() {
         })
       )}
 
-      {/* 서비스 상태 + 제출 */}
-      {!draftLoading && (
-        <>
-          <ServiceStatusCard request={latest} ready={ready} loading={loading} />
-          {draft?.updatedAt && (
-            <div className="-mt-1 flex items-center justify-between text-[11px] text-[#94928b] px-1">
-              <span>마지막 저장 {formatDateTime(draft.updatedAt)}</span>
-              <button
-                type="button"
-                onClick={() => { if (window.confirm('작성 중인 두 챕터의 내용을 모두 지울까요?')) reset(); }}
-                className="underline underline-offset-2"
-              >
-                전체 초기화
-              </button>
-            </div>
-          )}
-        </>
+      {!draftLoading && draft?.updatedAt && (
+        <div className="-mt-1 flex items-center justify-between text-[11px] text-[#94928b] px-1">
+          <span>마지막 저장 {formatDateTime(draft.updatedAt)}</span>
+          <button
+            type="button"
+            onClick={() => { if (window.confirm('작성 중인 두 챕터의 내용을 모두 지울까요?')) reset(); }}
+            className="underline underline-offset-2"
+          >
+            전체 초기화
+          </button>
+        </div>
       )}
 
       <ConsultCard />
@@ -205,7 +207,7 @@ export default function MandalartHomePage() {
                 className="w-full text-left flex items-center justify-between gap-3 rounded-[12px] border border-[#E6E0DA] bg-white px-3.5 py-3 hover:border-[rgba(191,167,255,0.6)] transition-colors"
               >
                 <div className="min-w-0">
-                  <div className="text-[13px] font-semibold truncate">{req.reportTitle || '만다라트 신청'}</div>
+                  <div className="text-[13px] font-semibold truncate">{req.reportTitle || req.chapterTitle || '만다라트 신청'}</div>
                   <div className="text-[11px] text-[#94928b]">{formatDateTime(req.createdAt)}</div>
                 </div>
                 <span className={`shrink-0 text-[11px] px-2.5 py-1 rounded-full font-medium ${STATUS_BADGE_CLASS[req.status] || ''}`}>
