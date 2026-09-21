@@ -6,9 +6,11 @@ import { AnimatePresence, motion } from 'framer-motion';
 import PageShell, { Card, Spinner } from '@/app/components/mandalart/PageShell';
 import MandalartGrid from '@/app/components/mandalart/MandalartGrid';
 import useDraft from '@/app/components/mandalart/useDraft';
+import ServiceStatusCard, { ConsultCard } from '@/app/components/mandalart/ServiceStatusCard';
+import { analysisUserApi } from '@/lib/api/analysis';
 import { getAccessToken } from '@/app/utils/auth';
 import {
-  SERVICE_NAME, CELL_COUNT, PASS_COUNT, worksheetByKey, passesOf, isChapterComplete, nextPassIndex, sheetsToText, formatDateTime,
+  SERVICE_NAME, CELL_COUNT, PASS_COUNT, worksheetByKey, passesOf, isChapterComplete, nextPassIndex, allChaptersComplete, sheetsToText, formatDateTime,
 } from '@/lib/mandalart';
 
 /**
@@ -69,6 +71,19 @@ function ChapterContent() {
   const [copied, setCopied] = useState(false);
   const rowRefs = useRef([]);
   const topRef = useRef(null);
+  const [latestRequest, setLatestRequest] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+
+  // 최종 화면에서는 최근 신청 상태를 함께 표시
+  useEffect(() => {
+    if (!isView || !authed) return;
+    let cancelled = false;
+    analysisUserApi.listMine()
+      .then((data) => { if (!cancelled) setLatestRequest((data.requests || [])[0] || null); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setStatusLoading(false); });
+    return () => { cancelled = true; };
+  }, [isView, authed]);
 
   useEffect(() => {
     if (!authed) router.push('/signup');
@@ -218,7 +233,9 @@ function ChapterContent() {
               <span>{lastSyncedAt ? `서버 저장 ${formatDateTime(lastSyncedAt)}` : ''}</span>
               <button type="button" onClick={handleCopy} className="underline underline-offset-2">{copied ? '복사됨' : '텍스트로 복사'}</button>
             </div>
-            <button type="button" onClick={() => router.push('/mandalart')} className="w-full py-3 rounded-[14px] font-bold text-[14px] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]">
+            <ServiceStatusCard request={latestRequest} ready={allChaptersComplete(draft)} loading={statusLoading} />
+            <ConsultCard />
+            <button type="button" onClick={() => router.push('/mandalart')} className="w-full py-3 rounded-[14px] border border-[#E6E0DA] bg-white font-bold text-[14px] text-[#2A2725]">
               홈으로 →
             </button>
           </motion.div>

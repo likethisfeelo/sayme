@@ -324,11 +324,12 @@ export default function IntroductionPremiumPage() {
             <div className="absolute top-3 right-3 bg-red-600 text-white text-[11px] font-bold px-3 py-1 rounded-full">
               신규 회원
             </div>
-            <div className="text-[13px] text-[#6B6662] mb-3">스피릿랩 첫 참여 신청 시</div>
+            <div className="text-[13px] text-[#6B6662] mb-3">스피릿랩 첫 달 참여 시</div>
             <div className="text-4xl font-bold text-[#2A2725] mb-2">₩200,000</div>
-            <div className="text-[13px] text-[rgba(99,102,241,1)] mb-4">
-              월 구독 100,000원 + 초기 상담 2회 100,000원
+            <div className="text-[13px] text-[rgba(99,102,241,1)] mb-1">
+              월 참여 150,000원 + 초기 구조 세팅 50,000원 (1회)
             </div>
+            <div className="text-[12px] text-[#6B6662] mb-4">다음 달부터는 월 150,000원</div>
 
             <div className="bg-white rounded-[10px] p-3 text-left">
               <div className="text-[11px] text-[#6B6662] leading-relaxed">
@@ -347,9 +348,8 @@ export default function IntroductionPremiumPage() {
             <div className="text-sm font-bold text-[#2A2725] mb-3 text-center">참여자 평균 2~6개월 지속</div>
             <div className="space-y-2.5 mb-4">
               {[
-                { label: '월 단위 참여', price: '100,000원/월', color: 'rgba(99,102,241,1)', border: false },
-                { label: '3개월 이상 참여', price: '77,000원/월', color: 'rgba(167,139,250,1)', border: false },
-                { label: '5개월 이상 참여', price: '50,000원/월', color: 'rgba(22,163,74,1)', border: true },
+                { label: '첫 달 (세팅 비용 포함)', price: '200,000원', color: 'rgba(99,102,241,1)', border: false },
+                { label: '다음 달부터', price: '150,000원/월', color: 'rgba(22,163,74,1)', border: true },
               ].map((item, i) => (
                 <div
                   key={i}
@@ -366,7 +366,7 @@ export default function IntroductionPremiumPage() {
             <div className="bg-[rgba(254,243,199,1)] rounded-lg p-3 mb-3">
               <div className="text-xs text-[#78350F] leading-relaxed">
                 <strong>초기 구조 세팅 (가입비) 50,000원 (1회)</strong><br />
-                첫 달에만 부과되는 세팅 비용입니다
+                첫 달에만 부과되는 세팅 비용입니다 (첫 달 200,000원 = 150,000원 + 50,000원)
               </div>
             </div>
 
@@ -455,8 +455,7 @@ export default function IntroductionPremiumPage() {
               장기 참여 시 이런 점이 좋습니다
             </div>
             <div className="text-[11px] text-[#166534] leading-[1.7]">
-              ✓ 3개월차부터 <strong>23% 할인</strong> (77,000원)<br />
-              ✓ 5개월차부터 <strong>50% 할인</strong> (50,000원)<br />
+              ✓ 2개월차부터 세팅 비용 없이 <strong>월 150,000원</strong><br />
               ✓ 누적된 기록으로 더 정교한 분석<br />
               ✓ 질문과 기준이 쌓여 명확한 방향성 확보<br />
               ✓ 변화의 패턴이 보이기 시작함

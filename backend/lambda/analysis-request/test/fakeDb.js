@@ -80,6 +80,9 @@ function createFakeDb(seed = {}) {
       if (cmd instanceof UpdateCommand) {
         const t = table(input.TableName);
         const k = keyOf(input.Key);
+        if (input.ConditionExpression?.includes('attribute_exists') && !t.has(k)) {
+          const e = new Error('conditional failed'); e.name = 'ConditionalCheckFailedException'; throw e;
+        }
         const it = t.get(k) || { ...input.Key };
         applyUpdate(it, input);
         t.set(k, it);
