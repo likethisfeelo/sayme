@@ -77,6 +77,10 @@ export const analysisUserApi = {
   submit: (payload) => request('', { method: 'POST', body: payload }),
   listMine: () => request('/mine'),
   get: (requestId) => request(`/${encodeURIComponent(requestId)}`),
+  /** 서버 임시저장 (사용자당 1건) */
+  getDraft: () => request('/draft'),
+  saveDraft: (payload) => request('/draft', { method: 'PUT', body: payload }),
+  deleteDraft: () => request('/draft', { method: 'DELETE' }),
   /** 이메일 링크(토큰) 조회: 로그인 불필요 */
   getReportByToken: (requestId, token) =>
     request(`/${encodeURIComponent(requestId)}/report?token=${encodeURIComponent(token)}`, { auth: false }),

@@ -5,7 +5,8 @@
 |---|---|---|
 | `/` `/trial-home` `/premium-home` `/premium-inactive-home` | 모두 | 상단 배너 (`MandalartBanner`) → 비로그인은 가입, 임시저장 있으면 이어서 작성 |
 | `/mandalart` | 로그인 | 소개 + 내 신청 현황(상태 스텝) |
-| `/mandalart/new` | 로그인 | 5단계 플로우: 완성 8칸 → 파고들기 → 괴롭힘 8칸 → 파고들기 → 확인·제출. 자동 저장(localStorage), Enter 로 다음 칸, 미입력 흔들림, 제출 시 confetti |
+| `/mandalart/chapter?key=&pass=` | 로그인 | 챕터별 회차 입력: 0=8가지 주제(빈 칸 허용), 1~3=하위 항목을 8개 주제에 대해 한 번에 입력(앞 회차 내용 참고 표시), view=최종 화면(칸 눌러 조회). 회차마다 저장 및 완료 → 서버 임시저장 |
+| `/mandalart/submit` | 로그인 | 두 챕터 완료 후 연락처·동의 → 제출(confetti) |
 | `/mandalart/detail?id=` | 로그인 | 본인 입력값 조회 + 처리 상태(접수/관리자 확인/작성 중/전송 완료) + 보고서 열기 |
 | `/mandalart/report?id=&token=` | 이메일 링크 | 로그인 없이 보고서 HTML 열람 (token 없으면 로그인 후 본인 것만) |
 | `/admin/mandalart` | Admins | 목록·상태 필터·검색·CSV/JSON 다운로드 |
