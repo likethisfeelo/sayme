@@ -61,6 +61,22 @@ API Gateway 에 Cognito Authorizer 를 붙인 경우 `requestContext.authorizer.
 
 ## 4. 배포 절차
 
+가장 쉬운 방법은 스크립트입니다. 이 폴더에서:
+
+```powershell
+# Windows PowerShell
+Copy-Item .env.deploy.example .env.deploy   # 값 채우기 (Slack 웹훅, SES 발신 주소)
+.\deploy.ps1 all                           # 이후 코드만: .\deploy.ps1 code / 환경변수만: .\deploy.ps1 env
+```
+```bash
+# Git Bash / WSL / macOS
+cp .env.deploy.example .env.deploy
+./deploy.sh all
+```
+
+아래는 스크립트가 하는 일을 수동으로 할 때의 명령어입니다.
+
+
 ```bash
 # 1) DynamoDB 테이블 + GSI
 aws dynamodb create-table \
