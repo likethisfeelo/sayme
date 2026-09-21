@@ -9,7 +9,7 @@ import useDraft from '@/app/components/mandalart/useDraft';
 import { getAccessToken } from '@/app/utils/auth';
 import { analysisUserApi } from '@/lib/api/analysis';
 import {
-  SERVICE_NAME, WORKSHEETS, PASS_COUNT, passesOf, donePassCount, isChapterComplete, nextPassIndex, latestRequestForChapter,
+  SERVICE_NAME, WORKSHEETS, PASS_COUNT, passesOf, donePassCount, isChapterComplete, nextPassIndex, allChaptersComplete,
   STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime,
 } from '@/lib/mandalart';
 
@@ -54,6 +54,10 @@ export default function MandalartHomePage() {
   }, [syncError, router]);
 
 
+  const ready = allChaptersComplete(draft);
+  const latest = requests[0] || null;
+  const missingTitles = draft ? WORKSHEETS.filter((w) => !isChapterComplete(draft.sheets[w.key])).map((w) => w.title) : [];
+
   const goChapter = (ws, pass) => router.push(`/mandalart/chapter/?key=${ws.key}&pass=${pass}`);
 
   return (
@@ -65,7 +69,7 @@ export default function MandalartHomePage() {
           <div className="text-[10px] tracking-[0.12em] uppercase text-[#6B6662] mb-1">Spirit Lab · Self Mandalart</div>
           <h1 className="text-[22px] font-bold leading-tight mb-2">{SERVICE_NAME}</h1>
           <p className="text-[13px] text-[#5f5e5a] leading-relaxed">
-            챕터를 하나씩 완료하고 제출하면, 관리자가 내용을 확인하고 챕터별 분석 보고서를 이메일로 보내드려요.
+            챕터를 하나씩 완료한 뒤, 두 챕터가 모두 끝나면 최종 보고서를 신청하세요. 관리자가 두 장을 함께 분석해 이메일로 보내드려요.
           </p>
         </div>
       </Card>
@@ -144,14 +148,12 @@ export default function MandalartHomePage() {
                           수정
                         </button>
                       </div>
-                      <ServiceStatusCard
-                        compact
-                        title="이 챕터의 서비스 상태"
-                        chapterKey={ws.key}
-                        request={latestRequestForChapter(requests, ws.key)}
-                        ready={complete}
-                        loading={loading}
-                      />
+                      <div className="rounded-[12px] px-3 py-2.5 text-[12px] leading-relaxed" style={{ background: ws.theme.accbg, color: ws.theme.accd }}>
+                        ✓ 이 챕터는 완료했어요.{' '}
+                        {ready
+                          ? '두 챕터가 모두 끝났으니 아래에서 최종 보고서를 신청해 주세요.'
+                          : `남은 챕터(${WORKSHEETS.filter((w) => !isChapterComplete(draft.sheets[w.key])).map((w) => w.title).join(', ')})를 완료한 뒤 최종 보고서를 신청할 수 있어요.`}
+                      </div>
                     </>
                   ) : (
                     <button
@@ -168,6 +170,10 @@ export default function MandalartHomePage() {
             </motion.div>
           );
         })
+      )}
+
+      {!draftLoading && (
+        <ServiceStatusCard request={latest} ready={ready} loading={loading} missingTitles={missingTitles} />
       )}
 
       {!draftLoading && draft?.updatedAt && (
@@ -207,7 +213,7 @@ export default function MandalartHomePage() {
                 className="w-full text-left flex items-center justify-between gap-3 rounded-[12px] border border-[#E6E0DA] bg-white px-3.5 py-3 hover:border-[rgba(191,167,255,0.6)] transition-colors"
               >
                 <div className="min-w-0">
-                  <div className="text-[13px] font-semibold truncate">{req.reportTitle || req.chapterTitle || '만다라트 신청'}</div>
+                  <div className="text-[13px] font-semibold truncate">{req.reportTitle || '만다라트 최종 보고서 신청'}</div>
                   <div className="text-[11px] text-[#94928b]">{formatDateTime(req.createdAt)}</div>
                 </div>
                 <span className={`shrink-0 text-[11px] px-2.5 py-1 rounded-full font-medium ${STATUS_BADGE_CLASS[req.status] || ''}`}>

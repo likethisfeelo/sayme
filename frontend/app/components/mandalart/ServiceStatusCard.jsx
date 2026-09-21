@@ -13,7 +13,7 @@ export const KAKAO_CHAT_URL = 'https://pf.kakao.com/_xjwsxfb/chat';
  *  - 제출 후: 정보 접수됨 → 관리자 확인 → 작성 중 → 보고서 조회 단계 표시
  *  - 보고서 조회 버튼: 관리자가 보고서를 전송하면 활성화
  */
-export default function ServiceStatusCard({ request, ready, showSubmit = true, loading = false, chapterKey = null, title = '서비스 상태', compact = false }) {
+export default function ServiceStatusCard({ request, ready, showSubmit = true, loading = false, title = '최종 보고서 신청', compact = false, missingTitles = [] }) {
   const router = useRouter();
   const current = request ? statusIndex(request.status) : -1;
   const reportReady = request?.status === 'sent';
@@ -35,9 +35,18 @@ export default function ServiceStatusCard({ request, ready, showSubmit = true, l
         {loading
           ? '상태를 불러오는 중…'
           : !request
-            ? ready ? '이 챕터가 완료되었어요. 제출하면 접수됩니다.' : '챕터를 완료하고 제출하면 접수 상태를 여기서 볼 수 있어요.'
+            ? ready
+              ? '두 챕터가 모두 완료되었어요. 제출하면 접수되고, 관리자가 두 장을 함께 분석해 보고서를 보내드려요.'
+              : '보고서는 두 챕터(완성 · 괴롭힘)를 모두 완료한 뒤 한 번에 신청해요.'
             : STATUS_STEPS[current]?.description}
       </p>
+
+      {!request && !ready && missingTitles.length > 0 && (
+        <div className="mb-3 rounded-[12px] border border-[#F0C36D] bg-[#FFF7E6] px-3 py-2.5 text-[12px] text-[#7A4B00] leading-relaxed">
+          아직 남은 챕터: <b>{missingTitles.join(', ')}</b><br />
+          남은 챕터를 완료한 뒤 아래에서 최종 보고서를 신청해 주세요.
+        </div>
+      )}
 
       <ol className="grid grid-cols-4 gap-1 mb-3">
         {steps.map((s, i) => {
@@ -77,10 +86,10 @@ export default function ServiceStatusCard({ request, ready, showSubmit = true, l
           <button
             type="button"
             disabled={!ready}
-            onClick={() => router.push(chapterKey ? `/mandalart/submit/?key=${chapterKey}` : '/mandalart/submit')}
+            onClick={() => router.push('/mandalart/submit')}
             className={`w-full py-2.5 rounded-[14px] text-[13px] font-semibold border disabled:opacity-40 ${request ? 'bg-white border-[#E6E0DA] text-[#5f5e5a]' : 'bg-[#2A2725] border-[#2A2725] text-white'}`}
           >
-            {request ? '수정한 내용으로 다시 제출' : '제출하고 보고서 요청하기 →'}
+            {request ? '수정한 내용으로 다시 제출' : '최종 보고서 신청하기 →'}
           </button>
         )}
       </div>
