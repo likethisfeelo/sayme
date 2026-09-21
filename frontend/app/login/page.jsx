@@ -60,7 +60,15 @@ export default function LoginPage() {
       }
 
       alert('로그인 성공!');
-      router.push('/');  // 루트로 이동 → 프리미엄 여부에 따라 자동 리다이렉트
+      // 로그인 전 보던 화면(예: /mandalart 시작하기)이 있으면 그곳으로, 아니면 루트 → 등급별 홈으로 자동 이동
+      let returnTo = null;
+      try {
+        returnTo = localStorage.getItem('sayme-after-login');
+        if (returnTo) localStorage.removeItem('sayme-after-login');
+      } catch {
+        returnTo = null;
+      }
+      router.push(returnTo && returnTo.startsWith('/') ? returnTo : '/');
 
     } catch (err) {
       setError(err.message);
