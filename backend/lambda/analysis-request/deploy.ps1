@@ -176,12 +176,19 @@ function Step-Env {
   Write-Host "완료 (Slack: $slack / SES: $ses)"
 }
 
+# 페이지네이션 때문에 'id\nNone\nNone' 처럼 여러 줄이 올 수 있어 첫 번째 유효 값만 사용
+function First-Id($Text) {
+  $v = @("$Text" -split "`r?`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -and $_ -ne 'None' })
+  if ($v.Count -gt 0) { return $v[0] } else { return $null }
+}
+
 function Ensure-Resource($ParentId, $PathPart) {
-  $id = (Invoke-Aws apigateway get-resources --rest-api-id $RestApiId --region $Region --limit 500 `
-          --query "items[?parentId=='$ParentId' && pathPart=='$PathPart'].id | [0]" --output text).Trim()
-  if (-not $id -or $id -eq 'None') {
-    $id = (Invoke-Aws apigateway create-resource --rest-api-id $RestApiId --region $Region --parent-id $ParentId --path-part $PathPart --query id --output text).Trim()
-  }
+  $id = First-Id (Invoke-Aws apigateway get-resources --rest-api-id $RestApiId --region $Region --limit 500 `
+          --query "items[?parentId=='$ParentId' && pathPart=='$PathPart'].id | [0]" --output text)
+  if (-not $id) {
+    $id = First-Id (Invoke-Aws apigateway create-resource --rest-api-id $RestApiId --region $Region --parent-id $ParentId --path-part $PathPart --query id --output text)
+    Write-Host "리소스 생성: /$PathPart ($id)"
+  } else { Write-Host "리소스 존재: /$PathPart ($id)" }
   return $id
 }
 function Ensure-AnyProxy($ResourceId) {
@@ -195,7 +202,8 @@ function Ensure-AnyProxy($ResourceId) {
 
 function Step-Api {
   Log "API Gateway $RestApiId 라우트"
-  $rootId  = (Invoke-Aws apigateway get-resources --rest-api-id $RestApiId --region $Region --query "items[?path=='/'].id | [0]" --output text).Trim()
+  $rootId  = First-Id (Invoke-Aws apigateway get-resources --rest-api-id $RestApiId --region $Region --limit 500 --query "items[?path=='/'].id | [0]" --output text)
+  if (-not $rootId) { throw "API $RestApiId 의 루트 리소스를 찾지 못했습니다" }
   $baseId  = Ensure-Resource $rootId 'analysis-request'
   $proxyId = Ensure-Resource $baseId '{proxy+}'
   Ensure-AnyProxy $baseId
