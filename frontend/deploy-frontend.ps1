@@ -8,7 +8,7 @@ $Region = if ($env:REGION) { $env:REGION } else { 'ap-northeast-2' }
 
 & npm ci;        if ($LASTEXITCODE -ne 0) { throw 'npm ci 실패' }
 & npm run build; if ($LASTEXITCODE -ne 0) { throw 'next build 실패' }
-& aws s3 sync out/ "s3://$Bucket" --delete --region $Region
+& aws.exe s3 sync out/ "s3://$Bucket" --delete --region $Region
 if ($LASTEXITCODE -ne 0) { throw 's3 sync 실패' }
-& aws cloudfront create-invalidation --distribution-id $DistId --paths '/*' | Out-Null
+& aws.exe cloudfront create-invalidation --distribution-id $DistId --paths '/*' | Out-Null
 Write-Host "배포 완료 → https://$Bucket" -ForegroundColor Green
