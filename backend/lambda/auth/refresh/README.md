@@ -6,18 +6,14 @@
 ## 배포 (PowerShell, 이 폴더에서)
 
 ```powershell
-npm ci --omit=dev
-Compress-Archive -Path index.js, package.json, node_modules -DestinationPath function.zip -Force
-# 첫 배포: 기존 login 함수와 같은 역할/환경변수 사용
-aws lambda create-function --function-name sayme-auth-refresh --runtime nodejs20.x --handler index.handler `
-  --zip-file fileb://function.zip --role arn:aws:iam::119778517834:role/service-role/sayme-auth-signup-role-2kzbkq9b `
-  --timeout 10 --region ap-northeast-2
-aws lambda update-function-configuration --function-name sayme-auth-refresh --region ap-northeast-2 `
-  --environment "Variables={COGNITO_CLIENT_ID=4e5k8vs12cuudmka7m4mnjdkum,COGNITO_CLIENT_SECRET=<login 함수와 같은 값>}"
-# 이후 코드만: aws lambda update-function-code --function-name sayme-auth-refresh --zip-file fileb://function.zip --region ap-northeast-2
+powershell -ExecutionPolicy Bypass -File .\deploy.ps1
 ```
 
-> Compress-Archive 는 하위 폴더가 없는 이 함수에서는 문제없이 동작합니다.
+스크립트가 하는 일:
+1. 기존 `sayme-auth-login` 함수 설정에서 역할 ARN, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET` 을 읽어옴 (시크릿을 손으로 다룰 필요 없음)
+2. `index.js`, `package.json` 만 zip (AWS SDK v3 는 Lambda 런타임 내장이라 `node_modules` 불필요)
+3. `sayme-auth-refresh` 생성 또는 코드 업데이트, 환경변수 설정
+4. `backend/scripts/cognito-token-validity.ps1` 을 이어서 실행해 토큰 유효기간 변경 + API Gateway `/auth/refresh` 연결
 
 ## API Gateway
 
