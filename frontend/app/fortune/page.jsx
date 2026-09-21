@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
+import BottomNav from '../components/BottomNav';
 
 export default function FortunePage() {
   const router = useRouter();
@@ -167,11 +168,13 @@ export default function FortunePage() {
         </main>
 
         {/* Footer */}
-        <footer className="py-8 px-4 mt-8">
+        <footer className="py-8 px-4 mt-8 pb-[96px]">
           <div className="text-center text-xs text-[#6B6662]">
             <p className="m-0">© 2024 Sayme. All rights reserved.</p>
           </div>
         </footer>
+
+        <BottomNav active="fortune" />
       </div>
     </div>
   );

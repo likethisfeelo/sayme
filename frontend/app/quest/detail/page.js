@@ -3,6 +3,7 @@
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import QuestDetail from '@/components/quest/QuestDetail';
+import ErrorBoundary from '@/app/components/ErrorBoundary';
 
 function QuestDetailPageContent() {
   const router = useRouter();
@@ -31,8 +32,10 @@ function QuestDetailPageContent() {
 
 export default function QuestDetailPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">로딩 중...</div>}>
-      <QuestDetailPageContent />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<div className="min-h-screen flex items-center justify-center">로딩 중...</div>}>
+        <QuestDetailPageContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
