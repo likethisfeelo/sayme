@@ -1,0 +1,16 @@
+{
+  "name": "sayme-analysis-request",
+  "version": "1.0.0",
+  "description": "Sayme 분석 리포트 신청 서비스 Lambda (사용자 입력 / 관리자 조회·다운로드 / 보고서 작성·전송 / Slack·Email 알림)",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "zip": "rm -f function.zip && zip -r function.zip index.js lib package.json node_modules -x '*.map'"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.600.0",
+    "@aws-sdk/client-ses": "^3.600.0",
+    "@aws-sdk/lib-dynamodb": "^3.600.0",
+    "aws-jwt-verify": "^4.0.1"
+  }
+}
