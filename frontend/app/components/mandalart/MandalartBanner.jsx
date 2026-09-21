@@ -57,7 +57,7 @@ export default function MandalartBanner({ className = '' }) {
       router.push('/signup');
       return;
     }
-    router.push(state.hasDraft ? '/mandalart/new' : '/mandalart');
+    router.push('/mandalart');
   };
 
   const cta = !state.loggedIn ? '가입하고 시작하기' : state.hasDraft ? `이어서 작성하기 · ${state.progress}%` : '시작하기';
@@ -86,7 +86,7 @@ export default function MandalartBanner({ className = '' }) {
             <div className="text-[10px] tracking-[0.12em] uppercase text-[#6B6662] mb-0.5">New · 누구나 무료</div>
             <div className="text-[16px] font-bold text-[#2A2725] leading-tight">{SERVICE_NAME}</div>
             <div className="text-[12px] text-[#5f5e5a] mt-1 leading-snug">
-              나를 완성시켜주는 것 8칸, 나를 괴롭히는 것 8칸.<br className="hidden sm:block" /> 정리하고 파고들면 분석 보고서를 보내드려요.
+              Chp #.1 나를 완성시켜주는 것들 · Chp #.2 나를 괴롭히는 것들.<br className="hidden sm:block" /> 챕터별로 정리하고 파고들면 분석 보고서를 보내드려요.
             </div>
           </div>
         </div>

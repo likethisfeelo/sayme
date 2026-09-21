@@ -9,6 +9,9 @@
  *   GET    /analysis-request/mine                내 신청 목록 (상태 포함)
  *   GET    /analysis-request/{id}                내 신청 상세 (전송 완료 시 보고서 HTML 포함)
  *   GET    /analysis-request/{id}/report?token=  이메일 링크용 보고서 조회 (토큰 인증, 로그인 불필요)
+ *   GET    /analysis-request/draft               내 임시저장 (없으면 draft: null)
+ *   PUT    /analysis-request/draft               임시저장 저장/갱신 { answers, contact?, progress? }
+ *   DELETE /analysis-request/draft               임시저장 삭제
  *
  * [관리자] (cognito:groups 에 Admins)
  *   GET    /analysis-request/admin?status=       전체 목록
@@ -308,14 +311,67 @@ function createHandler(deps = {}) {
 
     await db().send(new PutCommand({ TableName: TABLE_NAME, Item: item, ConditionExpression: 'attribute_not_exists(requestId)' }));
 
+    // 제출이 끝난 임시저장은 정리
+    try {
+      await db().send(new DeleteCommand({ TableName: TABLE_NAME, Key: { requestId: draftId(auth.userId) } }));
+    } catch (error) {
+      console.warn('draft cleanup failed:', error.message);
+    }
+
     const slack = await notify.slack(item);
     if (!slack.sent) console.warn('Slack notification skipped/failed:', slack.error);
 
     return ok({ message: '신청이 접수되었습니다.', request: publicView(item), notifications: { slack: slack.sent } });
   }
 
+  // ----- 임시저장 (사용자당 1건, status 'draft' - 관리자 목록/알림 제외) -----
+  const draftId = (userId) => `draft_${userId}`;
+
+  function draftView(item) {
+    if (!item) return null;
+    return {
+      answers: item.answers || {},
+      contact: item.contact || {},
+      progress: item.progress || {},
+      updatedAt: item.updatedAt,
+    };
+  }
+
+  async function getDraft(auth) {
+    const item = await getItem(draftId(auth.userId));
+    return ok({ draft: draftView(item) });
+  }
+
+  async function saveDraft(event, auth) {
+    const body = parseBody(event);
+    const now = nowIso();
+    const contact = body.contact && typeof body.contact === 'object' ? {
+      name: cleanString(body.contact.name, 100),
+      phone: cleanString(body.contact.phone, 50),
+      email: cleanString(body.contact.email, 200),
+    } : {};
+    const item = {
+      requestId: draftId(auth.userId),
+      userId: auth.userId,
+      status: 'draft',
+      answers: normalizeAnswers(body.answers),
+      contact,
+      progress: normalizeValue(body.progress, 1) || {},
+      updatedAt: now,
+    };
+    const existing = await getItem(item.requestId);
+    item.createdAt = existing?.createdAt || now;
+    await db().send(new PutCommand({ TableName: TABLE_NAME, Item: item }));
+    return ok({ draft: draftView(item) });
+  }
+
+  async function deleteDraft(auth) {
+    await db().send(new DeleteCommand({ TableName: TABLE_NAME, Key: { requestId: draftId(auth.userId) } }));
+    return ok({ deleted: true });
+  }
+
   async function listMine(auth) {
-    const items = await listByUser(auth.userId);
+    const items = (await listByUser(auth.userId)).filter((i) => i.status !== 'draft');
     return ok({ requests: items.map((i) => publicView(i)), count: items.length });
   }
 
@@ -357,7 +413,7 @@ function createHandler(deps = {}) {
       params.ExpressionAttributeNames = { '#s': 'status' };
       params.ExpressionAttributeValues = { ':s': status };
     }
-    const items = await scanAll(params);
+    const items = (await scanAll(params)).filter((i) => i.status !== 'draft');
     items.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
 
     const counts = Object.fromEntries(STATUS_ORDER.map((s) => [s, 0]));
@@ -368,7 +424,7 @@ function createHandler(deps = {}) {
 
   async function adminExport(event) {
     const status = event.queryStringParameters?.status;
-    const items = await scanAll({ TableName: TABLE_NAME });
+    const items = (await scanAll({ TableName: TABLE_NAME })).filter((i) => i.status !== 'draft');
     const filtered = status && isValidStatus(status) ? items.filter((i) => i.status === status) : items;
     filtered.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
     const csv = requestsToCsv(filtered);
@@ -382,6 +438,7 @@ function createHandler(deps = {}) {
 
   async function adminGet(requestId) {
     const item = await requireItem(requestId);
+    if (item.status === 'draft') throw new HttpError(404, '신청 내역을 찾을 수 없습니다.');
     return ok({ request: publicView(item, { includeReport: true, includeToken: true }) });
   }
 
@@ -560,6 +617,11 @@ function createHandler(deps = {}) {
       }
 
       if (segments.length === 0 && method === 'POST') return await submit(event, auth);
+      if (segments[0] === 'draft' && segments.length === 1) {
+        if (method === 'GET') return await getDraft(auth);
+        if (method === 'PUT') return await saveDraft(event, auth);
+        if (method === 'DELETE') return await deleteDraft(auth);
+      }
       if (segments[0] === 'mine' && method === 'GET') return await listMine(auth);
       if (segments.length === 1 && method === 'GET') return await getMine(auth, segments[0]);
 
