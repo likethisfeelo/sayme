@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
+import MandalartBanner from '@/app/components/mandalart/MandalartBanner';
 import { getAccessToken } from '../utils/auth';
 import { questUserApi } from '@/lib/api/quest';
 import { resolveAssignmentProgressStatus } from '@/lib/questStatus';
@@ -202,6 +203,9 @@ export default function PremiumInactiveHomePage() {
           <Header subtitle="스피릿랩 · 재참여 홈" showMenuButton showMonthChip menuAriaLabel="상담/신청 메뉴" />
 
           <main className="px-4 py-3.5 pb-[96px] flex flex-col gap-3.5">
+            {/* 나의 만다라트 배너 */}
+            <MandalartBanner />
+
             <section className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(123,203,255,0.18)] to-[rgba(255,193,217,0.16)] bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] px-5 py-7 min-h-[180px] flex flex-col justify-center">
               <div className="text-xs tracking-[0.12em] text-[#6B6662] uppercase mb-2">Spirit Lab</div>
               <h2

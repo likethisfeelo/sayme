@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { questUserApi } from '@/lib/api/quest';
 import Header from '../components/Header';
+import MandalartBanner from '@/app/components/mandalart/MandalartBanner';
 import { resolveAssignmentProgressStatus } from '@/lib/questStatus';
 
 // 나눔명조 폰트 로드 (Google Fonts)
@@ -254,6 +255,9 @@ export default function PremiumHomePage() {
 
       {/* Main Content */}
       <main className="px-4 py-3.5 pb-[86px] flex flex-col gap-3.5">
+        {/* 나의 만다라트 배너 */}
+        <MandalartBanner />
+
         {/* HERO - Today Alignment (슬라이드형) */}
         <section className="bg-gradient-to-br from-[rgba(191,167,255,0.22)] via-[rgba(123,203,255,0.18)] to-[rgba(255,193,217,0.16)] bg-white/70 backdrop-blur-sm border border-[rgba(230,224,218,0.85)] shadow-[0_10px_30px_rgba(0,0,0,0.06)] rounded-[18px] overflow-hidden">
           {/* 라벨 + 새로고침 버튼 */}

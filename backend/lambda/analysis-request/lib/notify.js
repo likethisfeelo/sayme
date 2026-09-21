@@ -29,13 +29,31 @@ const truncate = (text, max = 300) => {
 };
 
 /**
+ * 워크시트 형태({title, subLabels, items:[{text, subs}]}) 판별
+ */
+const isWorksheet = (v) => v && typeof v === 'object' && Array.isArray(v.items) && typeof v.title === 'string';
+
+/**
  * 답변 객체를 Slack 표시용 텍스트로 변환
+ * - 만다라트 워크시트는 "제목: 1. a / 2. b ..." 형태로 요약
+ * - 그 외 값은 key: value 나열
  */
 function formatAnswersForSlack(answers = {}) {
-  return Object.entries(answers)
-    .filter(([, v]) => v !== undefined && v !== null && v !== '')
-    .map(([k, v]) => `• *${k}*: ${truncate(Array.isArray(v) ? v.join(', ') : typeof v === 'object' ? JSON.stringify(v) : v, 200)}`)
-    .join('\n');
+  const lines = [];
+  for (const [k, v] of Object.entries(answers)) {
+    if (v === undefined || v === null || v === '') continue;
+    if (isWorksheet(v)) {
+      const items = v.items.map((it, i) => `${i + 1}. ${truncate((it && it.text) || '-', 40)}`).join('  ');
+      lines.push(`• *${v.title}*\n  ${items}`);
+    } else if (Array.isArray(v)) {
+      lines.push(`• *${k}*: ${truncate(v.join(', '), 200)}`);
+    } else if (typeof v === 'object') {
+      lines.push(`• *${k}*: ${truncate(JSON.stringify(v), 200)}`);
+    } else {
+      lines.push(`• *${k}*: ${truncate(v, 200)}`);
+    }
+  }
+  return lines.join('\n');
 }
 
 /**
@@ -50,7 +68,7 @@ async function notifySlackNewSubmission(item, deps = {}) {
 
   const doFetch = deps.fetch || globalThis.fetch;
   const adminBase = process.env.ADMIN_BASE_URL || process.env.APP_BASE_URL || '';
-  const adminLink = adminBase ? `${adminBase.replace(/\/$/, '')}/admin/analysis/detail/?id=${encodeURIComponent(item.requestId)}` : '';
+  const adminLink = adminBase ? `${adminBase.replace(/\/$/, '')}/admin/mandalart/detail/?id=${encodeURIComponent(item.requestId)}` : '';
 
   const headline = `📝 새 분석 리포트 신청이 접수되었습니다`;
   const summaryLines = [

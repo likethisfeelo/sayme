@@ -86,8 +86,14 @@ export const analysisUserApi = {
 export const analysisAdminApi = {
   list: (status) => request(`/admin${status ? `?status=${encodeURIComponent(status)}` : ''}`),
   get: (requestId) => request(`/admin/${encodeURIComponent(requestId)}`),
+  /** status 를 생략하면 adminNote 만 저장 (상태 변경 없음) */
   updateStatus: (requestId, status, adminNote) =>
-    request(`/admin/${encodeURIComponent(requestId)}/status`, { method: 'PUT', body: { status, ...(adminNote !== undefined ? { adminNote } : {}) } }),
+    request(`/admin/${encodeURIComponent(requestId)}/status`, {
+      method: 'PUT',
+      body: { ...(status ? { status } : {}), ...(adminNote !== undefined ? { adminNote } : {}) },
+    }),
+  saveNote: (requestId, adminNote) =>
+    request(`/admin/${encodeURIComponent(requestId)}/status`, { method: 'PUT', body: { adminNote } }),
   saveReport: (requestId, { reportTitle, reportHtml }) =>
     request(`/admin/${encodeURIComponent(requestId)}/report`, { method: 'PUT', body: { reportTitle, reportHtml } }),
   send: (requestId, body = {}) => request(`/admin/${encodeURIComponent(requestId)}/send`, { method: 'POST', body }),

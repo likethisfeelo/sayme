@@ -188,7 +188,7 @@ test('full admin flow: confirm → write → send (email) → user sees report; 
   assert.equal(emailCalls.length, 1);
   assert.equal(emailCalls[0].to, 'user@example.com');
   assert.equal(emailCalls[0].reportTitle, '2026 분석');
-  assert.equal(emailCalls[0].viewUrl, `https://app.example.com/report/view/?id=${id}&token=${saved.request.viewToken}`);
+  assert.equal(emailCalls[0].viewUrl, `https://app.example.com/mandalart/report/?id=${id}&token=${saved.request.viewToken}`);
   assert.equal(sent.request.emailSentAt !== null, true);
 
   // 사용자에게 보고서 노출
@@ -272,4 +272,44 @@ test('report email escapes html and includes link', () => {
   assert.ok(m.html.includes('https://a/b?x=1&amp;y=2'));
   assert.ok(m.text.includes('https://a/b?x=1&y=2'));
   assert.match(m.subject, /도착했습니다/);
+});
+
+test('nested worksheet answers are stored, flattened to CSV and summarized for Slack', async () => {
+  const { call, slackCalls } = setup();
+  const worksheet = {
+    complete: {
+      title: '나를 완성시켜주는 것들',
+      subLabels: ['1년 뒤 계획', '2년 뒤 계획', '3년 뒤 계획'],
+      items: [{ text: '가족', subs: ['a', 'b', ''] }, { text: '음악', subs: ['', '', 'c'] }],
+    },
+    torment: { title: '나를 괴롭히는 것들', subLabels: ['괴로운 이유', '감정', '해결'], items: [{ text: '불안', subs: ['x', 'y', 'z'] }] },
+  };
+  const { json } = await call({ method: 'POST', claims: USER, body: { ...SUBMIT_BODY, answers: worksheet } });
+  assert.equal(json.request.answers.complete.items[1].subs[2], 'c');
+  assert.equal(json.request.answers.complete.items.length, 2, '중첩 구조 유지');
+  assert.match(slackCalls[0].answers.complete.title, /완성/);
+
+  const { res: csv } = await call({ path: '/admin/export', claims: ADMIN });
+  assert.match(csv.body, /답변:나를 완성시켜주는 것들 1,답변:나를 완성시켜주는 것들 1 · 1년 뒤 계획/);
+  assert.match(csv.body, /가족,a,b,,음악/);
+  assert.match(csv.body, /답변:나를 괴롭히는 것들 1 · 괴로운 이유/);
+
+  const { notifySlackNewSubmission: slack } = require('../lib/notify');
+  let posted;
+  await slack({ requestId: 'r', name: 'n', createdAt: 'c', answers: worksheet }, { fetch: async (u, o) => { posted = JSON.parse(o.body); return { ok: true }; } });
+  const text = JSON.stringify(posted.blocks);
+  assert.match(text, /1\. 가족/);
+  assert.match(text, /나를 괴롭히는 것들/);
+});
+
+test('admin can save a note without changing status', async () => {
+  const { call } = setup();
+  const { json: created } = await call({ method: 'POST', claims: USER, body: SUBMIT_BODY });
+  const id = created.request.requestId;
+  const { json } = await call({ method: 'PUT', path: `/admin/${id}/status`, claims: ADMIN, body: { adminNote: '메모만' } });
+  assert.equal(json.request.status, 'submitted');
+  assert.equal(json.request.adminNote, '메모만');
+  assert.equal(json.request.statusHistory.length, 1);
+  const { res } = await call({ method: 'PUT', path: `/admin/${id}/status`, claims: ADMIN, body: {} });
+  assert.equal(res.statusCode, 400);
 });

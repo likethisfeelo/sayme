@@ -112,20 +112,29 @@ const nowIso = () => new Date().toISOString();
 const cleanString = (v, max = 500) => (typeof v === 'string' ? v.trim().slice(0, max) : v == null ? '' : String(v).slice(0, max));
 
 /**
- * answers 객체 정리: 문자열/숫자/불리언/문자열배열만 허용, 키 100개·값 5000자 제한
+ * answers 정리: 문자열/숫자/불리언, 배열, 중첩 객체(깊이 6까지) 허용
+ * - 문자열 5000자, 배열 50개, 객체 키 100개 제한
  */
+function normalizeValue(value, depth = 0) {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'boolean' || typeof value === 'number') return value;
+  if (typeof value === 'string') return value.trim().slice(0, 5000);
+  if (depth >= 6) return JSON.stringify(value).slice(0, 5000);
+  if (Array.isArray(value)) return value.slice(0, 50).map((v) => normalizeValue(v, depth + 1) ?? '');
+  if (typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value).slice(0, 100)) {
+      const nv = normalizeValue(v, depth + 1);
+      if (nv !== undefined) out[String(k).slice(0, 100)] = nv;
+    }
+    return out;
+  }
+  return String(value).slice(0, 5000);
+}
+
 function normalizeAnswers(input) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return {};
-  const out = {};
-  for (const [key, value] of Object.entries(input).slice(0, 100)) {
-    const k = String(key).slice(0, 100);
-    if (value === undefined || value === null) continue;
-    if (Array.isArray(value)) out[k] = value.slice(0, 50).map((v) => cleanString(v, 500));
-    else if (typeof value === 'object') out[k] = JSON.stringify(value).slice(0, 5000);
-    else if (typeof value === 'boolean' || typeof value === 'number') out[k] = value;
-    else out[k] = cleanString(value, 5000);
-  }
-  return out;
+  return normalizeValue(input, 0) || {};
 }
 
 function publicView(item, { includeReport = false, includeToken = false } = {}) {
@@ -160,7 +169,7 @@ function publicView(item, { includeReport = false, includeToken = false } = {}) 
 
 function buildViewUrl(item) {
   const base = (process.env.APP_BASE_URL || '').replace(/\/$/, '');
-  return `${base}/report/view/?id=${encodeURIComponent(item.requestId)}&token=${encodeURIComponent(item.viewToken)}`;
+  return `${base}/mandalart/report/?id=${encodeURIComponent(item.requestId)}&token=${encodeURIComponent(item.viewToken)}`;
 }
 
 // ---------- 핸들러 팩토리 (테스트를 위해 의존성 주입 가능) ----------
@@ -379,7 +388,8 @@ function createHandler(deps = {}) {
   async function adminUpdateStatus(event, auth, requestId) {
     const body = parseBody(event);
     const { status } = body;
-    if (!isValidStatus(status)) throw new HttpError(400, `status 는 ${STATUS_ORDER.join(', ')} 중 하나여야 합니다.`);
+    const noteOnly = status === undefined || status === null || status === '';
+    if (!noteOnly && !isValidStatus(status)) throw new HttpError(400, `status 는 ${STATUS_ORDER.join(', ')} 중 하나여야 합니다.`);
     if (status === STATUS.SENT) throw new HttpError(400, '보고서 전송은 /send 엔드포인트를 사용해 주세요.');
 
     const item = await requireItem(requestId);
@@ -389,6 +399,20 @@ function createHandler(deps = {}) {
       extraSet['adminNote = :note'] = true;
       extraValues[':note'] = cleanString(body.adminNote, 5000);
     }
+
+    // status 없이 호출하면 메모만 저장 (상태/이력 변경 없음)
+    if (noteOnly) {
+      if (body.adminNote === undefined) throw new HttpError(400, 'status 또는 adminNote 가 필요합니다.');
+      const res = await db().send(new UpdateCommand({
+        TableName: TABLE_NAME,
+        Key: { requestId },
+        UpdateExpression: 'SET adminNote = :note, updatedAt = :now',
+        ExpressionAttributeValues: { ':note': extraValues[':note'], ':now': nowIso() },
+        ReturnValues: 'ALL_NEW',
+      }));
+      return ok({ request: publicView(res.Attributes, { includeReport: true, includeToken: true }) });
+    }
+
     const updated = await appendStatus(item, status, auth.email || auth.userId, extraSet, extraValues);
     return ok({ request: publicView(updated, { includeReport: true, includeToken: true }) });
   }
