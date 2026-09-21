@@ -1,7 +1,6 @@
 # sayme-auth-refresh — 세션 연장 (리프레시 토큰)
 
-프론트가 access/id 토큰 만료 전에 이 API 를 호출해 새 토큰을 받습니다. 리프레시 토큰이 유효한 동안(기본 30일,
-아래 설정으로 최대 10년) 재로그인 없이 계속 사용할 수 있습니다.
+프론트가 access/id 토큰 만료 전에 이 API 를 호출해 새 토큰을 받습니다. 리프레시 토큰이 유효한 동안(설정값, 기본 7일) 재로그인 없이 계속 사용할 수 있습니다.
 
 ## 배포 (PowerShell, 이 폴더에서)
 
@@ -23,4 +22,4 @@ powershell -ExecutionPolicy Bypass -File .\deploy.ps1
 ## Cognito 앱 클라이언트 설정
 
 - 인증 흐름에 `ALLOW_REFRESH_TOKEN_AUTH` 가 켜져 있어야 합니다 (기본 켜짐).
-- 토큰 유효기간: `backend/scripts/cognito-token-validity.ps1` 참고 (access/id 24시간, refresh 3650일).
+- 토큰 유효기간: `backend/scripts/cognito-token-validity.ps1` 참고 (access/id 24시간, refresh 기본 7일 = 로그인 유지 기간). 바꾸려면 `.\deploy.ps1 -RefreshTokenDays 30` 처럼 실행.
