@@ -1,0 +1,9 @@
+{
+  "name": "sayme-auth-refresh",
+  "version": "1.0.0",
+  "description": "Sayme 리프레시 토큰으로 세션 연장 Lambda",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.600.0"
+  }
+}

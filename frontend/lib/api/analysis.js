@@ -1,6 +1,6 @@
 // 분석 리포트 신청 API 클라이언트
 // 백엔드: backend/lambda/analysis-request (API Gateway /analysis-request/{proxy+})
-import { getAccessToken } from '@/app/utils/auth';
+import { getAccessToken, ensureFreshSession } from '@/app/utils/auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 const BASE = `${API_BASE_URL}/analysis-request`;
@@ -38,6 +38,7 @@ export class ApiError extends Error {
 async function request(path, { method = 'GET', body, auth = true, raw = false } = {}) {
   const headers = { 'Content-Type': 'application/json' };
   if (auth) {
+    await ensureFreshSession();
     const token = getAnalysisAuthToken();
     if (!token) throw new ApiError('로그인이 필요합니다.', 401, null);
     headers.Authorization = `Bearer ${token}`;

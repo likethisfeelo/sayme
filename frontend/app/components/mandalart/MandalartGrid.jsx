@@ -58,6 +58,7 @@ export default function MandalartGrid({
   autoFocusFirst = false,
   initialOpenCell = null,
   onOpenCellChange,
+  large = false,
 }) {
   const theme = sheet.theme;
   const items = data?.items || [];
@@ -144,7 +145,7 @@ export default function MandalartGrid({
           tabIndex={0}
           onClick={() => playCrystal({ pitch: 0.75, chord: true })}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') playCrystal({ pitch: 0.75, chord: true }); }}
-          className="glass-center relative overflow-hidden flex items-center justify-center rounded-[14px] text-[21px] font-bold select-none min-h-[92px] cursor-pointer"
+          className={`glass-center relative overflow-hidden flex items-center justify-center rounded-[14px] font-bold select-none min-h-[92px] cursor-pointer ${large ? 'text-[26px] md:text-[32px]' : 'text-[21px]'}`}
           style={{ color: theme.accd }}
           animate={allFilled ? { scale: [1, 1.06, 1], boxShadow: [`0 0 0 0 ${theme.soft}`, `0 0 0 12px rgba(0,0,0,0)`, `0 0 0 0 rgba(0,0,0,0)`] } : { scale: 1 }}
           transition={{ duration: 0.9, ease: 'easeOut' }}
@@ -177,13 +178,13 @@ export default function MandalartGrid({
           layout
           animate={isError ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
           transition={{ duration: 0.4 }}
-          className={`glass-cell rounded-[14px] min-h-[92px] px-2.5 pb-2 pt-6 ${hasText ? 'is-filled' : ''} ${isError ? 'is-error' : ''}`}
+          className={`glass-cell rounded-[14px] min-h-[92px] ${large ? 'px-3 pb-3 pt-8 md:px-4 md:pt-9' : 'px-2.5 pb-2 pt-6'} ${hasText ? 'is-filled' : ''} ${isError ? 'is-error' : ''}`}
           onClick={() => {
             if (document.activeElement !== cellRefs.current[index]) playCrystal({ pitch: 0.95 + index * 0.05 });
             focusCell(index);
           }}
         >
-          <span className="absolute top-1.5 left-2.5 text-[11px] text-[#94928b]">{index + 1}</span>
+          <span className={`absolute top-1.5 left-2.5 text-[#94928b] ${large ? 'text-[13px] md:text-[14px] top-2 left-3' : 'text-[11px]'}`}>{index + 1}</span>
           <AnimatePresence>
             {hasText && (
               <motion.span
@@ -210,6 +211,7 @@ export default function MandalartGrid({
             }}
             placeholder="입력"
             ariaLabel={`${index + 1}번 칸`}
+            className={large ? 'text-[18px] md:text-[20px] leading-[1.4]' : ''}
           />
         </motion.div>
       );
@@ -226,11 +228,11 @@ export default function MandalartGrid({
           toggleCell(index);
         }}
         whileTap={{ scale: 0.97 }}
-        className={`glass-cell text-left rounded-[14px] min-h-[92px] px-2.5 pb-2 pt-6 text-[14px] leading-[1.45] text-[#26251f] ${subFilled > 0 ? 'is-filled' : ''} ${isOpen ? 'is-active' : ''}`}
+        className={`glass-cell text-left rounded-[14px] min-h-[92px] leading-[1.45] text-[#26251f] ${large ? 'px-3 pb-3 pt-8 md:px-4 md:pt-9 text-[17px] md:text-[19px]' : 'px-2.5 pb-2 pt-6 text-[14px]'} ${subFilled > 0 ? 'is-filled' : ''} ${isOpen ? 'is-active' : ''}`}
         aria-expanded={isOpen}
         aria-label={`${index + 1}번 칸 ${item.text || ''} 파고들기`}
       >
-        <span className="absolute top-1.5 left-2.5 text-[11px] text-[#94928b]">{index + 1}</span>
+        <span className={`absolute top-1.5 left-2.5 text-[#94928b] ${large ? 'text-[13px] md:text-[14px] top-2 left-3' : 'text-[11px]'}`}>{index + 1}</span>
         <span className="absolute top-1.5 right-2.5 flex gap-[3px]" aria-hidden>
           {Array.from({ length: SUB_COUNT }).map((_, j) => (
             <span
@@ -242,7 +244,7 @@ export default function MandalartGrid({
         </span>
         <span className="block break-words">{item.text || <span className="text-[#b3b0a6]">(비어 있음)</span>}</span>
         {!readOnly && (
-          <span className="absolute bottom-1.5 right-2.5 text-[10px]" style={{ color: theme.acc }}>
+          <span className={`absolute bottom-1.5 right-2.5 ${large ? 'text-[12px] bottom-2 right-3' : 'text-[10px]'}`} style={{ color: theme.acc }}>
             {isOpen ? '닫기' : subFilled > 0 ? `${subFilled}/${SUB_COUNT}` : '파고들기 ›'}
           </span>
         )}
@@ -295,9 +297,9 @@ export default function MandalartGrid({
                 transition={{ delay: 0.06 * j + 0.1 }}
                 className="flex flex-col gap-1"
               >
-                <span className="text-[11px] text-[#94928b]">{label}</span>
+                <span className={`text-[#94928b] ${large ? 'text-[13px]' : 'text-[11px]'}`}>{label}</span>
                 {readOnly ? (
-                  <div className="min-h-[52px] rounded-[10px] border border-white/80 bg-white/60 px-2.5 py-2 text-[13px] leading-[1.5] text-[#26251f] whitespace-pre-wrap">
+                  <div className={`min-h-[52px] rounded-[10px] border border-white/80 bg-white/60 px-2.5 py-2 leading-[1.5] text-[#26251f] whitespace-pre-wrap ${large ? 'text-[15px] md:text-[16px]' : 'text-[13px]'}`}>
                     {(item.subs?.[j] || '').trim() || <span className="text-[#b3b0a6]">-</span>}
                   </div>
                 ) : (
@@ -316,8 +318,8 @@ export default function MandalartGrid({
                       }}
                       placeholder={label}
                       maxLength={500}
-                      className="text-[15px]"
-                      style={{ minHeight: 52 }}
+                      className={large ? 'text-[16px] md:text-[17px]' : 'text-[15px]'}
+                      style={{ minHeight: large ? 64 : 52 }}
                       ariaLabel={`${openCell + 1}번 칸 ${label}`}
                     />
                   </div>
@@ -354,7 +356,7 @@ export default function MandalartGrid({
 
   return (
     <div>
-      <div className="flex justify-end mb-1.5">
+      <div className="flex justify-end mb-1">
         <button
           type="button"
           onClick={toggleSound}
@@ -365,8 +367,8 @@ export default function MandalartGrid({
           <span aria-hidden>{soundOn ? '🔔' : '🔕'}</span> 크리스탈 효과음 {soundOn ? '켜짐' : '꺼짐'}
         </button>
       </div>
-      <div className="glass-stage" style={themeVars}>
-        <div className="grid grid-cols-3 gap-2">
+      <div className={`glass-stage ${large ? 'glass-grid-large' : ''}`} style={themeVars}>
+        <div className={`grid grid-cols-3 ${large ? 'gap-2 md:gap-3' : 'gap-2'}`}>
           {rows.map((row) => (
             <div key={row} className="contents">
               {[0, 1, 2].map((col) => renderCell(row * 3 + col))}

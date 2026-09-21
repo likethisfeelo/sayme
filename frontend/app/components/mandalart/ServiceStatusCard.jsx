@@ -1,8 +1,22 @@
 'use client';
 
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Card } from '@/app/components/mandalart/PageShell';
+import { getAccessToken, getIdTokenPayload } from '@/app/utils/auth';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
+
+const subscribeAuth = (cb) => {
+  window.addEventListener('storage', cb);
+  return () => window.removeEventListener('storage', cb);
+};
+const getPremiumSnapshot = () => {
+  if (!getAccessToken()) return false;
+  const groups = getIdTokenPayload()?.['cognito:groups'] || [];
+  return Array.isArray(groups) && groups.includes('premium');
+};
 import { STATUS_STEPS, statusIndex, formatDateTime } from '@/lib/mandalart';
 
 export const KAKAO_CHAT_URL = 'https://pf.kakao.com/_xjwsxfb/chat';
@@ -97,8 +111,53 @@ export default function ServiceStatusCard({ request, ready, showSubmit = true, l
   );
 }
 
-/** 개인 상담 서비스 신청 CTA (카카오톡 문의) */
+/**
+ * 개인 상담 서비스 신청 CTA (카카오톡 문의)
+ *  - 프리미엄 회원(cognito:groups 에 premium)에게는 "OOO님은 스피릿랩 프리미엄 회원이십니다…" 안내로 바뀜
+ */
 export function ConsultCard() {
+  // 서버 프리렌더에서는 항상 비프리미엄으로 그리고, 클라이언트에서 토큰을 읽어 전환 (hydration 불일치 방지)
+  const premium = useSyncExternalStore(subscribeAuth, getPremiumSnapshot, () => false);
+  const [name, setName] = useState('');
+
+  useEffect(() => {
+    if (!premium) return undefined;
+    let cancelled = false;
+    const token = getAccessToken();
+    fetch(`${API_BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const u = data?.user || {};
+        const display = u.name || u.nickname || (u.email ? u.email.split('@')[0] : '') || getIdTokenPayload()?.email?.split('@')[0] || '';
+        setName(display);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [premium]);
+
+  if (premium) {
+    return (
+      <Card className="relative overflow-hidden !border-[#BFA7FF]">
+        <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full blur-3xl bg-[rgba(232,223,245,0.9)]" />
+        <div className="relative">
+          <div className="text-[10px] tracking-[0.12em] uppercase text-[#6B6662] mb-1">Premium Member</div>
+          <h2 className="text-[16px] font-bold leading-snug mb-1">
+            {name ? `${name}님은` : '회원님은'} 스피릿랩 프리미엄 회원이십니다.
+          </h2>
+          <p className="text-[13px] text-[#2A2725] leading-relaxed mb-3">보고서와 다음 상담 일정이 궁금하세요?</p>
+          <button
+            type="button"
+            onClick={() => window.open(KAKAO_CHAT_URL, '_blank', 'noopener')}
+            className="w-full py-3 rounded-[14px] font-bold text-[14px] bg-[#FEE500] text-[#1f1f1f] active:scale-[0.98] transition-transform"
+          >
+            카카오톡으로 일정 문의하기 💬
+          </button>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card className="relative overflow-hidden">
       <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full blur-3xl bg-[rgba(255,232,214,0.9)]" />
