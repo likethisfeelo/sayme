@@ -211,7 +211,7 @@ test('full admin flow: confirm → write → send (email) → user sees report; 
   assert.equal(csv.statusCode, 200);
   assert.match(csv.headers['Content-Type'], /text\/csv/);
   assert.ok(csv.body.startsWith('﻿'));
-  assert.match(csv.body, /요청ID,상태코드,상태,이름/);
+  assert.match(csv.body, /요청ID,상태코드,상태,챕터,이름/);
   assert.match(csv.body, /답변:고민/);
   assert.match(csv.body, /홍길동/);
   assert.match(csv.body, /커리어 \| 관계/);
@@ -355,4 +355,21 @@ test('draft: save, load, excluded from lists, removed on submit', async () => {
   assert.equal(del.deleted, true);
   const { json: gone } = await call({ path: '/draft', claims: USER });
   assert.equal(gone.draft, null);
+});
+
+test('chapter-level submission stores chapter and appears in Slack/CSV', async () => {
+  const { call, slackCalls } = setup();
+  const answers = { complete: { title: '나를 완성시켜주는 것들', subLabels: ['a', 'b', 'c'], items: [{ text: '가족', subs: ['', '', ''] }] } };
+  const { json } = await call({ method: 'POST', claims: USER, body: { ...SUBMIT_BODY, answers, chapter: 'complete' } });
+  assert.equal(json.request.chapter, 'complete');
+  assert.equal(json.request.chapterTitle, '나를 완성시켜주는 것들');
+  assert.match(JSON.stringify(slackCalls[0]), /완성시켜주는/);
+  // chapter 생략 시 answers 키가 하나면 그 키로 추론
+  const { json: inferred } = await call({ method: 'POST', claims: USER, body: { ...SUBMIT_BODY, answers } });
+  assert.equal(inferred.request.chapter, 'complete');
+  const { json: mine } = await call({ path: '/mine', claims: USER });
+  assert.equal(mine.count, 2);
+  const { res: csv } = await call({ path: '/admin/export', claims: ADMIN });
+  assert.match(csv.body, /상태,챕터,이름/);
+  assert.match(csv.body, /나를 완성시켜주는 것들,홍길동/);
 });
