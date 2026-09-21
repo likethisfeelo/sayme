@@ -42,8 +42,10 @@ function Log($msg) { Write-Host "`n▶ $msg" -ForegroundColor Cyan }
 function Invoke-Aws { # aws CLI 호출 + 실패 시 중단 (함수명이 aws 와 겹치면 자기 자신을 호출하므로 aws.exe 명시)
   $ErrorActionPreference = 'Continue'
   $out = & aws.exe @args 2>&1
-  if ($LASTEXITCODE -ne 0) { throw "aws $($args -join ' ')`n$out" }
-  return $out
+  # 출력은 줄 단위 배열(stderr 는 ErrorRecord)로 오므로 항상 하나의 문자열로 합쳐서 반환
+  $text = (@($out) | ForEach-Object { if ($_ -is [System.Management.Automation.ErrorRecord]) { $_.Exception.Message } else { "$_" } }) -join "`n"
+  if ($LASTEXITCODE -ne 0) { throw "aws $($args -join ' ')`n$text" }
+  return $text
 }
 function Test-Aws { $ErrorActionPreference = 'Continue'; & aws.exe @args 2>&1 | Out-Null; return ($LASTEXITCODE -eq 0) }
 
