@@ -1,7 +1,7 @@
 ﻿<#
   Cognito 앱 클라이언트 토큰 유효기간 최대로 늘리기 + /auth/refresh API 연결
    - access / id 토큰 : 24시간 (Cognito 최대)
-   - refresh 토큰     : 3650일 (약 10년, Cognito 최대)
+   - refresh 토큰     : 기본 7일 (로그인 유지 기간, -RefreshTokenDays 로 변경. 최대 3650)
    - ALLOW_REFRESH_TOKEN_AUTH 보장
 
   주의: update-user-pool-client 는 지정하지 않은 항목을 기본값으로 되돌리므로,
@@ -15,7 +15,7 @@ param(
   [string]$ClientId = '4e5k8vs12cuudmka7m4mnjdkum',
   [int]$AccessTokenHours = 24,
   [int]$IdTokenHours = 24,
-  [int]$RefreshTokenDays = 3650,
+  [int]$RefreshTokenDays = 7,
   [string]$RestApiId = 'h1l7cj53v9',
   [string]$StageName = 'dev',
   [string]$RefreshFunctionName = 'sayme-auth-refresh',
