@@ -9,7 +9,7 @@ import useDraft from '@/app/components/mandalart/useDraft';
 import { getAccessToken } from '@/app/utils/auth';
 import { analysisUserApi } from '@/lib/api/analysis';
 import {
-  SERVICE_NAME, WORKSHEETS, PASS_COUNT, passesOf, donePassCount, isChapterComplete, nextPassIndex, allChaptersComplete,
+  SERVICE_NAME, WORKSHEETS, PASS_COUNT, passesOf, donePassCount, isChapterComplete, nextPassIndex, allChaptersComplete, emptyDraft,
   STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime,
 } from '@/lib/mandalart';
 
@@ -43,22 +43,40 @@ export default function MandalartHomePage() {
 
   useEffect(() => {
     if (!authed) {
-      router.push('/signup');
+      // 비회원도 소개/챕터 구성을 볼 수 있음. 시작하기를 누르면 가입으로 이동
+      setLoading(false);
       return;
     }
     load();
-  }, [authed, load, router]);
+  }, [authed, load]);
+
+  const goSignup = () => {
+    try {
+      localStorage.setItem('sayme-after-login', '/mandalart');
+    } catch {
+      /* ignore */
+    }
+    router.push('/signup');
+  };
 
   useEffect(() => {
     if (syncError === '401') router.push('/login');
   }, [syncError, router]);
 
 
-  const ready = allChaptersComplete(draft);
+  const viewDraft = draft || emptyDraft();
+  const ready = authed && allChaptersComplete(viewDraft);
   const latest = requests[0] || null;
-  const missingTitles = draft ? WORKSHEETS.filter((w) => !isChapterComplete(draft.sheets[w.key])).map((w) => w.title) : [];
+  const missingTitles = WORKSHEETS.filter((w) => !isChapterComplete(viewDraft.sheets[w.key])).map((w) => w.title);
+  const showCards = authed ? !draftLoading : true;
 
-  const goChapter = (ws, pass) => router.push(`/mandalart/chapter/?key=${ws.key}&pass=${pass}`);
+  const goChapter = (ws, pass) => {
+    if (!authed) {
+      goSignup();
+      return;
+    }
+    router.push(`/mandalart/chapter/?key=${ws.key}&pass=${pass}`);
+  };
 
   return (
     <PageShell subtitle={SERVICE_NAME} backTo="/">
@@ -75,11 +93,22 @@ export default function MandalartHomePage() {
       </Card>
 
       {/* 챕터 카드 */}
-      {draftLoading ? (
+      {!authed && (
+        <Card className="!border-[#BFA7FF] bg-gradient-to-br from-[rgba(232,223,245,0.6)] to-white">
+          <div className="text-[13px] font-bold mb-1">회원가입 후 무료로 시작할 수 있어요</div>
+          <p className="text-[12px] text-[#5f5e5a] mb-3">유료 회원이 아니어도 누구나 참여할 수 있어요. 아래 챕터의 &lsquo;시작하기&rsquo;를 누르면 가입 화면으로 이동하고, 가입 후 이 페이지로 돌아옵니다.</p>
+          <div className="flex gap-2">
+            <button type="button" onClick={goSignup} className="flex-1 py-2.5 rounded-[12px] font-bold text-[13px] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]">회원가입하고 시작하기 →</button>
+            <button type="button" onClick={() => { try { localStorage.setItem('sayme-after-login', '/mandalart'); } catch { /* ignore */ } router.push('/login'); }} className="px-3.5 py-2.5 rounded-[12px] border border-[#E6E0DA] bg-white text-[12px] text-[#5f5e5a]">로그인</button>
+          </div>
+        </Card>
+      )}
+
+      {!showCards ? (
         <Card><Spinner /></Card>
       ) : (
         WORKSHEETS.map((ws, i) => {
-          const sheet = draft.sheets[ws.key];
+          const sheet = viewDraft.sheets[ws.key];
           const passes = passesOf(ws);
           const done = donePassCount(sheet);
           const complete = isChapterComplete(sheet);
@@ -152,7 +181,7 @@ export default function MandalartHomePage() {
                         ✓ 이 챕터는 완료했어요.{' '}
                         {ready
                           ? '두 챕터가 모두 끝났으니 아래에서 최종 보고서를 신청해 주세요.'
-                          : `남은 챕터(${WORKSHEETS.filter((w) => !isChapterComplete(draft.sheets[w.key])).map((w) => w.title).join(', ')})를 완료한 뒤 최종 보고서를 신청할 수 있어요.`}
+                          : `남은 챕터(${missingTitles.join(', ')})를 완료한 뒤 최종 보고서를 신청할 수 있어요.`}
                       </div>
                     </>
                   ) : (
@@ -172,11 +201,11 @@ export default function MandalartHomePage() {
         })
       )}
 
-      {!draftLoading && (
+      {authed && !draftLoading && (
         <ServiceStatusCard request={latest} ready={ready} loading={loading} missingTitles={missingTitles} />
       )}
 
-      {!draftLoading && draft?.updatedAt && (
+      {authed && !draftLoading && draft?.updatedAt && (
         <div className="-mt-1 flex items-center justify-between text-[11px] text-[#94928b] px-1">
           <span>마지막 저장 {formatDateTime(draft.updatedAt)}</span>
           <button
@@ -191,7 +220,8 @@ export default function MandalartHomePage() {
 
       <ConsultCard />
 
-      {/* 현황 */}
+      {/* 현황 (회원만) */}
+      {authed && (
       <Card>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-[14px] font-bold">나의 신청 현황</h2>
@@ -224,6 +254,7 @@ export default function MandalartHomePage() {
           </div>
         )}
       </Card>
+      )}
     </PageShell>
   );
 }
