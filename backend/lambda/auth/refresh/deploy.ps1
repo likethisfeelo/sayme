@@ -10,7 +10,8 @@ param(
   [string]$Region = 'ap-northeast-2',
   [string]$FunctionName = 'sayme-auth-refresh',
   [string]$SourceFunction = 'sayme-auth-login',
-  [string]$RoleArn = ''
+  [string]$RoleArn = '',
+  [int]$RefreshTokenDays = 7   # 로그인 유지 기간(일)
 )
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
@@ -57,5 +58,5 @@ Write-Host "완료: $FunctionName"
 $validity = Join-Path $PSScriptRoot '..\..\..\scripts\cognito-token-validity.ps1'
 if (Test-Path $validity) {
   Write-Host "`n▶ Cognito 유효기간 + API Gateway /auth/refresh 연결" -ForegroundColor Cyan
-  & $validity -Region $Region -RefreshFunctionName $FunctionName
+  & $validity -Region $Region -RefreshFunctionName $FunctionName -RefreshTokenDays $RefreshTokenDays
 }
