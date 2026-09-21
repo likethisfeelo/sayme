@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CELL_COUNT, SUB_COUNT } from '@/lib/mandalart';
+import { playCrystal, isSoundEnabled, setSoundEnabled } from '@/lib/crystalSound';
 
 /**
  * 3x3 만다라트 그리드
@@ -61,6 +62,7 @@ export default function MandalartGrid({
   const theme = sheet.theme;
   const items = data?.items || [];
   const [openCell, setOpenCell] = useState(initialOpenCell);
+  const [soundOn, setSoundOn] = useState(() => (typeof window !== 'undefined' ? isSoundEnabled() : true));
   const cellRefs = useRef([]);
   const subRefs = useRef([]);
   const isDig = mode === 'dig' || mode === 'readonly';
@@ -116,6 +118,21 @@ export default function MandalartGrid({
   const filled = items.filter((it) => (it.text || '').trim()).length;
   const allFilled = filled === CELL_COUNT;
 
+  const themeVars = {
+    '--glass-accent': theme.accln,
+    '--glass-accent-soft': theme.soft,
+    '--glass-accent-bg': theme.accbg,
+    '--glass-blob-a': theme.soft.replace(/[\d.]+\)$/, '0.9)'),
+    '--glass-blob-b': 'rgba(191,167,255,0.55)',
+  };
+
+  const toggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    setSoundEnabled(next);
+    if (next) playCrystal({ pitch: 1.2 });
+  };
+
   const renderCell = (position) => {
     const index = POSITION_TO_INDEX[position];
 
@@ -123,8 +140,12 @@ export default function MandalartGrid({
       return (
         <motion.div
           key="center"
-          className="relative flex items-center justify-center rounded-[10px] border text-[19px] font-semibold select-none min-h-[92px]"
-          style={{ background: theme.accbg, borderColor: theme.accln, color: theme.accd }}
+          role="button"
+          tabIndex={0}
+          onClick={() => playCrystal({ pitch: 0.75, chord: true })}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') playCrystal({ pitch: 0.75, chord: true }); }}
+          className="glass-center relative overflow-hidden flex items-center justify-center rounded-[14px] text-[21px] font-bold select-none min-h-[92px] cursor-pointer"
+          style={{ color: theme.accd }}
           animate={allFilled ? { scale: [1, 1.06, 1], boxShadow: [`0 0 0 0 ${theme.soft}`, `0 0 0 12px rgba(0,0,0,0)`, `0 0 0 0 rgba(0,0,0,0)`] } : { scale: 1 }}
           transition={{ duration: 0.9, ease: 'easeOut' }}
         >
@@ -156,13 +177,11 @@ export default function MandalartGrid({
           layout
           animate={isError ? { x: [0, -6, 6, -4, 4, 0] } : { x: 0 }}
           transition={{ duration: 0.4 }}
-          className="relative rounded-[10px] border bg-white min-h-[92px] px-2.5 pb-2 pt-6 transition-[border-color,box-shadow,background] duration-200"
-          style={{
-            borderColor: isError ? '#A32D2D' : hasText ? theme.accln : '#c9c7bd',
-            background: isError ? '#FCEBEB' : hasText ? `linear-gradient(180deg, #fff 0%, ${theme.accbg} 140%)` : '#fff',
-            boxShadow: hasText ? `0 4px 14px ${theme.soft}` : 'none',
+          className={`glass-cell rounded-[14px] min-h-[92px] px-2.5 pb-2 pt-6 ${hasText ? 'is-filled' : ''} ${isError ? 'is-error' : ''}`}
+          onClick={() => {
+            if (document.activeElement !== cellRefs.current[index]) playCrystal({ pitch: 0.95 + index * 0.05 });
+            focusCell(index);
           }}
-          onClick={() => focusCell(index)}
         >
           <span className="absolute top-1.5 left-2.5 text-[11px] text-[#94928b]">{index + 1}</span>
           <AnimatePresence>
@@ -202,16 +221,12 @@ export default function MandalartGrid({
         key={`cell-${index}`}
         type="button"
         layout
-        onClick={() => toggleCell(index)}
-        whileTap={{ scale: 0.97 }}
-        className="relative text-left rounded-[10px] border bg-white min-h-[92px] px-2.5 pb-2 pt-6 text-[14px] leading-[1.45] text-[#26251f] transition-[border-color,transform,box-shadow] duration-200"
-        style={{
-          borderColor: isOpen ? theme.accln : hasText ? '#c9c7bd' : '#e4e2da',
-          borderWidth: isOpen ? 2 : 1,
-          transform: isOpen ? 'translateY(-2px)' : 'none',
-          boxShadow: isOpen ? `0 8px 20px ${theme.soft}` : 'none',
-          background: subFilled > 0 ? `linear-gradient(180deg, #fff 0%, ${theme.accbg} 160%)` : '#fff',
+        onClick={() => {
+          playCrystal({ pitch: isOpen ? 0.85 : 1.05 + index * 0.04 });
+          toggleCell(index);
         }}
+        whileTap={{ scale: 0.97 }}
+        className={`glass-cell text-left rounded-[14px] min-h-[92px] px-2.5 pb-2 pt-6 text-[14px] leading-[1.45] text-[#26251f] ${subFilled > 0 ? 'is-filled' : ''} ${isOpen ? 'is-active' : ''}`}
         aria-expanded={isOpen}
         aria-label={`${index + 1}번 칸 ${item.text || ''} 파고들기`}
       >
@@ -257,12 +272,12 @@ export default function MandalartGrid({
         <span
           className="absolute top-0 w-[12px] h-[12px] border-l border-t rotate-45 translate-y-[4px] transition-[left] duration-200"
           style={{
-            background: '#f4f3ec',
-            borderColor: '#e4e2da',
+            background: 'rgba(255,255,255,0.75)',
+            borderColor: 'rgba(255,255,255,0.9)',
             left: `calc(${col} * ((100% - 12px) / 3 + 6px) + (100% - 12px) / 6 - 6px)`,
           }}
         />
-        <div className="mt-[9px] rounded-[14px] border border-[#e4e2da] bg-[#f4f3ec] p-3">
+        <div className="glass-panel mt-[9px] rounded-[16px] p-3">
           <div className="flex items-center justify-between gap-2 mb-2.5">
             <div className="text-[13px] text-[#5f5e5a] min-w-0">
               <span className="font-semibold text-[#26251f]">{openCell + 1}. {item.text || `${openCell + 1}번 칸`}</span>
@@ -282,12 +297,12 @@ export default function MandalartGrid({
               >
                 <span className="text-[11px] text-[#94928b]">{label}</span>
                 {readOnly ? (
-                  <div className="min-h-[52px] rounded-[10px] border border-[#e4e2da] bg-white px-2.5 py-2 text-[13px] leading-[1.5] text-[#26251f] whitespace-pre-wrap">
+                  <div className="min-h-[52px] rounded-[10px] border border-white/80 bg-white/60 px-2.5 py-2 text-[13px] leading-[1.5] text-[#26251f] whitespace-pre-wrap">
                     {(item.subs?.[j] || '').trim() || <span className="text-[#b3b0a6]">-</span>}
                   </div>
                 ) : (
                   <div
-                    className="rounded-[10px] border border-dashed bg-white px-2.5 py-2 transition-colors focus-within:border-solid"
+                    className="rounded-[10px] border border-dashed bg-white/65 px-2.5 py-2 transition-colors focus-within:border-solid focus-within:bg-white/90"
                     style={{ borderColor: '#c9c7bd' }}
                   >
                     <AutoTextarea
@@ -338,13 +353,28 @@ export default function MandalartGrid({
   const rows = [0, 1, 2];
 
   return (
-    <div className="grid grid-cols-3 gap-1.5">
-      {rows.map((row) => (
-        <div key={row} className="contents">
-          {[0, 1, 2].map((col) => renderCell(row * 3 + col))}
-          <AnimatePresence initial={false}>{isDig && renderDrawer(row)}</AnimatePresence>
+    <div>
+      <div className="flex justify-end mb-1.5">
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-pressed={soundOn}
+          aria-label={soundOn ? '효과음 끄기' : '효과음 켜기'}
+          className="inline-flex items-center gap-1 text-[11px] px-2.5 py-1 rounded-full bg-white/70 border border-white/90 text-[#5f5e5a] shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+        >
+          <span aria-hidden>{soundOn ? '🔔' : '🔕'}</span> 크리스탈 효과음 {soundOn ? '켜짐' : '꺼짐'}
+        </button>
+      </div>
+      <div className="glass-stage" style={themeVars}>
+        <div className="grid grid-cols-3 gap-2">
+          {rows.map((row) => (
+            <div key={row} className="contents">
+              {[0, 1, 2].map((col) => renderCell(row * 3 + col))}
+              <AnimatePresence initial={false}>{isDig && renderDrawer(row)}</AnimatePresence>
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   );
 }
