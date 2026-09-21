@@ -342,10 +342,12 @@ test('draft: save, load, excluded from lists, removed on submit', async () => {
   const { res: csv } = await call({ path: '/admin/export', claims: ADMIN });
   assert.equal(csv.body.includes('가족'), false);
 
-  // 제출하면 draft 삭제
-  await call({ method: 'POST', claims: USER, body: SUBMIT_BODY });
+  // 제출해도 draft 는 유지되고, 마지막 제출 정보가 기록됨
+  const { json: sub } = await call({ method: 'POST', claims: USER, body: SUBMIT_BODY });
   const { json: after } = await call({ path: '/draft', claims: USER });
-  assert.equal(after.draft, null);
+  assert.equal(after.draft.answers.complete.items[0].text, '가족');
+  assert.equal(after.draft.lastSubmittedRequestId, sub.request.requestId);
+  await call({ method: 'DELETE', path: '/draft', claims: USER });
 
   // 삭제 엔드포인트
   await call({ method: 'PUT', path: '/draft', claims: USER, body });

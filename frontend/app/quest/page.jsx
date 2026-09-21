@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { questUserApi } from '@/lib/api/quest';
 import Header from '../components/Header';
+import ErrorBoundary from '../components/ErrorBoundary';
+import PremiumOnlyCard from '../components/PremiumOnlyCard';
 import { resolveAssignmentProgressStatus } from '@/lib/questStatus';
 
 const mapQuestStatus = (assignment) => {
@@ -34,6 +36,15 @@ const getStatusConfig = (status) => {
   return configs[status] || configs.locked;
 };
 
+/** 객체/배열이 섞여 들어와도 렌더링이 깨지지 않도록 문자열화 */
+const toText = (value) => {
+  if (value === undefined || value === null) return '';
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (Array.isArray(value)) return value.map(toText).filter(Boolean).join(', ');
+  if (typeof value === 'object') return value.text || value.title || value.label || value.name || JSON.stringify(value);
+  return String(value);
+};
+
 const formatDate = (dateStr) => {
   if (!dateStr) return null;
   return new Date(dateStr).toLocaleDateString('ko-KR', {
@@ -42,11 +53,12 @@ const formatDate = (dateStr) => {
   });
 };
 
-export default function QuestPage() {
+function QuestPageContent() {
   const router = useRouter();
   const [quests, setQuests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [restricted, setRestricted] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('idToken');
@@ -60,17 +72,25 @@ export default function QuestPage() {
   const fetchQuests = async (token) => {
     try {
       const data = await questUserApi.getMyContents(token);
-      const assignments = data?.contents || [];
+
+      // 프리미엄이 아닌 회원: 권한 없음 응답 → 안내 카드
+      const msg = String(data?.message || data?.error || '').toLowerCase();
+      if (!Array.isArray(data?.contents) && (msg.includes('unauthorized') || msg.includes('forbidden') || msg.includes('premium') || msg.includes('권한'))) {
+        setRestricted(true);
+        return;
+      }
+      const assignments = Array.isArray(data?.contents) ? data.contents : [];
 
       const mapped = assignments.map((quest, index) => {
-        const content = quest?.content || {};
+        const content = (quest && typeof quest.content === 'object' && quest.content) || {};
+        const progress = Number(quest?.progress?.percent);
         return {
-          questId: quest.assignmentId || `${index}`,
-          title: content.title || content.question || content.description || '제목 없음',
-          description: content.description || content.question || '',
+          questId: quest?.assignmentId || `${index}`,
+          title: toText(content.title || content.question || content.description) || '제목 없음',
+          description: toText(content.description || content.question),
           status: mapQuestStatus(quest),
-          progress: quest?.progress?.percent,
-          reward: content.reward,
+          progress: Number.isFinite(progress) ? progress : undefined,
+          reward: toText(content.reward),
           assignedAt: quest?.assignedAt,
           completedAt: quest?.progress?.completedAt,
         };
@@ -79,6 +99,7 @@ export default function QuestPage() {
       setQuests(mapped);
     } catch (error) {
       console.error('Quest fetch error:', error);
+      setRestricted(true);
     } finally {
       setLoading(false);
     }
@@ -130,7 +151,12 @@ export default function QuestPage() {
         zIndexClass="z-50"
       />
 
-      {/* Main Content */}
+      {restricted && (
+        <main className="px-4 py-6 pb-[86px] max-w-[430px] mx-auto">
+          <PremiumOnlyCard icon="🐇" title="이번 달 질문" description={'프리미엄 회원을 위한 서비스입니다.\n상담 신청은 아래 카카오톡으로 문의해 주세요.'} />
+        </main>
+      )}
+      {!restricted && (
       <main className="px-4 py-6 pb-[86px] max-w-[430px] mx-auto">
         {/* Stats Summary */}
         <section className="mb-6">
@@ -290,6 +316,8 @@ export default function QuestPage() {
           </section>
         )}
       </main>
+      )}
+
 
       {/* Bottom Navigation */}
       <nav className="fixed left-1/2 -translate-x-1/2 bottom-0 w-full max-w-[430px] bg-[rgba(245,241,237,0.78)] backdrop-blur-[14px] border-t border-[rgba(230,224,218,0.9)] px-2.5 py-2.5 pb-3 z-20">
@@ -329,5 +357,13 @@ export default function QuestPage() {
         </div>
       </nav>
     </div>
+  );
+}
+
+export default function QuestPage() {
+  return (
+    <ErrorBoundary>
+      <QuestPageContent />
+    </ErrorBoundary>
   );
 }

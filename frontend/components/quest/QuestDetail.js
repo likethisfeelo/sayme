@@ -71,6 +71,12 @@ export default function QuestDetail({ assignmentId, readonlyMode = false }) {
         questUserApi.getMyResponse(assignmentId, idToken).catch(() => null),
       ]);
 
+      // 권한 없음/오류 응답({message}) 은 콘텐츠로 취급하지 않음
+      if (!contentData || typeof contentData !== 'object' || !contentData.content || typeof contentData.content !== 'object') {
+        console.warn('Quest content unavailable:', contentData);
+        setContent(null);
+        return;
+      }
       setContent(contentData);
 
       const savedResponses = responseData?.response?.responses || [];
@@ -229,27 +235,39 @@ export default function QuestDetail({ assignmentId, readonlyMode = false }) {
 
   if (!content) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">콘텐츠를 찾을 수 없습니다</div>
+      <div className="min-h-screen flex items-center justify-center px-4" style={{ background: '#F5F1ED' }}>
+        <div className="bg-white/80 border border-[#E6E0DA] rounded-[18px] p-6 text-center max-w-[430px] w-full">
+          <div className="text-4xl mb-3">🐇</div>
+          <p className="text-sm font-semibold text-[#2A2725] mb-1">콘텐츠를 불러올 수 없어요</p>
+          <p className="text-xs text-[#6B6662] mb-4">프리미엄 회원 전용 콘텐츠이거나, 아직 배정되지 않은 질문일 수 있어요.</p>
+          <button type="button" onClick={() => router.push('/quest')} className="w-full py-2.5 rounded-[12px] bg-[#2A2725] text-white text-sm">퀘스트 목록으로</button>
+        </div>
       </div>
     );
   }
 
-  const contentItems = content.content.contentItems || [];
+  const contentItems = Array.isArray(content?.content?.contentItems) ? content.content.contentItems : [];
+  const toText = (value) => {
+    if (value === undefined || value === null) return '';
+    if (typeof value === 'string' || typeof value === 'number') return String(value);
+    if (Array.isArray(value)) return value.map(toText).filter(Boolean).join(', ');
+    if (typeof value === 'object') return value.text || value.label || value.value || value.answer || JSON.stringify(value);
+    return String(value);
+  };
 
   if (readonlyMode || isCompleted) {
     return (
       <div className="min-h-screen bg-gray-50 py-8 px-4">
         <div className="max-w-2xl mx-auto">
           <div className="bg-white rounded-2xl shadow-lg p-8 mb-4">
-            <h1 className="text-2xl font-bold text-[#2A2725] mb-2">{content.content.title}</h1>
+            <h1 className="text-2xl font-bold text-[#2A2725] mb-2">{toText(content.content.title)}</h1>
             <p className="text-sm text-gray-500">완료된 Quest 답변 보기</p>
           </div>
 
           <div className="space-y-4">
             {contentItems.map((item, index) => {
               const response = getResponseByItemIndex(index);
-              const questionText = item.question || item.title || `문항 ${index + 1}`;
+              const questionText = toText(item.question || item.title) || `문항 ${index + 1}`;
 
               return (
                 <div key={`${item.type}-${index}`} className="bg-white rounded-2xl shadow p-6">
@@ -258,11 +276,11 @@ export default function QuestDetail({ assignmentId, readonlyMode = false }) {
 
                   {item.type === 'question_objective' || item.type === 'question_subjective' ? (
                     <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 whitespace-pre-wrap text-[#2A2725]">
-                      {response?.answer || '저장된 답변이 없습니다.'}
+                      {toText(response?.answer) || '저장된 답변이 없습니다.'}
                     </div>
                   ) : (
                     <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-[#6B6662]">
-                      {item.description || '콘텐츠 항목'}
+                      {toText(item.description) || '콘텐츠 항목'}
                     </div>
                   )}
                 </div>
