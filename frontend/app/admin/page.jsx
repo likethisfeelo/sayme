@@ -7,6 +7,12 @@ import { isAdmin } from '../../lib/auth/checkAdmin';
 
 const menuItems = [
   {
+    title: '만다라트 신청 관리',
+    description: '입력 조회 · CSV 다운로드 · 보고서 작성/전송',
+    path: '/admin/mandalart',
+    icon: '🧩',
+  },
+  {
     title: 'Quest 관리',
     description: '퀘스트 생성 및 관리',
     path: '/admin/quest',

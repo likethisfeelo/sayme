@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getAccessToken, getIdTokenPayload } from './utils/auth';
 import Header from './components/Header';
+import MandalartBanner from '@/app/components/mandalart/MandalartBanner';
 
 export default function LandingPage() {
   const router = useRouter();
@@ -82,6 +83,9 @@ export default function LandingPage() {
 
       {/* Main Content */}
       <main className="px-4 py-6 pb-12 max-w-[430px] mx-auto">
+
+        {/* 나의 만다라트 배너 */}
+        <MandalartBanner className="mb-4" />
 
         {/* Hero Section */}
         <section className="mb-6">

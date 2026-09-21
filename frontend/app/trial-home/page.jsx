@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getAccessToken } from '../utils/auth';
 import { prequestUserApi } from '@/lib/api/prequest';
 import Header from '../components/Header';
+import MandalartBanner from '@/app/components/mandalart/MandalartBanner';
 
 export default function TrialHomePage() {
   const router = useRouter();
@@ -126,6 +127,9 @@ export default function TrialHomePage() {
 
       {/* Main Content */}
       <main className="px-4 py-6 pb-[86px] flex flex-col gap-4 max-w-[430px] mx-auto">
+        {/* 나의 만다라트 배너 */}
+        <MandalartBanner />
+
         {/* Welcome Message */}
         <section className="bg-white/70 backdrop-blur-sm border border-[#E6E0DA] rounded-[18px] p-6">
           <h2 className="text-2xl font-bold text-[#2A2725] mb-3">환영합니다! 👋</h2>

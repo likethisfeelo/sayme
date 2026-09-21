@@ -19,6 +19,7 @@ const premiumInactiveMenuItems = [
   { label: '스피릿랩', path: '/hinewmember' },
   { label: '이번 달 질문', path: '/premium-inactive-home#questions' },
   { label: '정회원 전환 신청', path: '/premium-inactive-home#conversion' },
+  { label: '나의 만다라트', path: '/mandalart' },
   { label: '나의 정보', path: '/me' },
 ];
 
@@ -123,6 +124,7 @@ export default function Header({
     { label: '이번 달 질문', path: '/quest' },
     { label: '나의 이벤트', path: '/tickets' },
     { label: '우주의 흐름', path: '/premium-fortune' },
+    { label: '나의 만다라트', path: '/mandalart' },
     { label: '나의 정보', path: '/me' },
   ];
 
@@ -131,6 +133,7 @@ export default function Header({
     { label: '이번달 질문', path: null, disabled: true },
     { label: '나의 이벤트', path: null, disabled: true },
     { label: '우주의 흐름', path: '/fortune' },
+    { label: '나의 만다라트', path: '/mandalart' },
     { label: '나의 정보', path: '/me' },
   ];
 
