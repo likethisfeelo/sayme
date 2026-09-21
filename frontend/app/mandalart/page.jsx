@@ -64,7 +64,7 @@ export default function MandalartHomePage() {
             두 장의 만다라트를 채우면, 관리자가 내용을 확인하고 나만의 분석 보고서를 작성해 이메일로 보내드려요.
           </p>
 
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div className="mt-4 flex flex-col gap-2">
             {WORKSHEETS.map((ws, i) => (
               <motion.div
                 key={ws.key}
@@ -74,7 +74,7 @@ export default function MandalartHomePage() {
                 className="rounded-[14px] border px-3.5 py-3"
                 style={{ borderColor: ws.theme.accln, background: ws.theme.accbg }}
               >
-                <div className="text-[11px]" style={{ color: ws.theme.acc }}>{i + 1}번째 장</div>
+                <div className="text-[11px] font-semibold tracking-[0.08em]" style={{ color: ws.theme.acc }}>Chp #.{i + 1}</div>
                 <div className="text-[15px] font-bold" style={{ color: ws.theme.accd }}>{ws.title}</div>
                 <div className="text-[12px] text-[#5f5e5a]">{ws.subtitle}</div>
               </motion.div>
