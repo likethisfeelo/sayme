@@ -3,7 +3,7 @@
  *
  * 워크시트 2종 (각 8칸 + 칸당 3개의 파고들기 항목)
  *  - complete : 나를 완성시켜주는 것들 (없으면 내가 내가 아니게 되는 것)
- *  - torment  : 나를 괴롭히는 것들 (빼고 싶지만 안 빠지는 것)
+ *  - torment  : 나를 괴롭히는 것들 (없으면 좋겠지만 없앨 수 없어 힘든 것들)
  *
  * 저장 형식 (answers)
  *  { complete: { title, subtitle, subLabels:[3], items:[{ text, subs:[3] } x8] }, torment: {...} }
@@ -29,7 +29,7 @@ export const WORKSHEETS = [
   {
     key: 'torment',
     title: '나를 괴롭히는 것들',
-    subtitle: '빼고 싶지만 안 빠지는 것',
+    subtitle: '없으면 좋겠지만 없앨 수 없어 힘든 것들',
     center: '나',
     subLabels: ['괴로운 이유', '내가 느끼는 감정', '괴롭지 않으려면'],
     subHint: '왜 괴로운지, 어떤 감정인지, 어떻게 하면 덜 괴로울지 적어보세요.',
