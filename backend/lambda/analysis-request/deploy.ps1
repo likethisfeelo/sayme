@@ -21,7 +21,7 @@ Set-Location $PSScriptRoot
 $Region       = if ($env:REGION) { $env:REGION } else { 'ap-northeast-2' }
 $FunctionName = if ($env:FUNCTION_NAME) { $env:FUNCTION_NAME } else { 'sayme-analysis-request' }
 $TableName    = if ($env:TABLE_NAME) { $env:TABLE_NAME } else { 'sayme-analysis-requests' }
-$RoleName     = if ($env:ROLE_NAME) { $env:ROLE_NAME } else { 'sayme-lambda-execution-role' }
+$RoleName     = if ($env:ROLE_NAME) { $env:ROLE_NAME } else { 'sayme-auth-signup-role-2kzbkq9b' }   # 기존 Lambda 들이 쓰는 실행 역할
 $RestApiId    = if ($env:REST_API_ID) { $env:REST_API_ID } else { 'h1l7cj53v9' }
 $StageName    = if ($env:STAGE_NAME) { $env:STAGE_NAME } else { 'dev' }
 $Runtime      = if ($env:RUNTIME) { $env:RUNTIME } else { 'nodejs20.x' }
@@ -64,8 +64,18 @@ function New-LambdaZip($Dest, $Items) {
   } finally { $zip.Dispose() }
 }
 
+# .env.deploy 로 기본값 덮어쓰기 가능
+if ($Cfg['ROLE_NAME'])     { $RoleName = $Cfg['ROLE_NAME'] }
+if ($Cfg['FUNCTION_NAME']) { $FunctionName = $Cfg['FUNCTION_NAME'] }
+if ($Cfg['TABLE_NAME'])    { $TableName = $Cfg['TABLE_NAME'] }
+if ($Cfg['REST_API_ID'])   { $RestApiId = $Cfg['REST_API_ID'] }
+if ($Cfg['STAGE_NAME'])    { $StageName = $Cfg['STAGE_NAME'] }
+if ($Cfg['REGION'])        { $Region = $Cfg['REGION'] }
+
 $AccountId = (Invoke-Aws sts get-caller-identity --query Account --output text).Trim()
-$RoleArn   = "arn:aws:iam::${AccountId}:role/${RoleName}"
+# 역할 ARN 은 경로(/service-role/ 등)가 포함되므로 IAM 에서 조회
+$RoleArn   = (Invoke-Aws iam get-role --role-name $RoleName --query Role.Arn --output text).Trim()
+Write-Host "계정 $AccountId / 역할 $RoleArn"
 $LambdaArn = "arn:aws:lambda:${Region}:${AccountId}:function:${FunctionName}"
 $Tmp = Join-Path $env:TEMP 'sayme-deploy'
 New-Item -ItemType Directory -Force -Path $Tmp | Out-Null

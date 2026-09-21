@@ -87,7 +87,7 @@ aws dynamodb create-table \
   --global-secondary-indexes '[{"IndexName":"userId-createdAt-index","KeySchema":[{"AttributeName":"userId","KeyType":"HASH"},{"AttributeName":"createdAt","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}]' \
   --region ap-northeast-2
 
-# 2) IAM: 기존 sayme-lambda-execution-role 에 아래 권한 추가
+# 2) IAM: 기존 Lambda 실행 역할(sayme-auth-signup-role-2kzbkq9b, 경로 /service-role/) 에 아래 권한 추가
 #    dynamodb:PutItem/GetItem/Query/Scan/UpdateItem/DeleteItem  on  sayme-analysis-requests (+ /index/*)
 #    dynamodb:GetItem  on  sayme-users
 #    ses:SendEmail, ses:SendRawEmail
@@ -98,7 +98,7 @@ npm ci --omit=dev
 npm run zip                       # function.zip
 aws lambda create-function --function-name sayme-analysis-request \
   --runtime nodejs20.x --handler index.handler --zip-file fileb://function.zip \
-  --role arn:aws:iam::<ACCOUNT_ID>:role/sayme-lambda-execution-role --timeout 20 --region ap-northeast-2
+  --role arn:aws:iam::<ACCOUNT_ID>:role/service-role/sayme-auth-signup-role-2kzbkq9b --timeout 20 --region ap-northeast-2
 # 이후 업데이트: aws lambda update-function-code --function-name sayme-analysis-request --zip-file fileb://function.zip
 
 # 4) 환경변수
