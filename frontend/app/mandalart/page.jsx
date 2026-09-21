@@ -5,21 +5,24 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import PageShell, { Card, Spinner } from '@/app/components/mandalart/PageShell';
 import StatusStepper from '@/app/components/mandalart/StatusStepper';
+import useDraft from '@/app/components/mandalart/useDraft';
 import { getAccessToken } from '@/app/utils/auth';
 import { analysisUserApi } from '@/lib/api/analysis';
 import {
-  SERVICE_NAME, WORKSHEETS, STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime, loadDraft, draftProgress,
+  SERVICE_NAME, WORKSHEETS, PASS_COUNT, passesOf, donePassCount, isChapterComplete, nextPassIndex, allChaptersComplete,
+  STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime,
 } from '@/lib/mandalart';
 
 /**
- * /mandalart : 서비스 소개 + 내 신청 현황
+ * /mandalart : 챕터별 진행 현황 + 제출 + 내 신청 현황
  */
 export default function MandalartHomePage() {
   const router = useRouter();
+  const [authed] = useState(() => typeof window !== 'undefined' && !!getAccessToken());
+  const { draft, loading: draftLoading, syncError, reset } = useDraft({ enabled: authed });
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState([]);
   const [error, setError] = useState('');
-  const [draft, setDraft] = useState(null);
 
   const load = useCallback(async () => {
     try {
@@ -39,21 +42,24 @@ export default function MandalartHomePage() {
   }, [router]);
 
   useEffect(() => {
-    if (!getAccessToken()) {
+    if (!authed) {
       router.push('/signup');
       return;
     }
-    setDraft(loadDraft());
     load();
-  }, [load, router]);
+  }, [authed, load, router]);
 
-  const progress = draftProgress(draft);
-  const hasDraft = !!draft && progress > 0;
+  useEffect(() => {
+    if (syncError === '401') router.push('/login');
+  }, [syncError, router]);
+
+  const ready = allChaptersComplete(draft);
   const latest = requests[0];
+
+  const goChapter = (ws, pass) => router.push(`/mandalart/chapter/?key=${ws.key}&pass=${pass}`);
 
   return (
     <PageShell subtitle={SERVICE_NAME} backTo="/">
-      {/* 소개 */}
       <Card className="relative overflow-hidden">
         <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full blur-3xl" style={{ background: 'rgba(29,158,117,0.18)' }} />
         <div className="absolute -bottom-12 -left-12 w-40 h-40 rounded-full blur-3xl" style={{ background: 'rgba(216,90,48,0.16)' }} />
@@ -61,44 +67,130 @@ export default function MandalartHomePage() {
           <div className="text-[10px] tracking-[0.12em] uppercase text-[#6B6662] mb-1">Spirit Lab · Self Mandalart</div>
           <h1 className="text-[22px] font-bold leading-tight mb-2">{SERVICE_NAME}</h1>
           <p className="text-[13px] text-[#5f5e5a] leading-relaxed">
-            두 장의 만다라트를 채우면, 관리자가 내용을 확인하고 나만의 분석 보고서를 작성해 이메일로 보내드려요.
+            두 챕터를 각각 완료하면 제출할 수 있어요. 관리자가 내용을 확인하고 나만의 분석 보고서를 이메일로 보내드려요.
           </p>
-
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {WORKSHEETS.map((ws, i) => (
-              <motion.div
-                key={ws.key}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 * i }}
-                className="rounded-[14px] border px-3.5 py-3"
-                style={{ borderColor: ws.theme.accln, background: ws.theme.accbg }}
-              >
-                <div className="text-[11px]" style={{ color: ws.theme.acc }}>{i + 1}번째 장</div>
-                <div className="text-[15px] font-bold" style={{ color: ws.theme.accd }}>{ws.title}</div>
-                <div className="text-[12px] text-[#5f5e5a]">{ws.subtitle}</div>
-              </motion.div>
-            ))}
-          </div>
-
-          <ol className="mt-4 text-[12px] text-[#5f5e5a] space-y-1">
-            <li>① 8칸 채우기 → ② 칸마다 3가지 파고들기 (두 장 반복)</li>
-            <li>③ 연락처 확인 후 제출 → 접수 알림</li>
-            <li>④ 관리자 확인 · 보고서 작성 → 이메일로 보고서 도착</li>
-          </ol>
-
-          <button
-            type="button"
-            onClick={() => router.push('/mandalart/new')}
-            className="mt-4 w-full py-3.5 rounded-[14px] font-bold text-[14px] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] shadow-[0_10px_22px_rgba(123,203,255,0.18)] active:scale-[0.98] transition-transform"
-          >
-            {hasDraft ? `이어서 작성하기 · ${progress}% →` : requests.length ? '새로 작성하기 →' : '시작하기 →'}
-          </button>
-          {hasDraft && (
-            <p className="mt-2 text-[11px] text-[#94928b] text-center">작성 중인 내용이 이 브라우저에 자동 저장되어 있어요. {draft.updatedAt ? `(${formatDateTime(draft.updatedAt)})` : ''}</p>
-          )}
         </div>
       </Card>
+
+      {/* 챕터 카드 */}
+      {draftLoading ? (
+        <Card><Spinner /></Card>
+      ) : (
+        WORKSHEETS.map((ws, i) => {
+          const sheet = draft.sheets[ws.key];
+          const passes = passesOf(ws);
+          const done = donePassCount(sheet);
+          const complete = isChapterComplete(sheet);
+          const next = nextPassIndex(sheet);
+          const started = done > 0 || sheet.items.some((it) => it.text.trim());
+          return (
+            <motion.div key={ws.key} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 * i }}>
+              <Card className="!p-0 overflow-hidden" style={{ borderColor: ws.theme.accln }}>
+                <div className="px-4 pt-4 pb-3" style={{ background: ws.theme.accbg }}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="text-[11px] font-semibold tracking-[0.08em]" style={{ color: ws.theme.acc }}>Chp #.{i + 1}</div>
+                      <div className="text-[17px] font-bold leading-tight" style={{ color: ws.theme.accd }}>{ws.title}</div>
+                      <div className="text-[12px] text-[#5f5e5a]">{ws.subtitle}</div>
+                    </div>
+                    <span className="shrink-0 text-[11px] px-2.5 py-1 rounded-full bg-white/80 border" style={{ borderColor: ws.theme.accln, color: ws.theme.acc }}>
+                      {complete ? '완료' : `${done} / ${PASS_COUNT} 단계`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="px-4 py-3 bg-white">
+                  <ol className="grid grid-cols-4 gap-1.5 mb-3">
+                    {passes.map((p) => {
+                      const isDone = sheet.done[p.index];
+                      const isNext = next === p.index;
+                      return (
+                        <li key={p.key}>
+                          <button
+                            type="button"
+                            onClick={() => goChapter(ws, p.index)}
+                            disabled={!isDone && !isNext}
+                            className="w-full flex flex-col items-center gap-1 disabled:opacity-40"
+                          >
+                            <span
+                              className="w-[26px] h-[26px] rounded-full grid place-items-center text-[11px] border-2"
+                              style={
+                                isDone
+                                  ? { background: ws.theme.accln, borderColor: ws.theme.accln, color: '#fff' }
+                                  : isNext
+                                    ? { background: '#fff', borderColor: ws.theme.accln, color: ws.theme.acc }
+                                    : { background: '#fff', borderColor: '#E6E0DA', color: '#b3b0a6' }
+                              }
+                            >
+                              {isDone ? '✓' : p.index + 1}
+                            </span>
+                            <span className={`text-[10px] leading-tight text-center ${isNext ? 'font-bold text-[#2A2725]' : 'text-[#5f5e5a]'}`}>{p.label}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ol>
+
+                  {complete ? (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => goChapter(ws, 'view')}
+                        className="flex-1 py-2.5 rounded-[12px] font-bold text-[13px] text-white active:scale-[0.98] transition-transform"
+                        style={{ background: ws.theme.accln }}
+                      >
+                        최종 화면 보기 →
+                      </button>
+                      <button type="button" onClick={() => goChapter(ws, 0)} className="px-3 py-2.5 rounded-[12px] border border-[#E6E0DA] bg-white text-[12px] text-[#5f5e5a]">
+                        수정
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => goChapter(ws, next)}
+                      className="w-full py-2.5 rounded-[12px] font-bold text-[13px] text-white active:scale-[0.98] transition-transform"
+                      style={{ background: ws.theme.accln, boxShadow: `0 8px 18px ${ws.theme.soft}` }}
+                    >
+                      {started ? `계속하기 · ${passes[next].label} →` : '시작하기 →'}
+                    </button>
+                  )}
+                </div>
+              </Card>
+            </motion.div>
+          );
+        })
+      )}
+
+      {/* 제출 */}
+      {!draftLoading && (
+        <Card className={ready ? '!border-[#BFA7FF]' : ''}>
+          <div className="text-[14px] font-bold mb-1">보고서 요청</div>
+          <p className="text-[12px] text-[#5f5e5a] mb-3">
+            {ready ? '두 챕터가 모두 완료되었어요. 연락처를 확인하고 제출하면 접수됩니다.' : '두 챕터를 모두 완료하면 제출할 수 있어요.'}
+          </p>
+          <button
+            type="button"
+            disabled={!ready}
+            onClick={() => router.push('/mandalart/submit')}
+            className="w-full py-3 rounded-[14px] font-bold text-[14px] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] disabled:opacity-40 active:scale-[0.98] transition-transform"
+          >
+            제출하고 보고서 요청하기 →
+          </button>
+          {(draft?.updatedAt) && (
+            <div className="mt-2 flex items-center justify-between text-[11px] text-[#94928b]">
+              <span>마지막 저장 {formatDateTime(draft.updatedAt)}</span>
+              <button
+                type="button"
+                onClick={() => { if (window.confirm('작성 중인 두 챕터의 내용을 모두 지울까요?')) reset(); }}
+                className="underline underline-offset-2"
+              >
+                전체 초기화
+              </button>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* 현황 */}
       <Card>
@@ -106,7 +198,6 @@ export default function MandalartHomePage() {
           <h2 className="text-[14px] font-bold">나의 신청 현황</h2>
           <button type="button" onClick={load} className="text-[11px] px-2.5 py-1 rounded-lg bg-[rgba(99,102,241,0.08)] text-[rgba(99,102,241,1)]">새로고침</button>
         </div>
-
         {loading ? (
           <Spinner />
         ) : error ? (

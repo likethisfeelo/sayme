@@ -313,3 +313,44 @@ test('admin can save a note without changing status', async () => {
   const { res } = await call({ method: 'PUT', path: `/admin/${id}/status`, claims: ADMIN, body: {} });
   assert.equal(res.statusCode, 400);
 });
+
+test('draft: save, load, excluded from lists, removed on submit', async () => {
+  const { call } = setup();
+  const { json: empty } = await call({ path: '/draft', claims: USER });
+  assert.equal(empty.draft, null);
+
+  const body = { answers: { complete: { title: 'x', subLabels: ['a'], items: [{ text: '가족', subs: ['1년', '', ''] }] } }, contact: { name: '홍' }, progress: { complete: [true, false] } };
+  const { json: saved } = await call({ method: 'PUT', path: '/draft', claims: USER, body });
+  assert.equal(saved.draft.answers.complete.items[0].text, '가족');
+  assert.deepEqual(saved.draft.progress.complete, [true, false]);
+  assert.equal(saved.draft.contact.name, '홍');
+
+  const { json: loaded } = await call({ path: '/draft', claims: USER });
+  assert.equal(loaded.draft.answers.complete.items[0].subs[0], '1년');
+
+  // 다른 사용자에게는 보이지 않음
+  const { json: other } = await call({ path: '/draft', claims: { sub: 'user-2' } });
+  assert.equal(other.draft, null);
+
+  // 목록/관리자/CSV 에서 제외
+  const { json: mine } = await call({ path: '/mine', claims: USER });
+  assert.equal(mine.count, 0);
+  const { json: admin } = await call({ path: '/admin', claims: ADMIN });
+  assert.equal(admin.count, 0);
+  const { res: adminGet } = await call({ path: '/admin/draft_user-1', claims: ADMIN });
+  assert.equal(adminGet.statusCode, 404);
+  const { res: csv } = await call({ path: '/admin/export', claims: ADMIN });
+  assert.equal(csv.body.includes('가족'), false);
+
+  // 제출하면 draft 삭제
+  await call({ method: 'POST', claims: USER, body: SUBMIT_BODY });
+  const { json: after } = await call({ path: '/draft', claims: USER });
+  assert.equal(after.draft, null);
+
+  // 삭제 엔드포인트
+  await call({ method: 'PUT', path: '/draft', claims: USER, body });
+  const { json: del } = await call({ method: 'DELETE', path: '/draft', claims: USER });
+  assert.equal(del.deleted, true);
+  const { json: gone } = await call({ path: '/draft', claims: USER });
+  assert.equal(gone.draft, null);
+});

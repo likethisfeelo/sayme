@@ -41,50 +41,76 @@ export const WORKSHEETS = [
 
 export const worksheetByKey = (key) => WORKSHEETS.find((w) => w.key === key);
 
-/** 흐름 단계 정의 (플로우 페이지 상단 진행 표시) */
-export const FLOW_STEPS = [
-  { id: 'complete-fill', sheet: 'complete', mode: 'fill', label: '완성 · 8칸', short: '1' },
-  { id: 'complete-dig', sheet: 'complete', mode: 'dig', label: '완성 · 파고들기', short: '2' },
-  { id: 'torment-fill', sheet: 'torment', mode: 'fill', label: '괴롭힘 · 8칸', short: '3' },
-  { id: 'torment-dig', sheet: 'torment', mode: 'dig', label: '괴롭힘 · 파고들기', short: '4' },
-  { id: 'submit', sheet: null, mode: 'submit', label: '확인 · 제출', short: '5' },
+/**
+ * 챕터(워크시트)별 회차(pass) 정의
+ *  pass 0        : 8가지 주제 채우기 (빈 칸 허용)
+ *  pass 1..3     : 하위 항목(subLabels[j]) 을 8개 주제에 대해 한 번에 입력
+ * 각 회차는 "저장 및 완료" 로 마무리하며, 완료 여부는 sheet.done[pass] 에 기록
+ */
+export const PASS_COUNT = 1 + SUB_COUNT;
+
+export const passesOf = (ws) => [
+  { index: 0, key: 'topics', label: '8가지 주제', short: '주제', description: `가운데 "${ws.center}"를 둘러싼 8칸을 채워주세요. 떠오르지 않는 칸은 비워 두어도 괜찮아요.` },
+  ...ws.subLabels.map((label, j) => ({
+    index: j + 1,
+    key: `sub-${j}`,
+    label,
+    short: label.replace(/\s.*$/, ''),
+    description: j === 0 ? ws.subHint : `앞서 적은 내용을 참고하면서 "${label}"을(를) 이어서 적어보세요.`,
+  })),
 ];
+
+export const passLabel = (ws, index) => passesOf(ws)[index]?.label || '';
 
 // ---------- 워크시트 데이터 ----------
 
 export const emptySheet = () => ({
   items: Array.from({ length: CELL_COUNT }, () => ({ text: '', subs: Array(SUB_COUNT).fill('') })),
+  done: Array(PASS_COUNT).fill(false),
 });
 
 export const emptyDraft = () => ({
-  version: 1,
-  step: 0,
+  version: 2,
   sheets: { complete: emptySheet(), torment: emptySheet() },
   contact: { name: '', phone: '', email: '' },
   consent: false,
   updatedAt: null,
 });
 
+/** 챕터 진행 상태 */
+export const donePassCount = (sheet) => (sheet?.done || []).filter(Boolean).length;
+export const isChapterComplete = (sheet) => donePassCount(sheet) === PASS_COUNT;
+export const nextPassIndex = (sheet) => {
+  const idx = (sheet?.done || []).findIndex((d) => !d);
+  return idx === -1 ? null : idx;
+};
+export const allChaptersComplete = (draft) => WORKSHEETS.every((ws) => isChapterComplete(draft?.sheets?.[ws.key]));
+
 export const filledCount = (sheet) => (sheet?.items || []).filter((it) => (it?.text || '').trim()).length;
 export const isSheetComplete = (sheet) => filledCount(sheet) === CELL_COUNT;
 export const subFilledCount = (sheet) =>
   (sheet?.items || []).reduce((n, it) => n + (it?.subs || []).filter((s) => (s || '').trim()).length, 0);
 
-/** 저장된 answers (서버) → 화면용 sheets 로 정규화 */
-export function sheetsFromAnswers(answers = {}) {
+/** 저장된 answers (서버) → 화면용 sheets 로 정규화. progress 가 있으면 done 플래그 복원 */
+export function sheetsFromAnswers(answers = {}, progress = {}) {
   const sheets = {};
   for (const ws of WORKSHEETS) {
     const raw = answers?.[ws.key];
     const items = Array.isArray(raw?.items) ? raw.items : [];
+    const done = Array.isArray(progress?.[ws.key]) ? progress[ws.key] : [];
     sheets[ws.key] = {
       items: Array.from({ length: CELL_COUNT }, (_, i) => ({
         text: items[i]?.text || '',
         subs: Array.from({ length: SUB_COUNT }, (_, j) => items[i]?.subs?.[j] || ''),
       })),
+      done: Array.from({ length: PASS_COUNT }, (_, p) => done[p] === true),
     };
   }
   return sheets;
 }
+
+export const progressFromSheets = (sheets) =>
+  Object.fromEntries(WORKSHEETS.map((ws) => [ws.key, (sheets?.[ws.key]?.done || Array(PASS_COUNT).fill(false)).map(Boolean)]));
 
 /** 화면용 sheets → 서버 answers */
 export function answersFromSheets(sheets) {
@@ -143,7 +169,22 @@ export function sheetsToText(sheets) {
 
 // ---------- 임시저장 (localStorage) ----------
 
-export const DRAFT_KEY = 'sayme-mandalart-draft-v1';
+export const DRAFT_KEY = 'sayme-mandalart-draft-v2';
+
+/** 임의의 객체를 draft 형태로 정규화 (localStorage / 서버 응답 공용) */
+export function normalizeDraft(parsed) {
+  if (!parsed || typeof parsed !== 'object') return null;
+  const base = emptyDraft();
+  const progress = parsed.progress || Object.fromEntries(WORKSHEETS.map((ws) => [ws.key, parsed.sheets?.[ws.key]?.done]));
+  const answers = parsed.answers || parsed.sheets || {};
+  return {
+    ...base,
+    sheets: sheetsFromAnswers(answers, progress),
+    contact: { ...base.contact, ...(parsed.contact || {}) },
+    consent: parsed.consent === true,
+    updatedAt: parsed.updatedAt || null,
+  };
+}
 
 export function loadDraft() {
   if (typeof window === 'undefined') return null;
@@ -151,21 +192,29 @@ export function loadDraft() {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed || parsed.version !== 1) return null;
-    const base = emptyDraft();
-    return {
-      ...base,
-      ...parsed,
-      sheets: sheetsFromAnswers({
-        complete: { items: parsed.sheets?.complete?.items },
-        torment: { items: parsed.sheets?.torment?.items },
-      }),
-      contact: { ...base.contact, ...(parsed.contact || {}) },
-    };
+    if (!parsed || parsed.version !== 2) return null;
+    return normalizeDraft(parsed);
   } catch {
     return null;
   }
 }
+
+/** 서버 임시저장 페이로드 */
+export const toServerDraft = (draft) => ({
+  answers: answersFromSheets(draft.sheets),
+  contact: draft.contact,
+  progress: progressFromSheets(draft.sheets),
+});
+
+/** 서버 응답 → draft (done 플래그 포함) */
+export const fromServerDraft = (serverDraft) => (serverDraft ? normalizeDraft(serverDraft) : null);
+
+/** 두 draft 중 더 최근 것 */
+export const newerDraft = (a, b) => {
+  if (!a) return b;
+  if (!b) return a;
+  return (b.updatedAt || '') > (a.updatedAt || '') ? b : a;
+};
 
 export function saveDraft(draft) {
   if (typeof window === 'undefined') return;
@@ -185,11 +234,11 @@ export function clearDraft() {
   }
 }
 
+/** 전체 진행률(%) : 완료한 회차 수 기준 */
 export const draftProgress = (draft) => {
   if (!draft) return 0;
-  const a = filledCount(draft.sheets?.complete);
-  const b = filledCount(draft.sheets?.torment);
-  return Math.round(((a + b) / (CELL_COUNT * 2)) * 100);
+  const done = WORKSHEETS.reduce((n, ws) => n + donePassCount(draft.sheets?.[ws.key]), 0);
+  return Math.round((done / (PASS_COUNT * WORKSHEETS.length)) * 100);
 };
 
 // ---------- 처리 상태 ----------
