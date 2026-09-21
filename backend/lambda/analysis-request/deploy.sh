@@ -14,7 +14,7 @@ cd "$(dirname "$0")"
 REGION="${REGION:-ap-northeast-2}"
 FUNCTION_NAME="${FUNCTION_NAME:-sayme-analysis-request}"
 TABLE_NAME="${TABLE_NAME:-sayme-analysis-requests}"
-ROLE_NAME="${ROLE_NAME:-sayme-lambda-execution-role}"
+ROLE_NAME="${ROLE_NAME:-sayme-auth-signup-role-2kzbkq9b}"   # 기존 Lambda 들이 쓰는 실행 역할
 REST_API_ID="${REST_API_ID:-h1l7cj53v9}"
 STAGE_NAME="${STAGE_NAME:-dev}"
 RUNTIME="${RUNTIME:-nodejs20.x}"
@@ -22,7 +22,7 @@ RUNTIME="${RUNTIME:-nodejs20.x}"
 [ -f .env.deploy ] && set -a && . ./.env.deploy && set +a
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-ROLE_ARN="arn:aws:iam::${ACCOUNT_ID}:role/${ROLE_NAME}"
+ROLE_ARN=$(aws iam get-role --role-name "$ROLE_NAME" --query Role.Arn --output text)   # 경로(/service-role/) 포함
 LAMBDA_ARN="arn:aws:lambda:${REGION}:${ACCOUNT_ID}:function:${FUNCTION_NAME}"
 log() { printf '\n\033[1;36m▶ %s\033[0m\n' "$*"; }
 
