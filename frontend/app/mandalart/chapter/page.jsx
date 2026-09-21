@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import PageShell, { Card, Spinner } from '@/app/components/mandalart/PageShell';
 import MandalartGrid from '@/app/components/mandalart/MandalartGrid';
 import useDraft from '@/app/components/mandalart/useDraft';
+import { playCrystal } from '@/lib/crystalSound';
 import ServiceStatusCard, { ConsultCard } from '@/app/components/mandalart/ServiceStatusCard';
 import { analysisUserApi } from '@/lib/api/analysis';
 import { getAccessToken } from '@/app/utils/auth';
@@ -289,17 +290,21 @@ function ChapterContent() {
                         initial={{ opacity: 0, y: 6 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.03 * i }}
-                        className="rounded-[14px] border bg-white overflow-hidden"
-                        style={{ borderColor: (item.subs[pass - 1] || '').trim() ? ws.theme.accln : '#E6E0DA' }}
+                        className={`glass-cell rounded-[16px] overflow-hidden ${(item.subs[pass - 1] || '').trim() ? 'is-filled' : ''}`}
+                        style={{ '--glass-accent': ws.theme.accln, '--glass-accent-soft': ws.theme.soft }}
                       >
-                        <div className="flex items-center gap-2 px-3 py-2" style={{ background: ws.theme.accbg }}>
+                        <div
+                          className="relative z-[1] flex items-center gap-2 px-3 py-2 cursor-pointer"
+                          style={{ background: ws.theme.soft }}
+                          onClick={() => { playCrystal({ pitch: 0.9 + i * 0.04 }); rowRefs.current[i]?.focus(); }}
+                        >
                           <span className="w-[22px] h-[22px] rounded-full grid place-items-center text-[11px] font-bold text-white shrink-0" style={{ background: ws.theme.accln }}>{i + 1}</span>
                           <span className="text-[14px] font-semibold truncate" style={{ color: ws.theme.accd }}>
                             {hasTopic ? item.text : <span className="font-normal text-[#94928b]">(주제 미입력)</span>}
                           </span>
                         </div>
                         {prev.length > 0 && (
-                          <div className="px-3 pt-2 flex flex-col gap-1">
+                          <div className="relative z-[1] px-3 pt-2 flex flex-col gap-1">
                             {prev.map((p) => (
                               <div key={p.label} className="text-[12px] text-[#5f5e5a] leading-snug">
                                 <span className="inline-block text-[10px] px-1.5 py-0.5 rounded mr-1.5 align-middle" style={{ background: ws.theme.accbg, color: ws.theme.acc }}>{p.label}</span>
@@ -308,9 +313,9 @@ function ChapterContent() {
                             ))}
                           </div>
                         )}
-                        <div className="px-3 py-2.5">
+                        <div className="relative z-[1] px-3 py-2.5">
                           <div className="text-[11px] text-[#94928b] mb-1">{passDef.label}</div>
-                          <div className="rounded-[10px] border border-dashed border-[#c9c7bd] bg-[#FCFAF8] px-3 py-2 focus-within:border-solid" style={{ borderColor: undefined }}>
+                          <div className="rounded-[10px] border border-dashed border-[#c9c7bd] bg-white/70 px-3 py-2 focus-within:border-solid focus-within:bg-white/95">
                             <AutoTextarea
                               inputRef={(el) => { rowRefs.current[i] = el; }}
                               value={item.subs[pass - 1] || ''}
