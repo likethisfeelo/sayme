@@ -356,7 +356,7 @@ export default function MandalartGrid({
 
   return (
     <div>
-      <div className="flex justify-end mb-1.5">
+      <div className="flex justify-end mb-1">
         <button
           type="button"
           onClick={toggleSound}

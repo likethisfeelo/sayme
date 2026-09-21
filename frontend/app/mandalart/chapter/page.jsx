@@ -264,8 +264,8 @@ function ChapterContent() {
           </motion.div>
         ) : (
           <motion.div key={`pass-${pass}`} initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25 }}>
-            <Card>
-              <div className="flex items-start justify-between gap-2 mb-2">
+            <Card className="!p-3 md:!p-4">
+              <div className="flex items-start justify-between gap-2 mb-1 md:mb-2">
                 <div>
                   <div className="text-[11px] md:text-[13px] font-semibold" style={{ color: ws.theme.acc }}>{pass + 1}단계 · {passDef.label}</div>
                   <h1 className="text-[20px] md:text-[28px] font-bold leading-tight">{ws.title}</h1>
@@ -275,7 +275,7 @@ function ChapterContent() {
                   {pass === 0 ? `${filledTopics} / ${CELL_COUNT} 칸` : `${filledCurrent} / ${CELL_COUNT} 항목`}
                 </div>
               </div>
-              <p className="text-[12px] md:text-[15px] text-[#5f5e5a] mb-3 leading-relaxed">{passDef.description}</p>
+              <p className="text-[12px] md:text-[15px] text-[#5f5e5a] mb-2 md:mb-3 leading-snug md:leading-relaxed">{passDef.description}</p>
 
               {pass === 0 ? (
                 <MandalartGrid sheet={ws} data={sheet} mode="fill" onChange={(next) => updateSheet({ items: next.items })} autoFocusFirst large />

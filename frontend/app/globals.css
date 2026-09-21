@@ -264,8 +264,9 @@ button:active {
 /* 챕터 작성 화면용 큰 그리드: 모바일에서 세로 약 70% 차지, PC 에서는 최대 240px */
 .glass-grid-large .glass-cell,
 .glass-grid-large .glass-center {
-  min-height: clamp(96px, calc((70vh - 16px) / 3), 240px);
-  min-height: clamp(96px, calc((70dvh - 16px) / 3), 240px);
+  /* 모바일: 헤더·진행바·제목·하단 바를 뺀 나머지에 9칸이 모두 들어오도록 */
+  min-height: clamp(80px, calc((48vh - 16px) / 3), 200px);
+  min-height: clamp(80px, calc((48dvh - 16px) / 3), 200px);
 }
 .glass-grid-large .glass-cell.is-drawer-row { min-height: 0; }
 /* PC: 넓은 화면에서는 세 줄이 한 화면에 들어오도록 높이를 낮춤 */
