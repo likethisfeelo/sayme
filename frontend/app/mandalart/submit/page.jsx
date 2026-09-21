@@ -7,13 +7,13 @@ import useDraft from '@/app/components/mandalart/useDraft';
 import { getAccessToken, getIdTokenPayload } from '@/app/utils/auth';
 import { analysisUserApi } from '@/lib/api/analysis';
 import {
-  SERVICE_NAME, WORKSHEETS, CELL_COUNT, SUB_COUNT, allChaptersComplete, subFilledCount, buildSubmitPayload, validateContact,
+  SERVICE_NAME, WORKSHEETS, CELL_COUNT, SUB_COUNT, allChaptersComplete, isChapterComplete, subFilledCount, buildSubmitPayload, validateContact,
 } from '@/lib/mandalart';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 
 /**
- * /mandalart/submit : 두 챕터 확인 + 연락처 + 동의 → 제출
+ * /mandalart/submit : 두 챕터 확인 + 연락처 + 동의 → 최종 보고서 신청 (관리자는 두 장을 함께 분석)
  */
 export default function MandalartSubmitPage() {
   const router = useRouter();
@@ -63,7 +63,7 @@ export default function MandalartSubmitPage() {
       return;
     }
     if (!allChaptersComplete(draft)) {
-      setMessage('두 챕터를 모두 완료한 뒤 제출할 수 있어요.');
+      setMessage('두 챕터를 모두 완료한 뒤 최종 보고서를 신청할 수 있어요.');
       return;
     }
     try {
@@ -92,14 +92,17 @@ export default function MandalartSubmitPage() {
   }
 
   const ready = allChaptersComplete(draft);
+  const missing = WORKSHEETS.filter((w) => !isChapterComplete(draft.sheets[w.key]));
 
   return (
     <PageShell subtitle={`${SERVICE_NAME} · 제출`} backTo="/mandalart" maxWidthClass="max-w-[640px]" bottomPadding="pb-[110px]" showMenuButton={false}>
       <Card>
-        <h1 className="text-[20px] font-bold leading-tight mb-1">마지막 확인</h1>
-        <p className="text-[12px] text-[#94928b] mb-3">두 챕터의 내용을 확인하고 연락처를 남겨주세요. 보고서는 이메일로 보내드려요.</p>
+        <h1 className="text-[20px] font-bold leading-tight mb-1">최종 보고서 신청</h1>
+        <p className="text-[12px] text-[#94928b] mb-3">두 챕터의 내용을 확인하고 연락처를 남겨주세요. 관리자가 두 장을 함께 분석해 이메일로 보고서를 보내드려요.</p>
         {!ready && (
-          <p className="text-[12px] text-[#A32D2D] bg-[#FCEBEB] border border-[#A32D2D] rounded-[10px] px-3 py-2 mb-3">아직 완료되지 않은 챕터가 있어요. 홈에서 남은 단계를 마무리해 주세요.</p>
+          <p className="text-[12px] text-[#7A4B00] bg-[#FFF7E6] border border-[#F0C36D] rounded-[10px] px-3 py-2 mb-3">
+            아직 완료되지 않은 챕터가 있어요: <b>{missing.map((w) => w.title).join(', ')}</b><br />홈에서 남은 챕터를 완료한 뒤 신청해 주세요.
+          </p>
         )}
         <div className="flex flex-col gap-2">
           {WORKSHEETS.map((w, i) => {
@@ -193,7 +196,7 @@ export default function MandalartSubmitPage() {
               disabled={submitting || !ready}
               className="flex-1 py-3 rounded-[14px] font-bold text-[14px] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] shadow-[0_10px_22px_rgba(123,203,255,0.18)] active:scale-[0.98] transition-transform disabled:opacity-50"
             >
-              {submitting ? '제출 중...' : '제출하고 보고서 요청하기'}
+              {submitting ? '제출 중...' : ready ? '최종 보고서 신청하기' : '두 챕터 완료 후 신청 가능'}
             </button>
           </div>
         </div>

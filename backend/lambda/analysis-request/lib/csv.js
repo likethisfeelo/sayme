@@ -58,6 +58,7 @@ function requestsToCsv(items) {
     ['requestId', '요청ID'],
     ['status', '상태코드'],
     ['statusLabel', '상태'],
+    ['chapterTitle', '챕터'],
     ['name', '이름'],
     ['email', '이메일'],
     ['phone', '연락처'],

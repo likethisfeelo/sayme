@@ -10,7 +10,7 @@ import ServiceStatusCard, { ConsultCard } from '@/app/components/mandalart/Servi
 import { analysisUserApi } from '@/lib/api/analysis';
 import { getAccessToken } from '@/app/utils/auth';
 import {
-  SERVICE_NAME, CELL_COUNT, PASS_COUNT, worksheetByKey, passesOf, isChapterComplete, nextPassIndex, allChaptersComplete, sheetsToText, formatDateTime,
+  SERVICE_NAME, CELL_COUNT, PASS_COUNT, worksheetByKey, passesOf, isChapterComplete, nextPassIndex, allChaptersComplete, WORKSHEETS, sheetsToText, formatDateTime,
 } from '@/lib/mandalart';
 
 /**
@@ -83,7 +83,7 @@ function ChapterContent() {
       .catch(() => {})
       .finally(() => { if (!cancelled) setStatusLoading(false); });
     return () => { cancelled = true; };
-  }, [isView, authed]);
+  }, [isView, authed, ws.key]);
 
   useEffect(() => {
     if (!authed) router.push('/signup');
@@ -147,6 +147,8 @@ function ChapterContent() {
   }
 
   const chapterComplete = isChapterComplete(sheet);
+  const everyChapterComplete = allChaptersComplete(draft);
+  const otherChapters = WORKSHEETS.filter((w) => w.key !== ws.key && !isChapterComplete(draft.sheets[w.key]));
   const nextAfterThis = pass + 1 < PASS_COUNT ? pass + 1 : null;
   const filledTopics = sheet.items.filter((it) => it.text.trim()).length;
   const filledCurrent = pass > 0 ? sheet.items.filter((it) => (it.subs[pass - 1] || '').trim()).length : 0;
@@ -190,11 +192,31 @@ function ChapterContent() {
               <p className="text-[12px] text-[#5f5e5a] mb-4">
                 {chapterComplete ? '입력한 내용을 최종 화면에서 칸별로 확인할 수 있어요.' : '이어서 다음 항목을 적어볼까요? 나중에 돌아와도 여기서부터 계속돼요.'}
               </p>
+              {chapterComplete && (
+                <div className={`mb-4 rounded-[12px] px-3.5 py-3 text-[12px] leading-relaxed text-left ${everyChapterComplete ? 'bg-[rgba(232,223,245,0.7)] border border-[#BFA7FF] text-[#3B2E7A]' : 'bg-[#FFF7E6] border border-[#F0C36D] text-[#7A4B00]'}`}>
+                  {everyChapterComplete ? (
+                    <>🎯 <b>두 챕터가 모두 완료되었어요!</b> 이제 최종 보고서를 신청해 주세요. 관리자가 두 장을 함께 분석해 보고서를 보내드려요.</>
+                  ) : (
+                    <>📌 보고서는 두 챕터를 모두 완료한 뒤 신청할 수 있어요.<br />이어서 <b>{otherChapters.map((w) => w.title).join(', ')}</b> 챕터를 완료한 다음 최종 보고서를 신청해 주세요.</>
+                  )}
+                </div>
+              )}
               <div className="flex flex-col gap-2">
                 {chapterComplete ? (
-                  <button type="button" onClick={() => go('view')} className="w-full py-3 rounded-[14px] font-bold text-[14px] text-white" style={{ background: ws.theme.accln }}>
-                    최종 화면 보기 →
-                  </button>
+                  <>
+                    {everyChapterComplete ? (
+                      <button type="button" onClick={() => router.push('/mandalart/submit')} className="w-full py-3 rounded-[14px] font-bold text-[14px] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]">
+                        최종 보고서 신청하기 →
+                      </button>
+                    ) : (
+                      <button type="button" onClick={() => router.push(`/mandalart/chapter/?key=${otherChapters[0].key}&pass=${nextPassIndex(draft.sheets[otherChapters[0].key]) ?? 0}`)} className="w-full py-3 rounded-[14px] font-bold text-[14px] text-white" style={{ background: otherChapters[0].theme.accln }}>
+                        {otherChapters[0].title} 챕터 이어서 하기 →
+                      </button>
+                    )}
+                    <button type="button" onClick={() => go('view')} className="w-full py-3 rounded-[14px] border font-semibold text-[13px] bg-white" style={{ borderColor: ws.theme.accln, color: ws.theme.acc }}>
+                      이 챕터 최종 화면 보기
+                    </button>
+                  </>
                 ) : (
                   <button type="button" onClick={() => go(nextAfterThis)} className="w-full py-3 rounded-[14px] font-bold text-[14px] text-white" style={{ background: ws.theme.accln }}>
                     계속하기 · {passes[nextAfterThis].label} →
@@ -233,7 +255,7 @@ function ChapterContent() {
               <span>{lastSyncedAt ? `서버 저장 ${formatDateTime(lastSyncedAt)}` : ''}</span>
               <button type="button" onClick={handleCopy} className="underline underline-offset-2">{copied ? '복사됨' : '텍스트로 복사'}</button>
             </div>
-            <ServiceStatusCard request={latestRequest} ready={allChaptersComplete(draft)} loading={statusLoading} />
+            <ServiceStatusCard request={latestRequest} ready={everyChapterComplete} loading={statusLoading} missingTitles={otherChapters.map((w) => w.title)} />
             <ConsultCard />
             <button type="button" onClick={() => router.push('/mandalart')} className="w-full py-3 rounded-[14px] border border-[#E6E0DA] bg-white font-bold text-[14px] text-[#2A2725]">
               홈으로 →

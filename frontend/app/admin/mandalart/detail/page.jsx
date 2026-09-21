@@ -8,7 +8,7 @@ import StatusStepper from '@/app/components/mandalart/StatusStepper';
 import { isAdmin } from '@/lib/auth/checkAdmin';
 import { analysisAdminApi } from '@/lib/api/analysis';
 import {
-  WORKSHEETS, STATUS_STEPS, STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime, sheetsFromAnswers, sheetsToText, buildReportTemplate,
+  worksheetsInAnswers, STATUS_STEPS, STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime, sheetsFromAnswers, sheetsToText, buildReportTemplate,
 } from '@/lib/mandalart';
 
 /**
@@ -156,7 +156,7 @@ function AdminDetailContent() {
   const insertTemplate = () => {
     if (reportHtml.trim() && !window.confirm('현재 작성 중인 내용을 템플릿으로 덮어쓸까요?')) return;
     setReportHtml(buildReportTemplate(request));
-    if (!reportTitle) setReportTitle(`${request.name ? `${request.name}님의 ` : ''}만다라트 분석 보고서`);
+    if (!reportTitle) setReportTitle(`${request.name ? `${request.name}님의 ` : ''}${request.chapterTitle || '만다라트'} 분석 보고서`);
     setDirty(true);
     setTab('edit');
   };
@@ -203,6 +203,7 @@ function AdminDetailContent() {
                   <span className={`shrink-0 text-[11px] px-2.5 py-1 rounded-full ${STATUS_BADGE_CLASS[request.status] || ''}`}>{STATUS_LABEL[request.status]}</span>
                 </div>
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px] text-[#5f5e5a] mb-3">
+                  <dt>챕터</dt><dd className="font-semibold text-[#2A2725]">{request.chapterTitle || (request.chapter === 'all' ? '전체 (두 챕터)' : request.chapter || '-')}</dd>
                   <dt>요청ID</dt><dd className="font-mono break-all">{request.requestId}</dd>
                   <dt>접수</dt><dd>{formatDateTime(request.createdAt)}</dd>
                   <dt>수정</dt><dd>{formatDateTime(request.updatedAt)}</dd>
@@ -258,7 +259,7 @@ function AdminDetailContent() {
                   <button type="button" onClick={copyInput} className="text-[11px] underline underline-offset-2 text-[#5f5e5a]">{copied ? '복사됨' : '텍스트로 복사'}</button>
                 </div>
                 <div className="space-y-3">
-                  {WORKSHEETS.map((ws) => (
+                  {worksheetsInAnswers(request.answers).map((ws) => (
                     <div key={ws.key} className="rounded-[14px] border overflow-hidden" style={{ borderColor: ws.theme.accln }}>
                       <div className="px-3.5 py-2" style={{ background: ws.theme.accbg, color: ws.theme.accd }}>
                         <div className="text-[13px] font-bold">{ws.title}</div>
