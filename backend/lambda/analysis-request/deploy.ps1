@@ -1,4 +1,4 @@
-<#
+﻿<#
   sayme-analysis-request 배포 스크립트 (Windows PowerShell 용)
   요구: AWS CLI v2 (aws configure 완료), Node.js/npm
 
