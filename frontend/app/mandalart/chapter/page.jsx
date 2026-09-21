@@ -46,7 +46,7 @@ function AutoTextarea({ value, onChange, onEnter, placeholder, inputRef, ariaLab
           onEnter?.();
         }
       }}
-      className="block w-full resize-none bg-transparent outline-none text-[16px] leading-[1.5] text-[#26251f] placeholder:text-[#b3b0a6]"
+      className="block w-full resize-none bg-transparent outline-none text-[16px] md:text-[18px] leading-[1.5] text-[#26251f] placeholder:text-[#b3b0a6]"
       style={{ overflow: 'hidden' }}
     />
   );
@@ -143,7 +143,7 @@ function ChapterContent() {
 
   if (loading || !sheet) {
     return (
-      <PageShell subtitle={SERVICE_NAME} backTo="/mandalart" maxWidthClass="max-w-[640px]"><Spinner /></PageShell>
+      <PageShell subtitle={SERVICE_NAME} backTo="/mandalart" maxWidthClass="max-w-[1120px]"><Spinner /></PageShell>
     );
   }
 
@@ -155,7 +155,7 @@ function ChapterContent() {
   const filledCurrent = pass > 0 ? sheet.items.filter((it) => (it.subs[pass - 1] || '').trim()).length : 0;
 
   return (
-    <PageShell subtitle={`${SERVICE_NAME} · ${ws.title}`} backTo="/mandalart" maxWidthClass="max-w-[640px]" bottomPadding={isView ? 'pb-10' : 'pb-[110px]'} showMenuButton={false}>
+    <PageShell subtitle={`${SERVICE_NAME} · ${ws.title}`} backTo="/mandalart" maxWidthClass="max-w-[1120px]" bottomPadding={isView ? 'pb-10' : 'pb-[110px]'} showMenuButton={false}>
       <div ref={topRef} />
 
       {/* 회차 진행 표시 */}
@@ -177,7 +177,7 @@ function ChapterContent() {
                 <div className="w-full h-[6px] rounded-full bg-[#E6E0DA] overflow-hidden">
                   <motion.div className="h-full rounded-full" style={{ background: ws.theme.accln }} initial={false} animate={{ width: isDone ? '100%' : active ? '55%' : '0%' }} transition={{ duration: 0.4 }} />
                 </div>
-                <span className={`text-[10px] leading-none truncate max-w-full ${active ? 'font-bold text-[#2A2725]' : isDone ? 'text-[#5f5e5a]' : 'text-[#b3b0a6]'}`}>{p.label}</span>
+                <span className={`text-[10px] md:text-[13px] leading-none truncate max-w-full ${active ? 'font-bold text-[#2A2725]' : isDone ? 'text-[#5f5e5a]' : 'text-[#b3b0a6]'}`}>{p.label}</span>
               </button>
             );
           })}
@@ -189,7 +189,7 @@ function ChapterContent() {
           <motion.div key="done" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             <Card className="text-center" style={{ borderColor: ws.theme.accln }}>
               <div className="text-[34px] mb-1">{chapterComplete ? '🎉' : '✅'}</div>
-              <div className="text-[17px] font-bold mb-1">{chapterComplete ? `${ws.title} 챕터 완료!` : `"${passDef.label}" 저장 완료`}</div>
+              <div className="text-[17px] md:text-[22px] font-bold mb-1">{chapterComplete ? `${ws.title} 챕터 완료!` : `"${passDef.label}" 저장 완료`}</div>
               <p className="text-[12px] text-[#5f5e5a] mb-4">
                 {chapterComplete ? '입력한 내용을 최종 화면에서 칸별로 확인할 수 있어요.' : '이어서 다음 항목을 적어볼까요? 나중에 돌아와도 여기서부터 계속돼요.'}
               </p>
@@ -234,16 +234,16 @@ function ChapterContent() {
             <Card>
               <div className="flex items-start justify-between gap-2 mb-3">
                 <div>
-                  <div className="text-[11px] font-semibold tracking-[0.08em]" style={{ color: ws.theme.acc }}>최종 화면</div>
-                  <h1 className="text-[20px] font-bold leading-tight">{ws.title}</h1>
-                  <p className="text-[12px] text-[#94928b]">{ws.subtitle}</p>
+                  <div className="text-[11px] md:text-[13px] font-semibold tracking-[0.08em]" style={{ color: ws.theme.acc }}>최종 화면</div>
+                  <h1 className="text-[20px] md:text-[28px] font-bold leading-tight">{ws.title}</h1>
+                  <p className="text-[12px] md:text-[15px] text-[#94928b]">{ws.subtitle}</p>
                 </div>
                 <span className="shrink-0 text-[11px] px-2.5 py-1 rounded-full" style={{ background: ws.theme.accbg, color: ws.theme.acc }}>
                   {chapterComplete ? '완료' : '작성 중'}
                 </span>
               </div>
-              <p className="text-[12px] text-[#5f5e5a] mb-3">칸을 누르면 {ws.subLabels.join(' · ')} 을 볼 수 있어요.</p>
-              <MandalartGrid sheet={ws} data={sheet} mode="readonly" />
+              <p className="text-[12px] md:text-[15px] text-[#5f5e5a] mb-3">칸을 누르면 {ws.subLabels.join(' · ')} 을 볼 수 있어요.</p>
+              <MandalartGrid sheet={ws} data={sheet} mode="readonly" large />
               <div className="mt-3 flex flex-wrap gap-1.5">
                 {passes.map((p) => (
                   <button key={p.key} type="button" onClick={() => go(p.index)} className="text-[11px] px-2.5 py-1.5 rounded-full border border-[#E6E0DA] bg-white text-[#5f5e5a]">
@@ -267,20 +267,20 @@ function ChapterContent() {
             <Card>
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
-                  <div className="text-[11px] font-semibold" style={{ color: ws.theme.acc }}>{pass + 1}단계 · {passDef.label}</div>
-                  <h1 className="text-[20px] font-bold leading-tight">{ws.title}</h1>
-                  <p className="text-[12px] text-[#94928b]">{ws.subtitle}</p>
+                  <div className="text-[11px] md:text-[13px] font-semibold" style={{ color: ws.theme.acc }}>{pass + 1}단계 · {passDef.label}</div>
+                  <h1 className="text-[20px] md:text-[28px] font-bold leading-tight">{ws.title}</h1>
+                  <p className="text-[12px] md:text-[15px] text-[#94928b]">{ws.subtitle}</p>
                 </div>
-                <div className="shrink-0 text-[12px] font-semibold px-2.5 py-1.5 rounded-full border" style={{ borderColor: ws.theme.accln, color: ws.theme.acc, background: ws.theme.accbg }}>
+                <div className="shrink-0 text-[12px] md:text-[15px] font-semibold px-2.5 py-1.5 md:px-4 md:py-2 rounded-full border" style={{ borderColor: ws.theme.accln, color: ws.theme.acc, background: ws.theme.accbg }}>
                   {pass === 0 ? `${filledTopics} / ${CELL_COUNT} 칸` : `${filledCurrent} / ${CELL_COUNT} 항목`}
                 </div>
               </div>
-              <p className="text-[12px] text-[#5f5e5a] mb-3 leading-relaxed">{passDef.description}</p>
+              <p className="text-[12px] md:text-[15px] text-[#5f5e5a] mb-3 leading-relaxed">{passDef.description}</p>
 
               {pass === 0 ? (
-                <MandalartGrid sheet={ws} data={sheet} mode="fill" onChange={(next) => updateSheet({ items: next.items })} autoFocusFirst />
+                <MandalartGrid sheet={ws} data={sheet} mode="fill" onChange={(next) => updateSheet({ items: next.items })} autoFocusFirst large />
               ) : (
-                <ol className="flex flex-col gap-2">
+                <ol className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
                   {sheet.items.map((item, i) => {
                     const hasTopic = !!item.text.trim();
                     const prev = ws.subLabels.slice(0, pass - 1).map((label, j) => ({ label, value: item.subs[j] })).filter((p) => (p.value || '').trim());
@@ -298,15 +298,15 @@ function ChapterContent() {
                           style={{ background: ws.theme.soft }}
                           onClick={() => { playCrystal({ pitch: 0.9 + i * 0.04 }); rowRefs.current[i]?.focus(); }}
                         >
-                          <span className="w-[22px] h-[22px] rounded-full grid place-items-center text-[11px] font-bold text-white shrink-0" style={{ background: ws.theme.accln }}>{i + 1}</span>
-                          <span className="text-[14px] font-semibold truncate" style={{ color: ws.theme.accd }}>
+                          <span className="w-[22px] h-[22px] md:w-[26px] md:h-[26px] rounded-full grid place-items-center text-[11px] md:text-[13px] font-bold text-white shrink-0" style={{ background: ws.theme.accln }}>{i + 1}</span>
+                          <span className="text-[14px] md:text-[17px] font-semibold truncate" style={{ color: ws.theme.accd }}>
                             {hasTopic ? item.text : <span className="font-normal text-[#94928b]">(주제 미입력)</span>}
                           </span>
                         </div>
                         {prev.length > 0 && (
                           <div className="relative z-[1] px-3 pt-2 flex flex-col gap-1">
                             {prev.map((p) => (
-                              <div key={p.label} className="text-[12px] text-[#5f5e5a] leading-snug">
+                              <div key={p.label} className="text-[12px] md:text-[14px] text-[#5f5e5a] leading-snug">
                                 <span className="inline-block text-[10px] px-1.5 py-0.5 rounded mr-1.5 align-middle" style={{ background: ws.theme.accbg, color: ws.theme.acc }}>{p.label}</span>
                                 <span className="align-middle">{p.value}</span>
                               </div>
@@ -314,7 +314,7 @@ function ChapterContent() {
                           </div>
                         )}
                         <div className="relative z-[1] px-3 py-2.5">
-                          <div className="text-[11px] text-[#94928b] mb-1">{passDef.label}</div>
+                          <div className="text-[11px] md:text-[13px] text-[#94928b] mb-1">{passDef.label}</div>
                           <div className="rounded-[10px] border border-dashed border-[#c9c7bd] bg-white/70 px-3 py-2 focus-within:border-solid focus-within:bg-white/95">
                             <AutoTextarea
                               inputRef={(el) => { rowRefs.current[i] = el; }}
@@ -350,7 +350,7 @@ function ChapterContent() {
       {/* 하단 고정 액션 */}
       {!isView && !completed && (
         <div className="fixed bottom-0 left-0 right-0 z-30 bg-[rgba(245,241,237,0.9)] backdrop-blur-[10px] border-t border-[rgba(230,224,218,0.9)]" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-          <div className="max-w-[640px] mx-auto px-4 py-3">
+          <div className="max-w-[1120px] mx-auto px-4 py-3">
             <AnimatePresence>
               {toast && (
                 <motion.p initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="text-[12px] text-[#5f5e5a] mb-2 text-center" role="status">
@@ -362,7 +362,7 @@ function ChapterContent() {
               <button
                 type="button"
                 onClick={() => (pass === 0 ? router.push('/mandalart') : go(pass - 1))}
-                className="px-4 py-3 rounded-[14px] border border-[#E6E0DA] bg-white text-[14px] text-[#2A2725]"
+                className="px-4 py-3 md:px-6 md:py-4 rounded-[14px] border border-[#E6E0DA] bg-white text-[14px] md:text-[16px] text-[#2A2725]"
               >
                 {pass === 0 ? '홈' : '이전'}
               </button>
@@ -370,7 +370,7 @@ function ChapterContent() {
                 type="button"
                 onClick={handleSaveOnly}
                 disabled={syncing}
-                className="px-4 py-3 rounded-[14px] border bg-white text-[14px] disabled:opacity-60"
+                className="px-4 py-3 md:px-6 md:py-4 rounded-[14px] border bg-white text-[14px] md:text-[16px] disabled:opacity-60"
                 style={{ borderColor: ws.theme.accln, color: ws.theme.acc }}
               >
                 임시 저장
@@ -379,7 +379,7 @@ function ChapterContent() {
                 type="button"
                 onClick={handleComplete}
                 disabled={syncing}
-                className="flex-1 py-3 rounded-[14px] font-bold text-[14px] text-white active:scale-[0.98] transition-transform disabled:opacity-60"
+                className="flex-1 py-3 md:py-4 rounded-[14px] font-bold text-[14px] md:text-[17px] text-white active:scale-[0.98] transition-transform disabled:opacity-60"
                 style={{ background: ws.theme.accln, boxShadow: `0 10px 22px ${ws.theme.soft}` }}
               >
                 {syncing ? '저장 중…' : '저장 및 완료 →'}
