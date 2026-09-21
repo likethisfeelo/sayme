@@ -75,13 +75,31 @@ function Step-Table {
   if (Test-Aws dynamodb describe-table --table-name $TableName --region $Region) {
     Write-Host '이미 존재함 - 건너뜀'
   } else {
-    $gsi = '[{"IndexName":"userId-createdAt-index","KeySchema":[{"AttributeName":"userId","KeyType":"HASH"},{"AttributeName":"createdAt","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}]'
-    $gsiFile = Join-Path $Tmp 'gsi.json'; Set-Content -Path $gsiFile -Value $gsi -Encoding ascii
-    Invoke-Aws dynamodb create-table --region $Region --table-name $TableName `
-      --attribute-definitions AttributeName=requestId,AttributeType=S AttributeName=userId,AttributeType=S AttributeName=createdAt,AttributeType=S `
-      --key-schema AttributeName=requestId,KeyType=HASH `
-      --billing-mode PAY_PER_REQUEST `
-      --global-secondary-indexes "file://$gsiFile" | Out-Null
+    # PowerShell 은 'a=1,b=2' 의 쉼표를 배열로 해석하므로 테이블 정의 전체를 JSON 으로 전달
+    $tableDef = @"
+{
+  "TableName": "$TableName",
+  "AttributeDefinitions": [
+    { "AttributeName": "requestId", "AttributeType": "S" },
+    { "AttributeName": "userId", "AttributeType": "S" },
+    { "AttributeName": "createdAt", "AttributeType": "S" }
+  ],
+  "KeySchema": [ { "AttributeName": "requestId", "KeyType": "HASH" } ],
+  "BillingMode": "PAY_PER_REQUEST",
+  "GlobalSecondaryIndexes": [
+    {
+      "IndexName": "userId-createdAt-index",
+      "KeySchema": [
+        { "AttributeName": "userId", "KeyType": "HASH" },
+        { "AttributeName": "createdAt", "KeyType": "RANGE" }
+      ],
+      "Projection": { "ProjectionType": "ALL" }
+    }
+  ]
+}
+"@
+    $tableFile = Join-Path $Tmp 'table.json'; Set-Content -Path $tableFile -Value $tableDef -Encoding ascii
+    Invoke-Aws dynamodb create-table --region $Region --cli-input-json "file://$tableFile" | Out-Null
     Invoke-Aws dynamodb wait table-exists --table-name $TableName --region $Region | Out-Null
     Write-Host '생성 완료'
   }
