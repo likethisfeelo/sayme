@@ -39,14 +39,32 @@ if (Test-Path .env.deploy) {
 }
 
 function Log($msg) { Write-Host "`n▶ $msg" -ForegroundColor Cyan }
-function Aws { # aws CLI 호출 + 실패 시 중단
-  $out = & aws @args 2>&1
+function Invoke-Aws { # aws CLI 호출 + 실패 시 중단 (함수명이 aws 와 겹치면 자기 자신을 호출하므로 aws.exe 명시)
+  $ErrorActionPreference = 'Continue'
+  $out = & aws.exe @args 2>&1
   if ($LASTEXITCODE -ne 0) { throw "aws $($args -join ' ')`n$out" }
   return $out
 }
-function AwsQuiet { & aws @args 2>&1 | Out-Null; return ($LASTEXITCODE -eq 0) }
+function Test-Aws { $ErrorActionPreference = 'Continue'; & aws.exe @args 2>&1 | Out-Null; return ($LASTEXITCODE -eq 0) }
 
-$AccountId = (Aws sts get-caller-identity --query Account --output text).Trim()
+# Lambda 용 zip: PowerShell 5.1 의 Compress-Archive 는 경로 구분자를 '\' 로 넣어 Linux Lambda 에서 require('./lib/..') 가 실패하므로 직접 생성
+function New-LambdaZip($Dest, $Items) {
+  Add-Type -AssemblyName System.IO.Compression, System.IO.Compression.FileSystem
+  if (Test-Path $Dest) { Remove-Item $Dest }
+  $zip = [System.IO.Compression.ZipFile]::Open($Dest, 'Create')
+  try {
+    foreach ($item in $Items) {
+      $full = (Resolve-Path $item).Path
+      $files = if (Test-Path $full -PathType Container) { Get-ChildItem $full -Recurse -File } else { Get-Item $full }
+      foreach ($f in $files) {
+        $rel = $f.FullName.Substring($PSScriptRoot.Length + 1) -replace '\\', '/'
+        [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $f.FullName, $rel, 'Optimal') | Out-Null
+      }
+    }
+  } finally { $zip.Dispose() }
+}
+
+$AccountId = (Invoke-Aws sts get-caller-identity --query Account --output text).Trim()
 $RoleArn   = "arn:aws:iam::${AccountId}:role/${RoleName}"
 $LambdaArn = "arn:aws:lambda:${Region}:${AccountId}:function:${FunctionName}"
 $Tmp = Join-Path $env:TEMP 'sayme-deploy'
@@ -54,17 +72,17 @@ New-Item -ItemType Directory -Force -Path $Tmp | Out-Null
 
 function Step-Table {
   Log "DynamoDB 테이블 $TableName"
-  if (AwsQuiet dynamodb describe-table --table-name $TableName --region $Region) {
+  if (Test-Aws dynamodb describe-table --table-name $TableName --region $Region) {
     Write-Host '이미 존재함 - 건너뜀'
   } else {
     $gsi = '[{"IndexName":"userId-createdAt-index","KeySchema":[{"AttributeName":"userId","KeyType":"HASH"},{"AttributeName":"createdAt","KeyType":"RANGE"}],"Projection":{"ProjectionType":"ALL"}}]'
     $gsiFile = Join-Path $Tmp 'gsi.json'; Set-Content -Path $gsiFile -Value $gsi -Encoding ascii
-    Aws dynamodb create-table --region $Region --table-name $TableName `
+    Invoke-Aws dynamodb create-table --region $Region --table-name $TableName `
       --attribute-definitions AttributeName=requestId,AttributeType=S AttributeName=userId,AttributeType=S AttributeName=createdAt,AttributeType=S `
       --key-schema AttributeName=requestId,KeyType=HASH `
       --billing-mode PAY_PER_REQUEST `
       --global-secondary-indexes "file://$gsiFile" | Out-Null
-    Aws dynamodb wait table-exists --table-name $TableName --region $Region | Out-Null
+    Invoke-Aws dynamodb wait table-exists --table-name $TableName --region $Region | Out-Null
     Write-Host '생성 완료'
   }
 
@@ -82,7 +100,7 @@ function Step-Table {
 }
 "@
   $policyFile = Join-Path $Tmp 'policy.json'; Set-Content -Path $policyFile -Value $policy -Encoding ascii
-  Aws iam put-role-policy --role-name $RoleName --policy-name sayme-analysis-request-access --policy-document "file://$policyFile" | Out-Null
+  Invoke-Aws iam put-role-policy --role-name $RoleName --policy-name sayme-analysis-request-access --policy-document "file://$policyFile" | Out-Null
   Write-Host '정책 적용 완료'
 }
 
@@ -90,19 +108,18 @@ function Step-Code {
   Log '패키징'
   & npm ci --omit=dev | Out-Null
   if ($LASTEXITCODE -ne 0) { throw 'npm ci 실패' }
-  if (Test-Path function.zip) { Remove-Item function.zip }
-  Compress-Archive -Path index.js, lib, package.json, node_modules -DestinationPath function.zip -CompressionLevel Optimal
+  New-LambdaZip (Join-Path $PSScriptRoot 'function.zip') @('index.js', 'lib', 'package.json', 'node_modules')
   Write-Host ("function.zip {0:N1} MB" -f ((Get-Item function.zip).Length / 1MB))
 
-  if (AwsQuiet lambda get-function --function-name $FunctionName --region $Region) {
+  if (Test-Aws lambda get-function --function-name $FunctionName --region $Region) {
     Log 'Lambda 코드 업데이트'
-    Aws lambda update-function-code --function-name $FunctionName --zip-file fileb://function.zip --region $Region | Out-Null
+    Invoke-Aws lambda update-function-code --function-name $FunctionName --zip-file fileb://function.zip --region $Region | Out-Null
   } else {
     Log 'Lambda 생성'
-    Aws lambda create-function --function-name $FunctionName --runtime $Runtime --handler index.handler `
+    Invoke-Aws lambda create-function --function-name $FunctionName --runtime $Runtime --handler index.handler `
       --zip-file fileb://function.zip --role $RoleArn --timeout 20 --memory-size 256 --region $Region | Out-Null
   }
-  Aws lambda wait function-updated --function-name $FunctionName --region $Region | Out-Null
+  Invoke-Aws lambda wait function-updated --function-name $FunctionName --region $Region | Out-Null
   Write-Host '완료'
 }
 
@@ -122,45 +139,45 @@ function Step-Env {
   }
   $envFile = Join-Path $Tmp 'env.json'
   (@{ Variables = $vars } | ConvertTo-Json -Compress) | Set-Content -Path $envFile -Encoding ascii
-  Aws lambda update-function-configuration --function-name $FunctionName --region $Region --environment "file://$envFile" | Out-Null
-  Aws lambda wait function-updated --function-name $FunctionName --region $Region | Out-Null
+  Invoke-Aws lambda update-function-configuration --function-name $FunctionName --region $Region --environment "file://$envFile" | Out-Null
+  Invoke-Aws lambda wait function-updated --function-name $FunctionName --region $Region | Out-Null
   $slack = if ($vars.SLACK_WEBHOOK_URL) { '설정됨' } else { '미설정' }
   $ses   = if ($vars.SES_FROM_EMAIL) { $vars.SES_FROM_EMAIL } else { '미설정' }
   Write-Host "완료 (Slack: $slack / SES: $ses)"
 }
 
 function Ensure-Resource($ParentId, $PathPart) {
-  $id = (Aws apigateway get-resources --rest-api-id $RestApiId --region $Region --limit 500 `
+  $id = (Invoke-Aws apigateway get-resources --rest-api-id $RestApiId --region $Region --limit 500 `
           --query "items[?parentId=='$ParentId' && pathPart=='$PathPart'].id | [0]" --output text).Trim()
   if (-not $id -or $id -eq 'None') {
-    $id = (Aws apigateway create-resource --rest-api-id $RestApiId --region $Region --parent-id $ParentId --path-part $PathPart --query id --output text).Trim()
+    $id = (Invoke-Aws apigateway create-resource --rest-api-id $RestApiId --region $Region --parent-id $ParentId --path-part $PathPart --query id --output text).Trim()
   }
   return $id
 }
 function Ensure-AnyProxy($ResourceId) {
-  if (-not (AwsQuiet apigateway get-method --rest-api-id $RestApiId --resource-id $ResourceId --http-method ANY --region $Region)) {
-    Aws apigateway put-method --rest-api-id $RestApiId --resource-id $ResourceId --http-method ANY --authorization-type NONE --region $Region | Out-Null
+  if (-not (Test-Aws apigateway get-method --rest-api-id $RestApiId --resource-id $ResourceId --http-method ANY --region $Region)) {
+    Invoke-Aws apigateway put-method --rest-api-id $RestApiId --resource-id $ResourceId --http-method ANY --authorization-type NONE --region $Region | Out-Null
   }
-  Aws apigateway put-integration --rest-api-id $RestApiId --resource-id $ResourceId --http-method ANY `
+  Invoke-Aws apigateway put-integration --rest-api-id $RestApiId --resource-id $ResourceId --http-method ANY `
     --type AWS_PROXY --integration-http-method POST --region $Region `
     --uri "arn:aws:apigateway:${Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations" | Out-Null
 }
 
 function Step-Api {
   Log "API Gateway $RestApiId 라우트"
-  $rootId  = (Aws apigateway get-resources --rest-api-id $RestApiId --region $Region --query "items[?path=='/'].id | [0]" --output text).Trim()
+  $rootId  = (Invoke-Aws apigateway get-resources --rest-api-id $RestApiId --region $Region --query "items[?path=='/'].id | [0]" --output text).Trim()
   $baseId  = Ensure-Resource $rootId 'analysis-request'
   $proxyId = Ensure-Resource $baseId '{proxy+}'
   Ensure-AnyProxy $baseId
   Ensure-AnyProxy $proxyId
 
-  $ok = AwsQuiet lambda add-permission --function-name $FunctionName --region $Region `
+  $ok = Test-Aws lambda add-permission --function-name $FunctionName --region $Region `
     --statement-id "apigw-$RestApiId-analysis-request" --action lambda:InvokeFunction `
     --principal apigateway.amazonaws.com `
     --source-arn "arn:aws:execute-api:${Region}:${AccountId}:${RestApiId}/*/*/analysis-request*"
   if (-not $ok) { Write-Host '(호출 권한 이미 있음)' }
 
-  Aws apigateway create-deployment --rest-api-id $RestApiId --stage-name $StageName --region $Region --description "analysis-request $(Get-Date -Format yyyy-MM-dd)" | Out-Null
+  Invoke-Aws apigateway create-deployment --rest-api-id $RestApiId --stage-name $StageName --region $Region --description "analysis-request $(Get-Date -Format yyyy-MM-dd)" | Out-Null
   Write-Host "배포 완료: https://$RestApiId.execute-api.$Region.amazonaws.com/$StageName/analysis-request"
 }
 
