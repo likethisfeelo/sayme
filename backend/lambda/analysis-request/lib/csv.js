@@ -3,7 +3,8 @@
  */
 const { STATUS_LABEL } = require('./constants');
 
-const BOM = '﻿';
+const BOM = '\uFEFF';
+const GENDER_LABEL = { female: '여성', male: '남성', other: '기타' };
 
 function csvCell(value) {
   if (value === undefined || value === null) return '';
@@ -62,6 +63,10 @@ function requestsToCsv(items) {
     ['name', '이름'],
     ['email', '이메일'],
     ['phone', '연락처'],
+    ['profile.birthDate', '생년월일(양력)'],
+    ['profile.birthTime', '태어난시간(24h)'],
+    ['profile.birthCity', '태어난도시'],
+    ['profile.gender', '성별'],
     ['createdAt', '접수시각'],
     ['updatedAt', '수정시각'],
     ['sentAt', '보고서전송시각'],
@@ -78,9 +83,16 @@ function requestsToCsv(items) {
 
   const header = [...baseColumns.map(([, label]) => label), ...answerKeys.map((k) => `답변:${k}`)];
   const rows = items.map((item, idx) => {
-    const base = baseColumns.map(([key]) =>
-      key === 'statusLabel' ? STATUS_LABEL[item.status] || item.status : item[key]
-    );
+    const base = baseColumns.map(([key]) => {
+      if (key === 'statusLabel') return STATUS_LABEL[item.status] || item.status;
+      if (key.startsWith('profile.')) {
+        const v = item.profile?.[key.slice(8)];
+        if (key === 'profile.gender') return GENDER_LABEL[v] || v || '';
+        if (key === 'profile.birthTime') return v === 'unknown' ? '모름' : v || '';
+        return v ?? '';
+      }
+      return item[key];
+    });
     const answers = answerKeys.map((k) => flattened[idx][k]);
     return [...base, ...answers].map(csvCell).join(',');
   });

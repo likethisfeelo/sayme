@@ -72,10 +72,24 @@ export const emptySheet = () => ({
 export const emptyDraft = () => ({
   version: 2,
   sheets: { complete: emptySheet(), torment: emptySheet() },
-  contact: { name: '', phone: '', email: '' },
+  contact: { name: '', phone: '', email: '', birthDate: '', birthTime: '', birthCity: '', gender: '' },
   consent: false,
   updatedAt: null,
 });
+
+/** 출생 정보 옵션/라벨 */
+export const GENDER_OPTIONS = [
+  { value: 'female', label: '여성' },
+  { value: 'male', label: '남성' },
+  { value: 'other', label: '기타' },
+];
+export const genderLabel = (v) => GENDER_OPTIONS.find((g) => g.value === v)?.label || v || '-';
+export const birthTimeLabel = (v) => (v === 'unknown' ? '모름' : v || '-');
+/** 신청 profile → 한 줄 요약 */
+export const profileSummary = (profile) =>
+  profile
+    ? `${profile.birthDate || '-'} (양력) · ${birthTimeLabel(profile.birthTime)} · ${profile.birthCity || '-'} · ${genderLabel(profile.gender)}`
+    : '-';
 
 /** 챕터 진행 상태 */
 export const donePassCount = (sheet) => (sheet?.done || []).filter(Boolean).length;
@@ -144,10 +158,17 @@ export function answersFromSheets(sheets, keys = null) {
 /** 챕터 단위 제출 페이로드 (chapter 생략 시 전체) */
 export function buildSubmitPayload(draft, { source = 'mandalart-web', chapter = null } = {}) {
   const ws = chapter ? worksheetByKey(chapter) : null;
+  const c = draft.contact || {};
   return {
-    name: (draft.contact?.name || '').trim(),
-    phone: (draft.contact?.phone || '').trim(),
-    email: (draft.contact?.email || '').trim(),
+    name: (c.name || '').trim(),
+    phone: (c.phone || '').trim(),
+    email: (c.email || '').trim(),
+    profile: {
+      birthDate: (c.birthDate || '').trim(),
+      birthTime: (c.birthTime || '').trim(),
+      birthCity: (c.birthCity || '').trim(),
+      gender: (c.gender || '').trim(),
+    },
     answers: answersFromSheets(draft.sheets, ws ? [ws.key] : null),
     ...(ws ? { chapter: ws.key, chapterTitle: ws.title } : {}),
     consent: draft.consent === true,
@@ -161,6 +182,14 @@ export function validateContact(contact, consent) {
   if (!(contact?.phone || '').trim()) errors.phone = '연락처를 입력해 주세요.';
   else if (!/^[0-9+\-\s()]{8,20}$/.test(contact.phone.trim())) errors.phone = '연락처 형식을 확인해 주세요.';
   if (contact?.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email.trim())) errors.email = '이메일 형식을 확인해 주세요.';
+  const bd = (contact?.birthDate || '').trim();
+  if (!bd) errors.birthDate = '생년월일(양력)을 입력해 주세요.';
+  else if (!/^\d{4}-\d{2}-\d{2}$/.test(bd) || Number.isNaN(Date.parse(bd)) || Date.parse(bd) > Date.now()) errors.birthDate = '생년월일을 확인해 주세요.';
+  const bt = (contact?.birthTime || '').trim();
+  if (!bt) errors.birthTime = '태어난 시간을 입력하거나 "모름"을 선택해 주세요.';
+  else if (!(bt === 'unknown' || /^([01]\d|2[0-3]):[0-5]\d$/.test(bt))) errors.birthTime = '24시간 기준 시:분 으로 입력해 주세요.';
+  if (!(contact?.birthCity || '').trim()) errors.birthCity = '태어난 도시를 입력해 주세요.';
+  if (!GENDER_OPTIONS.some((g) => g.value === contact?.gender)) errors.gender = '성별을 선택해 주세요.';
   if (consent !== true) errors.consent = '개인정보 수집·이용에 동의해 주세요.';
   return errors;
 }
@@ -335,6 +364,7 @@ export function buildReportTemplate(request) {
 <div class="mr">
   <h1>${name ? `${name}님의 ` : ''}${included.length === 1 ? esc(included[0].title) : '만다라트'} 분석 보고서</h1>
   <p class="sub">${esc(SERVICE_NAME)} · 작성일 ${new Date().toLocaleDateString('ko-KR')}</p>
+  ${request?.profile ? `<p class="sub">출생 정보: ${esc(profileSummary(request.profile))}</p>` : ''}
   <div class="summary"><b>한눈에 보기</b><br/>여기에 전체 요약을 작성하세요.</div>
   ${sheetHtml}
   <h2>다음 한 걸음</h2>
