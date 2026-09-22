@@ -140,6 +140,29 @@ function normalizeAnswers(input) {
   return normalizeValue(input, 0) || {};
 }
 
+/**
+ * 출생 정보(프로필) 정규화 + 검증
+ *  birthDate: YYYY-MM-DD (양력), birthTime: HH:MM (24시간) 또는 'unknown', birthCity, gender: female|male|other
+ */
+const GENDERS = ['female', 'male', 'other'];
+function normalizeProfile(input) {
+  if (!input || typeof input !== 'object') return null;
+  const birthDate = cleanString(input.birthDate, 20);
+  let birthTime = cleanString(input.birthTime, 20);
+  if (birthTime === '모름') birthTime = 'unknown';
+  const birthCity = cleanString(input.birthCity, 100);
+  const gender = cleanString(input.gender, 20);
+  return { birthDate, birthTime, birthCity, gender, calendar: 'solar', timeBasis: '24h' };
+}
+function validateProfile(profile) {
+  if (!profile) return '출생 정보(생년월일, 태어난 시간, 태어난 도시, 성별)를 입력해 주세요.';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(profile.birthDate) || Number.isNaN(Date.parse(profile.birthDate))) return '생년월일(양력)을 YYYY-MM-DD 형식으로 입력해 주세요.';
+  if (!(profile.birthTime === 'unknown' || /^([01]\d|2[0-3]):[0-5]\d$/.test(profile.birthTime))) return '태어난 시간을 24시간 기준 HH:MM 으로 입력하거나 "모름"을 선택해 주세요.';
+  if (!profile.birthCity) return '태어난 도시를 입력해 주세요.';
+  if (!GENDERS.includes(profile.gender)) return '성별을 선택해 주세요.';
+  return null;
+}
+
 function publicView(item, { includeReport = false, includeToken = false } = {}) {
   if (!item) return null;
   const base = {
@@ -152,6 +175,7 @@ function publicView(item, { includeReport = false, includeToken = false } = {}) 
     email: item.email,
     phone: item.phone,
     answers: item.answers || {},
+    profile: item.profile || null,
     chapter: item.chapter || 'all',
     chapterTitle: item.chapterTitle || null,
     reportTitle: item.reportTitle || null,
@@ -284,6 +308,9 @@ function createHandler(deps = {}) {
 
     if (!name) throw new HttpError(400, '이름을 입력해 주세요.');
     if (!phone) throw new HttpError(400, '연락처를 입력해 주세요.');
+    const profile = normalizeProfile(body.profile);
+    const profileError = validateProfile(profile);
+    if (profileError) throw new HttpError(400, profileError);
     if (body.consent !== true) throw new HttpError(400, '개인정보 수집·이용에 동의해 주세요.');
 
     let email = cleanString(body.email, 200) || auth.email;
@@ -305,6 +332,7 @@ function createHandler(deps = {}) {
       name,
       email,
       phone,
+      profile,
       chapter,
       chapterTitle,
       answers,
@@ -365,6 +393,10 @@ function createHandler(deps = {}) {
       name: cleanString(body.contact.name, 100),
       phone: cleanString(body.contact.phone, 50),
       email: cleanString(body.contact.email, 200),
+      birthDate: cleanString(body.contact.birthDate, 20),
+      birthTime: cleanString(body.contact.birthTime, 20),
+      birthCity: cleanString(body.contact.birthCity, 100),
+      gender: cleanString(body.contact.gender, 20),
     } : {};
     const item = {
       requestId: draftId(auth.userId),

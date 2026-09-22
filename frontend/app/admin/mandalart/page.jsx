@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import PageShell, { Card, Spinner } from '@/app/components/mandalart/PageShell';
 import { isAdmin } from '@/lib/auth/checkAdmin';
 import { analysisAdminApi, downloadBlob } from '@/lib/api/analysis';
-import { STATUS_STEPS, STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime, sheetsFromAnswers, worksheetsInAnswers, filledCount } from '@/lib/mandalart';
+import { STATUS_STEPS, STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime, sheetsFromAnswers, worksheetsInAnswers, filledCount, genderLabel, birthTimeLabel } from '@/lib/mandalart';
 
 /**
  * /admin/mandalart : 신청 목록 조회 · 필터 · CSV 다운로드
@@ -52,7 +52,7 @@ export default function AdminMandalartListPage() {
     return requests.filter((r) => {
       if (statusFilter && r.status !== statusFilter) return false;
       if (!kw) return true;
-      return [r.name, r.email, r.phone, r.requestId, r.chapterTitle].some((v) => (v || '').toLowerCase().includes(kw));
+      return [r.name, r.email, r.phone, r.requestId, r.chapterTitle, r.profile?.birthCity, r.profile?.birthDate].some((v) => (v || '').toLowerCase().includes(kw));
     });
   }, [requests, statusFilter, keyword]);
 
@@ -162,6 +162,7 @@ export default function AdminMandalartListPage() {
                     <td className="px-4 py-3">
                       <div>{r.email || '-'}</div>
                       <div className="text-[11px] text-[#94928b]">{r.phone || '-'}</div>
+                      {r.profile && <div className="text-[11px] text-[#5f5e5a]">{r.profile.birthDate} {birthTimeLabel(r.profile.birthTime)} · {r.profile.birthCity} · {genderLabel(r.profile.gender)}</div>}
                     </td>
                     <td className="px-4 py-3 text-[11px] text-[#5f5e5a]">{summary(r)}</td>
                     <td className="px-4 py-3">
@@ -195,6 +196,7 @@ export default function AdminMandalartListPage() {
                   </div>
                   <span className={`shrink-0 text-[11px] px-2.5 py-1 rounded-full ${STATUS_BADGE_CLASS[r.status] || ''}`}>{STATUS_LABEL[r.status] || r.status}</span>
                 </div>
+                {r.profile && <div className="text-[11px] text-[#5f5e5a] mb-1">{r.profile.birthDate} {birthTimeLabel(r.profile.birthTime)} · {r.profile.birthCity} · {genderLabel(r.profile.gender)}</div>}
                 <div className="flex justify-between text-[11px] text-[#5f5e5a]">
                   <span>{summary(r)}</span>
                   <span>{formatDateTime(r.createdAt)}</span>

@@ -49,8 +49,9 @@ function setup() {
   return { db, handler, call, slackCalls, emailCalls };
 }
 
+const PROFILE = { birthDate: '1990-05-17', birthTime: '07:30', birthCity: '서울', gender: 'female' };
 const SUBMIT_BODY = {
-  name: '홍길동', phone: '010-1234-5678', consent: true,
+  name: '홍길동', phone: '010-1234-5678', consent: true, profile: PROFILE,
   answers: { 생년월일: '1990-01-01', 고민: '진로가 고민입니다', 관심분야: ['커리어', '관계'] },
 };
 
@@ -372,4 +373,31 @@ test('chapter-level submission stores chapter and appears in Slack/CSV', async (
   const { res: csv } = await call({ path: '/admin/export', claims: ADMIN });
   assert.match(csv.body, /상태,챕터,이름/);
   assert.match(csv.body, /나를 완성시켜주는 것들,홍길동/);
+});
+
+test('submit requires birth profile and stores it; CSV/Slack include it', async () => {
+  const { call, slackCalls } = setup();
+  const { res: noProfile, json: np } = await call({ method: 'POST', claims: USER, body: { ...SUBMIT_BODY, profile: undefined } });
+  assert.equal(noProfile.statusCode, 400);
+  assert.match(np.error, /출생 정보/);
+  const { res: badTime } = await call({ method: 'POST', claims: USER, body: { ...SUBMIT_BODY, profile: { ...PROFILE, birthTime: '25:00' } } });
+  assert.equal(badTime.statusCode, 400);
+  const { res: badGender } = await call({ method: 'POST', claims: USER, body: { ...SUBMIT_BODY, profile: { ...PROFILE, gender: 'x' } } });
+  assert.equal(badGender.statusCode, 400);
+
+  const { json: unknownTime } = await call({ method: 'POST', claims: USER, body: { ...SUBMIT_BODY, profile: { ...PROFILE, birthTime: '모름' } } });
+  assert.equal(unknownTime.request.profile.birthTime, 'unknown');
+
+  const { json } = await call({ method: 'POST', claims: USER, body: SUBMIT_BODY });
+  assert.deepEqual(json.request.profile, { ...PROFILE, calendar: 'solar', timeBasis: '24h' });
+  assert.match(JSON.stringify(slackCalls.at(-1)), /1990-05-17/);
+
+  const { res: csv } = await call({ path: '/admin/export', claims: ADMIN });
+  assert.match(csv.body, /생년월일\(양력\),태어난시간\(24h\),태어난도시,성별/);
+  assert.match(csv.body, /1990-05-17,07:30,서울,여성/);
+  assert.match(csv.body, /1990-05-17,모름,서울,여성/);
+
+  // 관리자 상세에도 포함
+  const { json: detail } = await call({ path: `/admin/${json.request.requestId}`, claims: ADMIN });
+  assert.equal(detail.request.profile.birthCity, '서울');
 });
