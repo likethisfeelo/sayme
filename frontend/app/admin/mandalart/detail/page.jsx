@@ -8,7 +8,7 @@ import StatusStepper from '@/app/components/mandalart/StatusStepper';
 import { isAdmin } from '@/lib/auth/checkAdmin';
 import { analysisAdminApi } from '@/lib/api/analysis';
 import {
-  worksheetsInAnswers, STATUS_STEPS, STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime, sheetsFromAnswers, sheetsToText, buildReportTemplate,
+  worksheetsInAnswers, STATUS_STEPS, STATUS_LABEL, STATUS_BADGE_CLASS, formatDateTime, sheetsFromAnswers, sheetsToText, buildReportTemplate, genderLabel, birthTimeLabel, profileSummary,
 } from '@/lib/mandalart';
 
 /**
@@ -162,7 +162,7 @@ function AdminDetailContent() {
   };
 
   const copyInput = async () => {
-    const text = `이름: ${request.name}\n이메일: ${request.email}\n연락처: ${request.phone}\n접수: ${formatDateTime(request.createdAt)}\n\n${sheetsToText(sheets)}`;
+    const text = `이름: ${request.name}\n이메일: ${request.email}\n연락처: ${request.phone}\n출생 정보: ${profileSummary(request.profile)}\n접수: ${formatDateTime(request.createdAt)}\n\n${sheetsToText(sheets)}`;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
@@ -202,6 +202,20 @@ function AdminDetailContent() {
                   </div>
                   <span className={`shrink-0 text-[11px] px-2.5 py-1 rounded-full ${STATUS_BADGE_CLASS[request.status] || ''}`}>{STATUS_LABEL[request.status]}</span>
                 </div>
+                <div className="mb-3 rounded-[12px] border border-[#E6E0DA] bg-[#FCFAF8] px-3 py-2.5">
+                  <div className="text-[11px] font-bold text-[#2A2725] mb-1.5">출생 정보</div>
+                  {request.profile ? (
+                    <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-[12px]">
+                      <div><dt className="text-[10px] text-[#94928b]">생년월일 (양력)</dt><dd className="font-semibold">{request.profile.birthDate || '-'}</dd></div>
+                      <div><dt className="text-[10px] text-[#94928b]">태어난 시간 (24h)</dt><dd className="font-semibold">{birthTimeLabel(request.profile.birthTime)}</dd></div>
+                      <div><dt className="text-[10px] text-[#94928b]">태어난 도시</dt><dd className="font-semibold">{request.profile.birthCity || '-'}</dd></div>
+                      <div><dt className="text-[10px] text-[#94928b]">성별</dt><dd className="font-semibold">{genderLabel(request.profile.gender)}</dd></div>
+                    </dl>
+                  ) : (
+                    <p className="text-[11px] text-[#94928b]">입력된 출생 정보가 없습니다 (이전 버전 신청).</p>
+                  )}
+                </div>
+
                 <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[11px] text-[#5f5e5a] mb-3">
                   <dt>챕터</dt><dd className="font-semibold text-[#2A2725]">{request.chapterTitle || (request.chapter === 'all' ? '전체 (두 챕터)' : request.chapter || '-')}</dd>
                   <dt>요청ID</dt><dd className="font-mono break-all">{request.requestId}</dd>

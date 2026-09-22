@@ -8,7 +8,7 @@ import MandalartGrid from '@/app/components/mandalart/MandalartGrid';
 import StatusStepper from '@/app/components/mandalart/StatusStepper';
 import { getAccessToken } from '@/app/utils/auth';
 import { analysisUserApi } from '@/lib/api/analysis';
-import { SERVICE_NAME, worksheetsInAnswers, sheetsFromAnswers, formatDateTime, STATUS_LABEL, STATUS_BADGE_CLASS } from '@/lib/mandalart';
+import { SERVICE_NAME, worksheetsInAnswers, sheetsFromAnswers, formatDateTime, profileSummary, STATUS_LABEL, STATUS_BADGE_CLASS } from '@/lib/mandalart';
 
 /**
  * /mandalart/detail?id= : 내 신청 상세 (입력값 조회 + 처리 상태 + 보고서 링크)
@@ -115,7 +115,8 @@ function DetailContent() {
               <h2 className="text-[15px] font-bold">내가 입력한 내용</h2>
               <span className={`text-[11px] px-2.5 py-1 rounded-full ${STATUS_BADGE_CLASS[request.status] || ''}`}>{request.statusLabel}</span>
             </div>
-            <p className="text-[11px] text-[#94928b] mb-3">{request.chapterTitle ? `${request.chapterTitle} · ` : ''}접수 {formatDateTime(request.createdAt)} · {request.name} · {request.phone}</p>
+            <p className="text-[11px] text-[#94928b] mb-1">{request.chapterTitle ? `${request.chapterTitle} · ` : ''}접수 {formatDateTime(request.createdAt)} · {request.name} · {request.phone}</p>
+            {request.profile && <p className="text-[11px] text-[#94928b] mb-3">출생 정보: {profileSummary(request.profile)}</p>}
 
             <div className="space-y-3">
               {worksheetsInAnswers(request.answers).map((ws) => {

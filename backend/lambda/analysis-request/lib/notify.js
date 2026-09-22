@@ -76,6 +76,7 @@ async function notifySlackNewSubmission(item, deps = {}) {
     `*이름*: ${item.name || '-'}`,
     `*이메일*: ${item.email || '-'}`,
     `*연락처*: ${item.phone || '-'}`,
+    ...(item.profile ? [`*출생*: ${item.profile.birthDate || '-'} ${item.profile.birthTime === 'unknown' ? '(시간 모름)' : item.profile.birthTime || ''} · ${item.profile.birthCity || '-'} · ${({ female: '여성', male: '남성', other: '기타' })[item.profile.gender] || item.profile.gender || '-'}`] : []),
     `*접수시각*: ${item.createdAt}`,
     `*요청 ID*: ${item.requestId}`,
   ];
