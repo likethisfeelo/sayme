@@ -1,22 +1,28 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { usePremium } from '@/app/utils/useAuthed';
 import PageShell, { Card, Spinner } from '@/app/components/mandalart/PageShell';
 import useDraft from '@/app/components/mandalart/useDraft';
 import { getAccessToken, getIdTokenPayload } from '@/app/utils/auth';
 import { analysisUserApi } from '@/lib/api/analysis';
 import {
-  SERVICE_NAME, WORKSHEETS, CELL_COUNT, SUB_COUNT, GENDER_OPTIONS, allChaptersComplete, isChapterComplete, subFilledCount, buildSubmitPayload, validateContact,
+  SERVICE_NAME, WORKSHEETS, CELL_COUNT, SUB_COUNT, GENDER_OPTIONS, allChaptersComplete, isChapterComplete, subFilledCount, buildSubmitPayload, validateContact, worksheetByKey,
 } from '@/lib/mandalart';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://h1l7cj53v9.execute-api.ap-northeast-2.amazonaws.com/dev';
 
 /**
- * /mandalart/submit : 두 챕터 확인 + 연락처 + 동의 → 최종 보고서 신청 (관리자는 두 장을 함께 분석)
+ * /mandalart/submit          : 두 챕터 확인 + 연락처 + 동의 → 최종 보고서 신청 (관리자는 두 장을 함께 분석)
+ * /mandalart/submit?key=...  : (프리미엄 전용) 해당 챕터만 분석 요청
  */
-export default function MandalartSubmitPage() {
+function SubmitContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const premium = usePremium();
+  const chapterWs = premium ? worksheetByKey(searchParams.get('key')) : null; // 일반 회원은 key 무시
+  const chapterMode = !!chapterWs;
   const [authed] = useState(() => typeof window !== 'undefined' && !!getAccessToken());
   const { draft, setDraft, loading, syncError } = useDraft({ enabled: authed });
   const [errors, setErrors] = useState({});
@@ -68,14 +74,14 @@ export default function MandalartSubmitPage() {
       setMessage('입력 내용을 확인해 주세요.');
       return;
     }
-    if (!allChaptersComplete(draft)) {
-      setMessage('두 챕터를 모두 완료한 뒤 최종 보고서를 신청할 수 있어요.');
+    if (chapterMode ? !isChapterComplete(draft.sheets[chapterWs.key]) : !allChaptersComplete(draft)) {
+      setMessage(chapterMode ? '이 챕터의 단계를 모두 완료한 뒤 신청할 수 있어요.' : '두 챕터를 모두 완료한 뒤 최종 보고서를 신청할 수 있어요.');
       return;
     }
     try {
       setSubmitting(true);
       setMessage('');
-      const data = await analysisUserApi.submit(buildSubmitPayload(draft));
+      const data = await analysisUserApi.submit(buildSubmitPayload(draft, chapterMode ? { chapter: chapterWs.key } : {}));
       try {
         const confetti = (await import('canvas-confetti')).default;
         confetti({ particleCount: 140, spread: 75, origin: { y: 0.7 }, colors: ['#1D9E75', '#D85A30', '#BFA7FF', '#7BCBFF'] });
@@ -97,21 +103,26 @@ export default function MandalartSubmitPage() {
     return <PageShell subtitle={SERVICE_NAME} backTo="/mandalart" maxWidthClass="max-w-[640px]"><Spinner /></PageShell>;
   }
 
-  const ready = allChaptersComplete(draft);
-  const missing = WORKSHEETS.filter((w) => !isChapterComplete(draft.sheets[w.key]));
+  const ready = chapterMode ? isChapterComplete(draft.sheets[chapterWs.key]) : allChaptersComplete(draft);
+  const missing = (chapterMode ? [chapterWs] : WORKSHEETS).filter((w) => !isChapterComplete(draft.sheets[w.key]));
+  const shownSheets = chapterMode ? [chapterWs] : WORKSHEETS;
 
   return (
     <PageShell subtitle={`${SERVICE_NAME} · 제출`} backTo="/mandalart" maxWidthClass="max-w-[640px]" bottomPadding="pb-[110px]" showMenuButton={false}>
       <Card>
-        <h1 className="text-[20px] font-bold leading-tight mb-1">최종 보고서 신청</h1>
-        <p className="text-[12px] text-[#94928b] mb-3">두 챕터의 내용을 확인하고 연락처를 남겨주세요. 관리자가 두 장을 함께 분석해 이메일로 보고서를 보내드려요.</p>
+        {chapterMode && <div className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-[rgba(232,223,245,0.8)] text-[#3B2E7A] mb-1">프리미엄 · 챕터별 분석</div>}
+        <h1 className="text-[20px] font-bold leading-tight mb-1">{chapterMode ? `${chapterWs.title} 분석 요청` : '최종 보고서 신청'}</h1>
+        <p className="text-[12px] text-[#94928b] mb-3">
+          {chapterMode ? '이 챕터의 내용만 먼저 분석해 드려요. 연락처와 출생 정보를 확인해 주세요.' : '두 챕터의 내용을 확인하고 연락처를 남겨주세요. 관리자가 두 장을 함께 분석해 이메일로 보고서를 보내드려요.'}
+        </p>
         {!ready && (
           <p className="text-[12px] text-[#7A4B00] bg-[#FFF7E6] border border-[#F0C36D] rounded-[10px] px-3 py-2 mb-3">
-            아직 완료되지 않은 챕터가 있어요: <b>{missing.map((w) => w.title).join(', ')}</b><br />홈에서 남은 챕터를 완료한 뒤 신청해 주세요.
+            아직 완료되지 않은 {chapterMode ? '단계' : '챕터'}가 있어요: <b>{missing.map((w) => w.title).join(', ')}</b><br />홈에서 남은 {chapterMode ? '단계' : '챕터'}를 완료한 뒤 신청해 주세요.
           </p>
         )}
         <div className="flex flex-col gap-2">
-          {WORKSHEETS.map((w, i) => {
+          {shownSheets.map((w) => {
+            const i = WORKSHEETS.indexOf(w);
             const s = draft.sheets[w.key];
             return (
               <button
@@ -275,11 +286,19 @@ export default function MandalartSubmitPage() {
               disabled={submitting || !ready}
               className="flex-1 py-3 rounded-[14px] font-bold text-[14px] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f] shadow-[0_10px_22px_rgba(123,203,255,0.18)] active:scale-[0.98] transition-transform disabled:opacity-50"
             >
-              {submitting ? '제출 중...' : ready ? '최종 보고서 신청하기' : '두 챕터 완료 후 신청 가능'}
+              {submitting ? '제출 중...' : ready ? (chapterMode ? '이 보고서만 분석 요청하기' : '최종 보고서 신청하기') : (chapterMode ? '챕터 완료 후 신청 가능' : '두 챕터 완료 후 신청 가능')}
             </button>
           </div>
         </div>
       </div>
     </PageShell>
+  );
+}
+
+export default function MandalartSubmitPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">로딩 중...</div>}>
+      <SubmitContent />
+    </Suspense>
   );
 }

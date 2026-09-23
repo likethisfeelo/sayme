@@ -358,17 +358,23 @@ test('draft: save, load, excluded from lists, removed on submit', async () => {
   assert.equal(gone.draft, null);
 });
 
-test('chapter-level submission stores chapter and appears in Slack/CSV', async () => {
+const PREMIUM = { sub: 'user-1', email: 'user@example.com', 'cognito:groups': ['premium'] };
+
+test('chapter-level submission is premium-only, stores chapter and appears in Slack/CSV', async () => {
   const { call, slackCalls } = setup();
   const answers = { complete: { title: '나를 완성시켜주는 것들', subLabels: ['a', 'b', 'c'], items: [{ text: '가족', subs: ['', '', ''] }] } };
-  const { json } = await call({ method: 'POST', claims: USER, body: { ...SUBMIT_BODY, answers, chapter: 'complete' } });
+  // 일반 회원은 챕터 단위 제출 불가
+  const { res: denied, json: dj } = await call({ method: 'POST', claims: USER, body: { ...SUBMIT_BODY, answers, chapter: 'complete' } });
+  assert.equal(denied.statusCode, 403);
+  assert.match(dj.error, /프리미엄/);
+  const { json } = await call({ method: 'POST', claims: PREMIUM, body: { ...SUBMIT_BODY, answers, chapter: 'complete' } });
   assert.equal(json.request.chapter, 'complete');
   assert.equal(json.request.chapterTitle, '나를 완성시켜주는 것들');
   assert.match(JSON.stringify(slackCalls[0]), /완성시켜주는/);
-  // chapter 생략 시 answers 키가 하나면 그 키로 추론
-  const { json: inferred } = await call({ method: 'POST', claims: USER, body: { ...SUBMIT_BODY, answers } });
+  // chapter 생략 시 answers 키가 하나면 그 키로 추론 (역시 프리미엄만)
+  const { json: inferred } = await call({ method: 'POST', claims: PREMIUM, body: { ...SUBMIT_BODY, answers } });
   assert.equal(inferred.request.chapter, 'complete');
-  const { json: mine } = await call({ path: '/mine', claims: USER });
+  const { json: mine } = await call({ path: '/mine', claims: PREMIUM });
   assert.equal(mine.count, 2);
   const { res: csv } = await call({ path: '/admin/export', claims: ADMIN });
   assert.match(csv.body, /상태,챕터,이름/);

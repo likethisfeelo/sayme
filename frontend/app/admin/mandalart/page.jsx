@@ -18,6 +18,7 @@ export default function AdminMandalartListPage() {
   const [counts, setCounts] = useState({});
   const [error, setError] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [chapterOnly, setChapterOnly] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [exporting, setExporting] = useState(false);
 
@@ -51,10 +52,11 @@ export default function AdminMandalartListPage() {
     const kw = keyword.trim().toLowerCase();
     return requests.filter((r) => {
       if (statusFilter && r.status !== statusFilter) return false;
+      if (chapterOnly && (!r.chapter || r.chapter === 'all')) return false;
       if (!kw) return true;
       return [r.name, r.email, r.phone, r.requestId, r.chapterTitle, r.profile?.birthCity, r.profile?.birthDate].some((v) => (v || '').toLowerCase().includes(kw));
     });
-  }, [requests, statusFilter, keyword]);
+  }, [requests, statusFilter, keyword, chapterOnly]);
 
   const handleExport = async () => {
     try {
@@ -77,7 +79,7 @@ export default function AdminMandalartListPage() {
     const sheets = sheetsFromAnswers(r.answers);
     return worksheetsInAnswers(r.answers).map((ws) => `${ws.title.slice(0, 6)}… ${filledCount(sheets[ws.key])}/8`).join(' · ');
   };
-  const chapterLabel = (r) => r.chapterTitle || (r.chapter === 'all' ? '전체' : r.chapter || '-');
+  const chapterLabel = (r) => (r.chapter && r.chapter !== 'all' ? `✦ ${r.chapterTitle || r.chapter}` : '전체 (두 챕터)');
 
   return (
     <PageShell subtitle="관리자 · 만다라트 신청" backTo="/admin" maxWidthClass="max-w-[1100px]">
@@ -119,6 +121,14 @@ export default function AdminMandalartListPage() {
               {s.icon} {s.label} {counts[s.key] ?? 0}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => setChapterOnly((v) => !v)}
+            className={`text-[12px] px-3 py-1.5 rounded-full border ${chapterOnly ? 'bg-[#3B2E7A] text-white border-[#3B2E7A]' : 'bg-white border-[#BFA7FF] text-[#3B2E7A]'}`}
+            title="프리미엄 회원의 챕터별 분석 요청만 보기"
+          >
+            ✦ 챕터별(프리미엄) {requests.filter((r) => r.chapter && r.chapter !== 'all').length}
+          </button>
         </div>
 
         <input

@@ -324,6 +324,14 @@ function createHandler(deps = {}) {
     const chapter = cleanString(body.chapter, 50) || (Object.keys(answers).length === 1 ? Object.keys(answers)[0] : 'all');
     const chapterTitle = cleanString(body.chapterTitle, 100) || answers?.[chapter]?.title || null;
 
+    // 챕터 하나만 분석 요청하는 것은 프리미엄 회원 전용 (일반 회원은 두 챕터를 함께 제출)
+    if (chapter !== 'all') {
+      const premiumGroup = process.env.PREMIUM_GROUP || 'premium';
+      if (!auth.isAdmin && !auth.groups.includes(premiumGroup)) {
+        throw new HttpError(403, '챕터별 분석 요청은 프리미엄 회원 전용입니다. 두 챕터를 모두 완료한 뒤 최종 보고서를 신청해 주세요.');
+      }
+    }
+
     const createdAt = nowIso();
     const item = {
       requestId: `ar_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
