@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import PageShell, { Card, Spinner } from '@/app/components/mandalart/PageShell';
 import ServiceStatusCard, { ConsultCard } from '@/app/components/mandalart/ServiceStatusCard';
 import useDraft from '@/app/components/mandalart/useDraft';
-import useAuthed, { useMounted } from '@/app/utils/useAuthed';
+import useAuthed, { useMounted, usePremium } from '@/app/utils/useAuthed';
 import { analysisUserApi } from '@/lib/api/analysis';
 import {
   SERVICE_NAME, WORKSHEETS, PASS_COUNT, passesOf, donePassCount, isChapterComplete, nextPassIndex, allChaptersComplete, emptyDraft,
@@ -20,6 +20,7 @@ export default function MandalartHomePage() {
   const router = useRouter();
   const authed = useAuthed();
   const mounted = useMounted();
+  const premium = usePremium();
   const { draft, loading: draftLoading, syncError, reset } = useDraft({ enabled: authed });
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState([]);
@@ -67,7 +68,7 @@ export default function MandalartHomePage() {
 
   const viewDraft = draft || emptyDraft();
   const ready = authed && allChaptersComplete(viewDraft);
-  const latest = requests[0] || null;
+  const latest = requests.find((r) => !r.chapter || r.chapter === 'all') || null;
   const missingTitles = WORKSHEETS.filter((w) => !isChapterComplete(viewDraft.sheets[w.key])).map((w) => w.title);
   const showCards = authed ? !draftLoading : mounted;
 
@@ -184,6 +185,39 @@ export default function MandalartHomePage() {
                           ? '두 챕터가 모두 끝났으니 아래에서 최종 보고서를 신청해 주세요.'
                           : `남은 챕터(${missingTitles.join(', ')})를 완료한 뒤 최종 보고서를 신청할 수 있어요.`}
                       </div>
+                      {premium && (() => {
+                        const chapterReq = (requests || []).find((r) => r.chapter === ws.key);
+                        return (
+                          <div className="mt-2 rounded-[12px] border border-[#BFA7FF] bg-[rgba(232,223,245,0.45)] px-3 py-2.5">
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                              <span className="text-[11px] font-bold text-[#3B2E7A]">프리미엄 · 챕터별 분석</span>
+                              {chapterReq && (
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full ${STATUS_BADGE_CLASS[chapterReq.status] || ''}`}>{STATUS_LABEL[chapterReq.status] || chapterReq.status}</span>
+                              )}
+                            </div>
+                            {chapterReq?.status === 'sent' ? (
+                              <button
+                                type="button"
+                                onClick={() => router.push(`/mandalart/report/?id=${encodeURIComponent(chapterReq.requestId)}`)}
+                                className="w-full py-2.5 rounded-[12px] font-bold text-[13px] bg-gradient-to-r from-[rgba(191,167,255,0.95)] to-[rgba(123,203,255,0.95)] text-[#1f1f1f]"
+                              >
+                                이 챕터 보고서 조회 →
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => router.push(`/mandalart/submit/?key=${ws.key}`)}
+                                className="w-full py-2.5 rounded-[12px] font-bold text-[13px] border border-[#BFA7FF] bg-white text-[#3B2E7A]"
+                              >
+                                {chapterReq ? '이 보고서만 다시 분석 요청하기' : '이 보고서만 분석 요청하기 →'}
+                              </button>
+                            )}
+                            {chapterReq && chapterReq.status !== 'sent' && (
+                              <p className="mt-1.5 text-[11px] text-[#5f5e5a]">접수 {formatDateTime(chapterReq.createdAt)} · 관리자가 확인 중이에요.</p>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </>
                   ) : (
                     <button
@@ -244,7 +278,7 @@ export default function MandalartHomePage() {
                 className="w-full text-left flex items-center justify-between gap-3 rounded-[12px] border border-[#E6E0DA] bg-white px-3.5 py-3 hover:border-[rgba(191,167,255,0.6)] transition-colors"
               >
                 <div className="min-w-0">
-                  <div className="text-[13px] font-semibold truncate">{req.reportTitle || '만다라트 최종 보고서 신청'}</div>
+                  <div className="text-[13px] font-semibold truncate">{req.reportTitle || (req.chapter && req.chapter !== 'all' ? `${req.chapterTitle || req.chapter} · 챕터별 분석` : '만다라트 최종 보고서 신청')}</div>
                   <div className="text-[11px] text-[#94928b]">{formatDateTime(req.createdAt)}</div>
                 </div>
                 <span className={`shrink-0 text-[11px] px-2.5 py-1 rounded-full font-medium ${STATUS_BADGE_CLASS[req.status] || ''}`}>

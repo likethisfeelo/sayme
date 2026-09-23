@@ -10,6 +10,7 @@ import { playCrystal } from '@/lib/crystalSound';
 import ServiceStatusCard, { ConsultCard } from '@/app/components/mandalart/ServiceStatusCard';
 import { analysisUserApi } from '@/lib/api/analysis';
 import { getAccessToken } from '@/app/utils/auth';
+import { usePremium } from '@/app/utils/useAuthed';
 import {
   SERVICE_NAME, CELL_COUNT, PASS_COUNT, worksheetByKey, passesOf, isChapterComplete, nextPassIndex, allChaptersComplete, WORKSHEETS, sheetsToText, formatDateTime,
 } from '@/lib/mandalart';
@@ -65,6 +66,7 @@ function ChapterContent() {
 
   const [authed] = useState(() => typeof window !== 'undefined' && !!getAccessToken());
   const { draft, setDraft, loading, persist, syncing, syncError, lastSyncedAt } = useDraft({ enabled: authed });
+  const premium = usePremium();
   const routeKey = `${key}-${passParam}`;
   const [completedKey, setCompletedKey] = useState(null); // "저장 및 완료" 직후 패널을 보여줄 회차
   const completed = completedKey === routeKey;
@@ -80,7 +82,7 @@ function ChapterContent() {
     if (!isView || !authed) return;
     let cancelled = false;
     analysisUserApi.listMine()
-      .then((data) => { if (!cancelled) setLatestRequest((data.requests || [])[0] || null); })
+      .then((data) => { if (!cancelled) setLatestRequest((data.requests || []).find((r) => !r.chapter || r.chapter === 'all') || null); })
       .catch(() => {})
       .finally(() => { if (!cancelled) setStatusLoading(false); });
     return () => { cancelled = true; };
@@ -214,6 +216,11 @@ function ChapterContent() {
                         {otherChapters[0].title} 챕터 이어서 하기 →
                       </button>
                     )}
+                    {premium && (
+                      <button type="button" onClick={() => router.push(`/mandalart/submit/?key=${ws.key}`)} className="w-full py-3 rounded-[14px] border border-[#BFA7FF] bg-[rgba(232,223,245,0.5)] font-bold text-[13px] text-[#3B2E7A]">
+                        프리미엄 · 이 보고서만 분석 요청하기 →
+                      </button>
+                    )}
                     <button type="button" onClick={() => go('view')} className="w-full py-3 rounded-[14px] border font-semibold text-[13px] bg-white" style={{ borderColor: ws.theme.accln, color: ws.theme.acc }}>
                       이 챕터 최종 화면 보기
                     </button>
@@ -256,6 +263,15 @@ function ChapterContent() {
               <span>{lastSyncedAt ? `서버 저장 ${formatDateTime(lastSyncedAt)}` : ''}</span>
               <button type="button" onClick={handleCopy} className="underline underline-offset-2">{copied ? '복사됨' : '텍스트로 복사'}</button>
             </div>
+            {premium && chapterComplete && (
+              <Card className="!border-[#BFA7FF] bg-[rgba(232,223,245,0.35)]">
+                <div className="text-[11px] font-bold text-[#3B2E7A] mb-1">프리미엄 · 챕터별 분석</div>
+                <p className="text-[12px] text-[#5f5e5a] mb-3">두 챕터를 기다리지 않고 이 챕터만 먼저 분석 받을 수 있어요.</p>
+                <button type="button" onClick={() => router.push(`/mandalart/submit/?key=${ws.key}`)} className="w-full py-3 rounded-[14px] font-bold text-[14px] border border-[#BFA7FF] bg-white text-[#3B2E7A]">
+                  이 보고서만 분석 요청하기 →
+                </button>
+              </Card>
+            )}
             <ServiceStatusCard request={latestRequest} ready={everyChapterComplete} loading={statusLoading} missingTitles={otherChapters.map((w) => w.title)} />
             <ConsultCard />
             <button type="button" onClick={() => router.push('/mandalart')} className="w-full py-3 rounded-[14px] border border-[#E6E0DA] bg-white font-bold text-[14px] text-[#2A2725]">

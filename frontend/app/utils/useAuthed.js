@@ -1,7 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
-import { getAccessToken } from '@/app/utils/auth';
+import { getAccessToken, getIdTokenPayload } from '@/app/utils/auth';
 
 const subscribe = (cb) => {
   window.addEventListener('storage', cb);
@@ -24,4 +24,14 @@ const noop = () => () => {};
 /** 클라이언트에서 마운트된 뒤 true (프리렌더/하이드레이션 중 false) */
 export function useMounted() {
   return useSyncExternalStore(noop, () => true, () => false);
+}
+
+const getPremium = () => {
+  if (!getAccessToken()) return false;
+  const groups = getIdTokenPayload()?.['cognito:groups'] || [];
+  return Array.isArray(groups) && groups.includes('premium');
+};
+/** 프리미엄 회원 여부 (cognito:groups 에 premium). 프리렌더 중에는 false */
+export function usePremium() {
+  return useSyncExternalStore(subscribe, getPremium, () => false);
 }
